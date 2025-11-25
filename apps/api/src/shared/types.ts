@@ -1,0 +1,140 @@
+export type TransactionSource = 'pdf' | 'manual';
+export type TransactionType = 'income' | 'expense';
+export type Currency = 'TRY' | 'USD' | 'EUR';
+
+export interface TransactionEntity {
+  id: string;
+  userId: string;
+  accountId: string;
+  date: string;           // ISO 8601
+  description: string;
+  amount: number;         // Negatif = gider, Pozitif = gelir
+  currency: Currency;
+  source: TransactionSource;
+  type: TransactionType;
+  categoryId: string;
+  categoryLabel: string;
+  confidence: number;     // 0-100
+  tags: string[];
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DashboardSummary {
+  period: {
+    month: string;
+    year: number;
+    startDate: string;
+    endDate: string;
+  };
+  totals: {
+    income: number;
+    expense: number;
+    balance: number;
+    transactionCount: number;
+  };
+  comparison: {
+    previousMonth: {
+      income: number;
+      expense: number;
+    };
+    changePercentage: {
+      income: number;
+      expense: number;
+    };
+  };
+  topCategories: CategorySummary[];
+  weeklyTrend: WeeklyData[];
+  recurringPayments: RecurringPayment[];
+}
+
+export interface CategorySummary {
+  categoryId: string;
+  categoryLabel: string;
+  total: number;
+  percentage: number;
+  transactionCount: number;
+  trend: 'up' | 'down' | 'stable';
+}
+
+export interface WeeklyData {
+  week: string;
+  income: number;
+  expense: number;
+}
+
+export interface RecurringPayment {
+  id: string;
+  description: string;
+  amount: number;
+  currency: Currency;
+  frequency: 'weekly' | 'monthly' | 'yearly';
+  categoryLabel: string;
+  lastDate: string;
+  nextDate: string;
+  isActive: boolean;
+}
+
+export interface Suggestion {
+  id: string;
+  transactionId: string;
+  description: string;
+  amount: number;
+  currency: Currency;
+  currentCategory?: string;
+  suggestedCategories: Array<{
+    categoryId: string;
+    categoryLabel: string;
+    confidence: number;
+  }>;
+  createdAt: string;
+}
+
+export interface UploadResult {
+  success: boolean;
+  filename: string;
+  totalParsed: number;
+  totalSaved: number;
+  lowConfidenceCount: number;
+  errors: string[];
+  transactions: TransactionEntity[];
+}
+
+// Query parameters
+export interface TransactionQuery {
+  type?: TransactionType;
+  categoryId?: string;
+  source?: TransactionSource;
+  dateFrom?: string;
+  dateTo?: string;
+  minAmount?: number;
+  maxAmount?: number;
+  search?: string;
+  sortBy?: 'date' | 'amount' | 'category';
+  sortOrder?: 'asc' | 'desc';
+  limit?: number;
+  offset?: number;
+}
+
+// DTOs
+export interface CreateTransactionDto {
+  date: string;
+  description: string;
+  amount: number;
+  currency?: Currency;
+  type: TransactionType;
+  categoryId?: string;
+  categoryLabel?: string;
+  tags?: string[];
+  notes?: string;
+}
+
+export interface UpdateTransactionDto {
+  description?: string;
+  amount?: number;
+  categoryId?: string;
+  categoryLabel?: string;
+  tags?: string[];
+  notes?: string;
+}
