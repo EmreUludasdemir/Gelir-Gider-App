@@ -43,3 +43,4 @@ coverage/
 # Misc
 *.tgz
 .cache/
+*.tsbuildinfo
