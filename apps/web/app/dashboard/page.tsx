@@ -5,6 +5,8 @@ import { StatCard } from '@/components/dashboard/StatCard'
 import { TransactionTable } from '@/components/dashboard/TransactionTable'
 import { TopCategories } from '@/components/dashboard/TopCategories'
 import { RecurringPayments } from '@/components/dashboard/RecurringPayments'
+import { WeeklyTrendChart } from '@/components/dashboard/WeeklyTrendChart'
+import { CategoryPieChart } from '@/components/dashboard/CategoryPieChart'
 import { Spinner } from '@/components/ui/Spinner'
 
 export default function DashboardPage() {
@@ -61,6 +63,12 @@ export default function DashboardPage() {
           value={summary.totals.balance}
           icon="💰"
         />
+      </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <WeeklyTrendChart data={summary.weeklyTrend} />
+        <CategoryPieChart categories={summary.topCategories} />
       </div>
 
       {/* Top Categories and Recurring Payments */}

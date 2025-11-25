@@ -4,11 +4,14 @@ import { useState } from 'react'
 import { useTransactions, useRefreshAll } from '@/lib/hooks'
 import { TransactionTable } from '@/components/dashboard/TransactionTable'
 import { ManualTransactionForm } from '@/components/forms/ManualTransactionForm'
+import { TransactionFilters } from '@/components/forms/TransactionFilters'
+import { ExportButton } from '@/components/ui/ExportButton'
 import { Spinner } from '@/components/ui/Spinner'
 
 export default function TransactionsPage() {
   const [showForm, setShowForm] = useState(false)
-  const { data: transactions, error, isLoading } = useTransactions()
+  const [filters, setFilters] = useState<Record<string, string>>({})
+  const { data: transactions, error, isLoading } = useTransactions(filters)
   const refreshAll = useRefreshAll()
 
   const handleSuccess = async () => {
@@ -43,13 +46,23 @@ export default function TransactionsPage() {
             Toplam {transactions?.length || 0} işlem
           </p>
         </div>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors"
-        >
-          {showForm ? 'Formu Kapat' : '+ Yeni İşlem'}
-        </button>
+        <div className="flex gap-2">
+          {transactions && transactions.length > 0 && (
+            <ExportButton transactions={transactions} />
+          )}
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors"
+          >
+            {showForm ? 'Formu Kapat' : '+ Yeni İşlem'}
+          </button>
+        </div>
       </div>
+
+      <TransactionFilters
+        onFilterChange={setFilters}
+        onReset={() => setFilters({})}
+      />
 
       {showForm && (
         <div className="max-w-2xl">

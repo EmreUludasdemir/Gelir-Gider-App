@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
+import { useToast } from '@/components/ui/Toast'
 
 interface ManualTransactionFormProps {
   onSuccess?: () => void
@@ -14,6 +15,7 @@ interface ManualTransactionFormProps {
 export function ManualTransactionForm({ onSuccess }: ManualTransactionFormProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { showToast } = useToast()
   const [formData, setFormData] = useState({
     description: '',
     amount: '',
@@ -41,6 +43,7 @@ export function ManualTransactionForm({ onSuccess }: ManualTransactionFormProps)
         type: 'expense',
         date: new Date().toISOString().split('T')[0],
       })
+      showToast('İşlem başarıyla eklendi!', 'success')
       onSuccess?.()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'İşlem eklenemedi')

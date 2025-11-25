@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { ToastProvider } from '@/components/ui/Toast'
 
 export const metadata: Metadata = {
   title: 'Gelir-Gider Takip',
@@ -13,7 +14,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="tr">
-      <body className="min-h-screen bg-gray-50">{children}</body>
+      <body className="min-h-screen bg-gray-50">
+        <ToastProvider>{children}</ToastProvider>
+      </body>
     </html>
   )
 }
