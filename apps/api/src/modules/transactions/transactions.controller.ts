@@ -9,6 +9,7 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import { TransactionsService } from './transactions.service';
 import {
@@ -16,50 +17,57 @@ import {
   UpdateTransactionDto,
   TransactionQuery,
 } from '../../shared/types';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { User } from '../auth/user.decorator';
 
+@UseGuards(JwtAuthGuard)
 @Controller('transactions')
 export class TransactionsController {
-  constructor(private readonly transactionsService: TransactionsService) {}
+  constructor(private readonly transactionsService: TransactionsService) { }
 
   @Get()
-  findAll(@Query() query: TransactionQuery) {
-    return this.transactionsService.findAll(query);
+  findAll(@User() user: any, @Query() query: TransactionQuery) {
+    return this.transactionsService.findAll(user.id, query);
   }
 
   @Get('summary')
-  getSummary() {
-    return this.transactionsService.getSummary();
+  getSummary(@User() user: any) {
+    return this.transactionsService.getSummary(user.id);
   }
 
   @Get('suggestions')
-  getSuggestions() {
-    return this.transactionsService.getSuggestions();
+  getSuggestions(@User() user: any) {
+    return this.transactionsService.getSuggestions(user.id);
   }
 
   @Get('recurring')
-  getRecurringPayments() {
-    return this.transactionsService.getRecurringPayments();
+  getRecurringPayments(@User() user: any) {
+    return this.transactionsService.getRecurringPayments(user.id);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.transactionsService.findOne(id);
+  findOne(@User() user: any, @Param('id') id: string) {
+    return this.transactionsService.findOne(user.id, id);
   }
 
   @Post('manual')
   @HttpCode(HttpStatus.CREATED)
-  create(@Body() createDto: CreateTransactionDto) {
-    return this.transactionsService.create(createDto);
+  create(@User() user: any, @Body() createDto: CreateTransactionDto) {
+    return this.transactionsService.create(user.id, createDto);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateDto: UpdateTransactionDto) {
-    return this.transactionsService.update(id, updateDto);
+  update(
+    @User() user: any,
+    @Param('id') id: string,
+    @Body() updateDto: UpdateTransactionDto,
+  ) {
+    return this.transactionsService.update(user.id, id, updateDto);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
-  delete(@Param('id') id: string) {
-    return this.transactionsService.delete(id);
+  delete(@User() user: any, @Param('id') id: string) {
+    return this.transactionsService.delete(user.id, id);
   }
 }

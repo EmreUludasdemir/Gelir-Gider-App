@@ -7,6 +7,8 @@ export const metadata: Metadata = {
   description: 'Modern finans yönetim uygulaması',
 }
 
+import { AuthProvider } from '@/components/auth-provider';
+
 export default function RootLayout({
   children,
 }: {
@@ -15,7 +17,9 @@ export default function RootLayout({
   return (
     <html lang="tr">
       <body className="min-h-screen bg-gray-50">
-        <ToastProvider>{children}</ToastProvider>
+        <AuthProvider>
+          <ToastProvider>{children}</ToastProvider>
+        </AuthProvider>
       </body>
     </html>
   )

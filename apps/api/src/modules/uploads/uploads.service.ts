@@ -1,8 +1,9 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import { TransactionEntity, UploadResult } from '../../shared/types';
-import { TransactionStorageService } from '../../shared/transaction-storage.service';
 import { classifyTransaction } from '../../shared/categories';
+import { PrismaService } from '../../prisma.service';
+import { Prisma } from '@prisma/client';
 
 interface ParsedTransaction {
   date: string;
@@ -13,9 +14,9 @@ interface ParsedTransaction {
 
 @Injectable()
 export class UploadsService {
-  constructor(private readonly storage: TransactionStorageService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
-  async processPdf(file: Express.Multer.File): Promise<UploadResult> {
+  async processPdf(userId: string, file: Express.Multer.File): Promise<UploadResult> {
     // Validate file
     if (!file) {
       throw new BadRequestException('No file provided');
@@ -40,6 +41,7 @@ export class UploadsService {
       const blob = new Blob([file.buffer], { type: 'application/pdf' });
       formData.append('file', blob, file.originalname);
 
+      // Node 18+ fetch
       const response = await fetch(`${pdfParserUrl}/parse`, {
         method: 'POST',
         body: formData,
@@ -62,41 +64,39 @@ export class UploadsService {
       const parsedTransactions: ParsedTransaction[] = parseResult.transactions || [];
 
       // Process each parsed transaction
-      parsedTransactions.forEach((parsed, index) => {
+      for (const [index, parsed] of parsedTransactions.entries()) {
         try {
           // Classify transaction
+          // TODO: Use userId for personalized classification if needed
           const classification = classifyTransaction(parsed.description);
 
           // Determine transaction type
           const type: 'income' | 'expense' = parsed.amount >= 0 ? 'income' : 'expense';
 
-          const now = new Date().toISOString();
+          // Save to database
+          const transaction = await this.prisma.transaction.create({
+            data: {
+              userId,
+              accountId: 'pdf-upload',
+              date: new Date(parsed.date),
+              description: parsed.description,
+              amount: parsed.amount,
+              currency: (parsed.currency || 'TRY'),
+              source: 'pdf',
+              type,
+              categoryId: classification.categoryId,
+              categoryLabel: classification.categoryLabel,
+              confidence: classification.confidence,
+              tags: JSON.stringify(['pdf-upload']),
+              notes: `Parsed from ${file.originalname}`,
+            },
+          });
 
-          const transaction: TransactionEntity = {
-            id: uuidv4(),
-            userId: 'demo-user',
-            accountId: 'pdf-upload',
-            date: parsed.date,
-            description: parsed.description,
-            amount: parsed.amount,
-            currency: (parsed.currency || 'TRY') as 'TRY' | 'USD' | 'EUR',
-            source: 'pdf',
-            type,
-            categoryId: classification.categoryId,
-            categoryLabel: classification.categoryLabel,
-            confidence: classification.confidence,
-            tags: ['pdf-upload'],
-            createdAt: now,
-            updatedAt: now,
-          };
-
-          // Save to storage
-          this.storage.create(transaction);
-          transactions.push(transaction);
+          transactions.push(this.mapToEntity(transaction));
         } catch (err) {
           errors.push(`Transaction ${index + 1}: ${err instanceof Error ? err.message : 'Unknown error'}`);
         }
-      });
+      }
 
       const lowConfidenceCount = transactions.filter(tx => tx.confidence < 60).length;
 
@@ -130,5 +130,18 @@ export class UploadsService {
         `Failed to process PDF: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
     }
+  }
+
+  private mapToEntity(prismaTx: any): TransactionEntity {
+    return {
+      ...prismaTx,
+      date: prismaTx.date.toISOString(),
+      tags: JSON.parse(prismaTx.tags || '[]'),
+      createdAt: prismaTx.createdAt.toISOString(),
+      updatedAt: prismaTx.updatedAt.toISOString(),
+      source: prismaTx.source as any,
+      type: prismaTx.type as any,
+      currency: prismaTx.currency as any,
+    };
   }
 }
