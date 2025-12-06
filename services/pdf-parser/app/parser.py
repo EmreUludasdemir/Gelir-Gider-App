@@ -56,8 +56,10 @@ class PDFParser:
         text = extract_text(pdf_path)
 
         if not text or len(text.strip()) < 50:
+            print(f"DEBUG: Text too short or empty. Len: {len(text) if text else 0}")
             return []
 
+        print(f"DEBUG: Extracted text length: {len(text)}")
         lines = text.splitlines()
         transactions = []
 
@@ -67,6 +69,9 @@ class PDFParser:
             # Boş veya skip edilecek satırları atla
             if not line or len(line) < 10:
                 continue
+            
+            # Debug log for significant lines
+            # print(f"DEBUG: Processing line: {line[:50]}...")
 
             if any(p.search(line) for p in self.skip_patterns):
                 continue
@@ -74,11 +79,13 @@ class PDFParser:
             # Tarih bul
             date = self._extract_date(line)
             if not date:
+                # print(f"DEBUG: No date found in: {line}")
                 continue
 
             # Tutar bul
             amount = self._extract_amount(line)
             if amount == 0:
+                # print(f"DEBUG: No amount found in: {line}")
                 continue
 
             # Açıklama çıkar
@@ -93,6 +100,7 @@ class PDFParser:
                 'currency': 'TRY',
                 'raw_line': line
             })
+            print(f"DEBUG: Found transaction: {date} - {amount} - {description}")
 
         return transactions
 

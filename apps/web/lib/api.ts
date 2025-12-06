@@ -10,10 +10,13 @@ export class ApiError extends Error {
 async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE}${endpoint}`;
 
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+
   const res = await fetch(url, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options?.headers,
     },
   });
@@ -61,9 +64,14 @@ export const uploadPdf = async (file: File): Promise<UploadResult> => {
   const formData = new FormData();
   formData.append('file', file);
 
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+
   const res = await fetch(`${API_BASE}/uploads/pdf`, {
     method: 'POST',
     body: formData,
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
   });
 
   if (!res.ok) {
