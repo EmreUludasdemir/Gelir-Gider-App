@@ -2,6 +2,16 @@
 
 Modern, full-stack finans yönetim uygulaması. PDF banka ekstrelerini otomatik parse eder ve akıllı kategorilendirme yapar.
 
+## ✨ Yeni Özellikler (v2.0)
+
+- 🚀 **Gelişmiş PDF Parser**: Daha iyi hata yönetimi, çoklu banka desteği, gelişmiş tablo çıkarma
+- 🧠 **Akıllı Kategorilendirme**: 19+ kategori, pattern matching, güven skoru
+- 📊 **Bütçe Yönetimi**: Kategori bazlı bütçe takibi, limitler ve uyarılar
+- ✏️ **İşlem Düzenleme**: Tam özellikli düzenleme modal'ı ile işlemleri yönetin
+- 🎨 **Gelişmiş UI**: Drag & drop PDF yükleme, progress bar, detaylı istatistikler
+- 🔒 **Geliştirilmiş Veritabanı**: Budget, CategoryOverride tabloları, cascade delete
+- 📝 **Detaylı Loglama**: Tüm işlemler için kapsamlı logging
+
 ## 🏗️ Mimari
 
 | Servis | Teknoloji | Port | Açıklama |

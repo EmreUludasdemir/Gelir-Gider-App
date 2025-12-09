@@ -19,13 +19,15 @@ model User {
   updatedAt DateTime @updatedAt
 
   transactions Transaction[]
+  budgets      Budget[]
+  categories   CategoryOverride[]
 }
 
 model Transaction {
   id            String   @id @default(uuid())
   userId        String
-  user          User     @relation(fields: [userId], references: [id])
-  
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   accountId     String   @default("default")
   date          DateTime
   description   String
@@ -33,17 +35,68 @@ model Transaction {
   currency      String   @default("TRY")
   source        String   // 'pdf' | 'manual'
   type          String   // 'income' | 'expense'
-  
+
   categoryId    String
   categoryLabel String
   confidence    Float    @default(100.0)
-  
-  tags          String   // Stored as JSON string or comma separated
+
+  tags          String   // Stored as JSON string
   notes         String?
-  
+
+  // Enhanced fields
+  isRecurring   Boolean  @default(false)
+  recurringId   String?  // Group recurring transactions
+  merchantName  String?  // Extracted merchant name
+  location      String?  // Transaction location if available
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   @@index([userId])
   @@index([date])
+  @@index([categoryId])
+  @@index([userId, date])
+  @@index([recurringId])
+}
+
+model Budget {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  categoryId    String
+  categoryLabel String
+  amount        Float    // Budget amount
+  period        String   // 'monthly' | 'weekly' | 'yearly'
+
+  startDate     DateTime
+  endDate       DateTime?
+
+  alertThreshold Float   @default(80.0) // Alert when % of budget is reached
+  isActive      Boolean  @default(true)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, categoryId, period])
+  @@index([userId, isActive])
+}
+
+model CategoryOverride {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  pattern       String   // Pattern or keyword to match
+  categoryId    String   // Override category
+  categoryLabel String
+
+  isActive      Boolean  @default(true)
+  matchCount    Int      @default(0) // How many times this override was used
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, pattern])
+  @@index([userId, isActive])
 }

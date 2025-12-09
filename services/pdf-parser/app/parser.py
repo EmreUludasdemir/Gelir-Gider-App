@@ -1,10 +1,15 @@
 """Advanced PDF parsing utilities with table extraction and bank-specific support"""
 import re
+import logging
 from datetime import datetime
 from typing import List, Dict, Any, Optional, Tuple
 from dateutil import parser as date_parser
 import pdfplumber
 from pdfminer.high_level import extract_text
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class BankDetector:
