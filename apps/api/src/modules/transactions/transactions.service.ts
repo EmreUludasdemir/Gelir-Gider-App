@@ -137,10 +137,17 @@ export class TransactionsService {
     return { success: true };
   }
 
-  async getSummary(userId: string): Promise<DashboardSummary> {
+  async getSummary(userId: string, query?: TransactionQuery): Promise<DashboardSummary> {
     const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
+    let currentMonth = now.getMonth();
+    let currentYear = now.getFullYear();
+
+    // Allow month/year selection from query
+    if (query?.dateFrom) {
+      const queryDate = new Date(query.dateFrom);
+      currentMonth = queryDate.getMonth();
+      currentYear = queryDate.getFullYear();
+    }
 
     const startOfMonth = new Date(currentYear, currentMonth, 1);
     const endOfMonth = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59);

@@ -297,60 +297,81 @@ class EnhancedPDFParser:
                 return None
 
             rest = line[len(date_str):].strip()
-
-            # Check for payment indicator (+)
-            is_payment = rest.rstrip().endswith('+')
-            if is_payment:
-                rest = rest.rstrip()[:-1].strip()
-
-            # Find amounts
-            amount_pattern = re.compile(r'(\d{1,3}(?:\.\d{3})*,\d{2})')
-            amounts = amount_pattern.findall(rest)
-
-            if not amounts:
+            
+            # Enhanced amount extraction - look for both positive and negative amounts
+            # Handle patterns like: "1.234,56", "1234.56", "1,234.56", "-1.234,56"
+            amount_patterns = [
+                r'(-?\d{1,3}(?:\.\d{3})*,\d{2})\s*(?:TL|₺)?(?:\s+)?(?:G|C)?$',  # Turkish: 1.234,56
+                r'(-?\d{1,3}(?:,\d{3})*\.\d{2})\s*(?:TL|₺)?(?:\s+)?(?:G|C)?$',  # English: 1,234.56
+                r'(-?\d+,\d{2})\s*(?:TL|₺)?(?:\s+)?(?:G|C)?$',                  # Simple: 1234,56
+                r'(-?\d+\.\d{2})\s*(?:TL|₺)?(?:\s+)?(?:G|C)?$',                 # Simple: 1234.56
+            ]
+            
+            amount = None
+            description = rest
+            is_expense = True
+            
+            for pattern in amount_patterns:
+                match = re.search(pattern, rest)
+                if match:
+                    amount_str = match.group(1)
+                    # Check for income/expense indicators at end of line
+                    line_end = rest[match.end():].strip()
+                    if 'G' in line_end.upper():  # Gelir (Income)
+                        is_expense = False
+                    elif 'C' in line_end.upper():  # Çıkış (Expense)  
+                        is_expense = True
+                    
+                    # Convert amount string to float
+                    # Handle both Turkish (1.234,56) and English (1,234.56) formats
+                    if ',' in amount_str and '.' in amount_str:
+                        if amount_str.rindex(',') > amount_str.rindex('.'):
+                            # Turkish format: 1.234,56
+                            amount = float(amount_str.replace('.', '').replace(',', '.'))
+                        else:
+                            # English format: 1,234.56
+                            amount = float(amount_str.replace(',', ''))
+                    elif ',' in amount_str:
+                        # Assume Turkish format: 1234,56
+                        amount = float(amount_str.replace(',', '.'))
+                    else:
+                        # English format or no decimal: 1234.56 or 1234
+                        amount = float(amount_str)
+                    
+                    # Get description (everything before amount)
+                    description = rest[:match.start()].strip()
+                    break
+            
+            if amount is None or amount == 0:
                 return None
-
-            # Parse amount
-            amount_str = amounts[0]
-            amount = self._parse_amount(amount_str)
-
-            # Validation checks
-            if amount == 0 or amount < 0.01:
-                return None
-
-            # Set sign
-            if is_payment:
-                amount = abs(amount)
-            else:
-                amount = -abs(amount)
-
-            # Extract description
-            amount_pos = rest.find(amount_str)
-            if amount_pos > 0:
-                description = rest[:amount_pos].strip()
-            else:
-                description = rest
-
+            
             # Clean description
-            description = self._clean_description(description)
-
-            if not description or len(description) < 3:
+            description = re.sub(r'\s+', ' ', description).strip()
+            if len(description) < 3:
                 return None
-
+            
             # Filter unwanted transactions
             desc_lower = description.lower()
             skip_phrases = [
                 'bankkart lira ile ödeme', 'troy kampanyası',
                 'önceki aydan devir', 'bankkart lira ile',
-                'son ödeme tarihi', 'nakit avans limiti'
+                'son ödeme tarihi', 'nakit avans limiti',
+                'hesap özeti', 'ekstre', 'toplam'
             ]
             if any(phrase in desc_lower for phrase in skip_phrases):
+                return None
+            
+            # Apply description cleaning
+            description = self._clean_description(description)
+            
+            if not description or len(description) < 3:
                 return None
 
             return {
                 'date': date,
                 'description': description,
                 'amount': amount,
+                'type': tx_type,
                 'currency': 'TRY',
                 'raw_line': line[:200],
                 'bank': bank_id,

@@ -12,10 +12,13 @@ export function useTransactions(query?: Record<string, string>) {
   )
 }
 
-export function useSummary() {
-  return useSWR<DashboardSummary>('/transactions/summary', fetcher, {
-    refreshInterval: 60000,
-  })
+export function useSummary(query?: Record<string, string>) {
+  const params = new URLSearchParams(query).toString()
+  return useSWR<DashboardSummary>(
+    `/transactions/summary${params ? `?${params}` : ''}`,
+    fetcher,
+    { refreshInterval: 60000 }
+  )
 }
 
 export function useSuggestions() {

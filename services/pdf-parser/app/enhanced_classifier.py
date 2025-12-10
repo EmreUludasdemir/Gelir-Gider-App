@@ -75,13 +75,24 @@ class EnhancedTransactionClassifier:
             'label': 'Ulaşım',
             'keywords': [
                 'shell', 'opet', 'petrol', 'bp', 'total', 'benzin', 'fuel', 'motorin',
-                'uber', 'taksi', 'taxi', 'metro', 'otobüs', 'bus', 'hgs', 'ogs',
+                'uber', 'taksi', 'taxi', 'metro', 'otobus', 'otobüs', 'bus', 'hgs', 'ogs',
                 'bilet', 'thy', 'pegasus', 'anadolujet', 'sunexpress', 'onurair',
-                'po', 'aytemiz', 'alpet', 'moil', 'akaryakıt'
+                'po', 'aytemiz', 'alpet', 'moil', 'akaryakıt', 'akaryakit',
+                # İstanbulkart ve ulaşım kartları
+                'istanbulkart', 'ankara kart', 'izmirim kart', 'kentkart', 
+                'eskart', 'akbil', 'ulasim', 'ulaşım', 'kart yukleme', 'kart yükleme',
+                # Toplu taşıma
+                'iett', 'metrobus', 'tramvay', 'metro istasyonu', 'otogar',
+                # Otopark
+                'otopark', 'park yeri', 'vale', 'kat otopark',
+                # Havayolu
+                'ucak', 'uçak', 'havalimani', 'havalimanı', 'boarding', 'check-in'
             ],
             'patterns': [
                 r'\bshell\b', r'\bopet\b', r'\bbenzin\b', r'\bhgs\b', r'\bogs\b',
-                r'\btaksi\b', r'\bthy\b', r'\bpegasus\b'
+                r'\btaksi\b', r'\bthy\b', r'\bpegasus\b', r'\bistanbulkart\b',
+                r'\biett\b', r'\bmetro\b', r'\bula[şs][ıi]m\b', r'\botopark\b',
+                r'\bkart\s*y[üu]kleme\b'
             ],
             'type': 'expense',
             'priority': 8

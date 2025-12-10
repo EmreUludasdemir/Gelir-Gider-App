@@ -31,8 +31,8 @@ export class TransactionsController {
   }
 
   @Get('summary')
-  getSummary(@User() user: any) {
-    return this.transactionsService.getSummary(user.id);
+  getSummary(@User() user: any, @Query() query: TransactionQuery) {
+    return this.transactionsService.getSummary(user.id, query);
   }
 
   @Get('suggestions')
