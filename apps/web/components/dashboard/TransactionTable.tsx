@@ -1,21 +1,28 @@
 'use client'
 
 import { useState } from 'react'
-import { Transaction } from '@/lib/api'
+import { Transaction, deleteTransaction } from '@/lib/api'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { Badge } from '@/components/ui/Badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { TransactionEditModal } from '@/components/forms/TransactionEditModal'
+import { useToast } from '@/components/ui/Toast'
 
 interface TransactionTableProps {
   transactions: Transaction[]
   title?: string
   limit?: number
+  onRefresh?: () => void
 }
 
-export function TransactionTable({ transactions, title = 'Son İşlemler', limit }: TransactionTableProps) {
+export function TransactionTable({ transactions, title = 'Son İşlemler', limit, onRefresh }: TransactionTableProps) {
+  const { showToast } = useToast()
   const [sortBy, setSortBy] = useState<'date' | 'amount'>('date')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [isDeleting, setIsDeleting] = useState(false)
   
   // Sort transactions
   const sortedTransactions = [...transactions].sort((a, b) => {
@@ -62,11 +69,67 @@ export function TransactionTable({ transactions, title = 'Son İşlemler', limit
     return colors[categoryId] || 'bg-gray-100 text-gray-800'
   }
 
+  const pdfTransactions = displayedTransactions.filter(t => t.source === 'pdf')
+  const hasPdfTransactions = pdfTransactions.length > 0
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(new Set(pdfTransactions.map(t => t.id)))
+    } else {
+      setSelectedIds(new Set())
+    }
+  }
+
+  const handleSelectOne = (id: string, checked: boolean) => {
+    const newSelected = new Set(selectedIds)
+    if (checked) {
+      newSelected.add(id)
+    } else {
+      newSelected.delete(id)
+    }
+    setSelectedIds(newSelected)
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return
+
+    const confirmMsg = `${selectedIds.size} adet PDF işlemini silmek istediğinize emin misiniz?`
+    if (!confirm(confirmMsg)) return
+
+    setIsDeleting(true)
+    try {
+      const deletePromises = Array.from(selectedIds).map(id => deleteTransaction(id))
+      await Promise.all(deletePromises)
+      
+      showToast('success', `${selectedIds.size} işlem başarıyla silindi`)
+      setSelectedIds(new Set())
+      onRefresh?.()
+    } catch (error) {
+      showToast('error', 'İşlemler silinirken bir hata oluştu')
+      console.error('Bulk delete error:', error)
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const allPdfSelected = hasPdfTransactions && pdfTransactions.every(t => selectedIds.has(t.id))
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>{title}</CardTitle>
         <div className="flex gap-2">
+          {selectedIds.size > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleBulkDelete}
+              disabled={isDeleting}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              {isDeleting ? '⏳ Siliniyor...' : `🗑️ Seçilenleri Sil (${selectedIds.size})`}
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="sm"
@@ -85,43 +148,131 @@ export function TransactionTable({ transactions, title = 'Son İşlemler', limit
       </CardHeader>
       <CardContent className="p-0">
         {displayedTransactions.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
+          <div className="p-8 text-center text-gray-500 dark:text-gray-400">
             <p className="text-lg mb-2">📭</p>
             <p>Henüz işlem bulunmuyor</p>
             <p className="text-sm mt-1">Filtrelerinizi değiştirmeyi deneyin</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+          <>
+            {/* Mobile View - Cards */}
+            <div className="block md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+              {displayedTransactions.map((transaction) => (
+                <div key={transaction.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center gap-2">
+                        {hasPdfTransactions && transaction.source === 'pdf' && (
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(transaction.id)}
+                            onChange={(e) => handleSelectOne(transaction.id, e.target.checked)}
+                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            aria-label="İşlemi seç"
+                          />
+                        )}
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900 dark:text-white">
+                            {transaction.description}
+                          </p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {formatDate(transaction.date)}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getCategoryColor(transaction.categoryId)}`}>
+                          {transaction.categoryLabel}
+                        </span>
+                        <Badge variant={transaction.type === 'income' ? 'success' : 'default'}>
+                          {transaction.type === 'income' ? 'Gelir' : 'Gider'}
+                        </Badge>
+                        <Badge variant={transaction.source === 'pdf' ? 'success' : 'default'}>
+                          {transaction.source === 'pdf' ? '📄' : '✍️'}
+                        </Badge>
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <span className={`text-lg font-semibold ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                          {transaction.type === 'income' ? '+' : '-'}
+                          {formatCurrency(Math.abs(transaction.amount), transaction.currency)}
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setEditingTransaction(transaction)}
+                        >
+                          ✏️
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop View - Table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
+              <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {hasPdfTransactions && (
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-12">
+                      <input
+                        type="checkbox"
+                        checked={allPdfSelected}
+                        onChange={(e) => handleSelectAll(e.target.checked)}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        title="Tüm PDF işlemlerini seç"
+                      />
+                    </th>
+                  )}
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Tarih
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Açıklama
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Kategori
                   </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Tip
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Tutar
                   </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Kaynak
+                  </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    İşlemler
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {displayedTransactions.map((transaction) => (
-                  <tr key={transaction.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <tr key={transaction.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    {hasPdfTransactions && (
+                      <td className="px-4 py-4 text-center">
+                        {transaction.source === 'pdf' ? (
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(transaction.id)}
+                            onChange={(e) => handleSelectOne(transaction.id, e.target.checked)}
+                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            aria-label="İşlemi seç"
+                          />
+                        ) : (
+                          <span className="text-gray-300">—</span>
+                        )}
+                      </td>
+                    )}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                       {formatDate(transaction.date)}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
+                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
                       <div className="max-w-md" title={transaction.description}>
                         {transaction.description}
                       </div>
@@ -147,13 +298,36 @@ export function TransactionTable({ transactions, title = 'Son İşlemler', limit
                         {transaction.source === 'pdf' ? '📄 PDF' : '✍️ Manuel'}
                       </Badge>
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setEditingTransaction(transaction)}
+                      >
+                        ✏️ Düzenle
+                      </Button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
+            </div>
+          </>
         )}
       </CardContent>
+
+      {/* Edit Modal */}
+      {editingTransaction && (
+        <TransactionEditModal
+          transaction={editingTransaction}
+          isOpen={!!editingTransaction}
+          onClose={() => setEditingTransaction(null)}
+          onSuccess={() => {
+            setEditingTransaction(null)
+            onRefresh?.()
+          }}
+        />
+      )}
     </Card>
   )
 }

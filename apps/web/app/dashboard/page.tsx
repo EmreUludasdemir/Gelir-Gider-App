@@ -8,9 +8,12 @@ import { TopCategories } from '@/components/dashboard/TopCategories'
 import { RecurringPayments } from '@/components/dashboard/RecurringPayments'
 import { WeeklyTrendChart } from '@/components/dashboard/WeeklyTrendChart'
 import { CategoryPieChart } from '@/components/dashboard/CategoryPieChart'
+import { MonthlyComparison } from '@/components/dashboard/MonthlyComparison'
+import { TrendChart } from '@/components/dashboard/TrendChart'
 import { TransactionFilters } from '@/components/forms/TransactionFilters'
-import { Spinner } from '@/components/ui/Spinner'
 import { Select } from '@/components/ui/Select'
+import { ExportButton } from '@/components/ui/ExportButton'
+import { DashboardSkeleton } from '@/components/ui/Skeleton'
 
 export default function DashboardPage() {
   const [filters, setFilters] = useState<Record<string, string>>({})
@@ -19,8 +22,13 @@ export default function DashboardPage() {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
   })
   
-  const { data: summary, error: summaryError, isLoading: summaryLoading } = useSummary(selectedMonth ? { dateFrom: `${selectedMonth}-01` } : undefined)
-  const { data: allTransactions, error: transactionsError, isLoading: transactionsLoading } = useTransactions()
+  const { data: summary, error: summaryError, isLoading: summaryLoading, mutate: mutateSummary } = useSummary(selectedMonth ? { dateFrom: `${selectedMonth}-01` } : undefined)
+  const { data: allTransactions, error: transactionsError, isLoading: transactionsLoading, mutate: mutateTransactions } = useTransactions()
+  
+  const handleRefresh = () => {
+    mutateTransactions()
+    mutateSummary()
+  }
   
   // Filter transactions based on selected filters
   const transactions = useMemo(() => {
@@ -104,11 +112,7 @@ export default function DashboardPage() {
   }, [transactions])
 
   if (summaryLoading || transactionsLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Spinner size="lg" />
-      </div>
-    )
+    return <DashboardSkeleton />
   }
 
   if (summaryError || transactionsError) {
@@ -134,12 +138,18 @@ export default function DashboardPage() {
             {selectedMonth ? `${monthOptions.find(o => o.value === selectedMonth)?.label} - Finansal Özet` : 'Aralık 2025 - Finansal Özet'}
           </p>
         </div>
-        <div className="w-64">
-          <Select
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            options={monthOptions}
+        <div className="flex items-center gap-3">
+          <ExportButton 
+            transactions={transactions} 
+            filename={`gelir-gider-${selectedMonth}`}
           />
+          <div className="w-64">
+            <Select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              options={monthOptions}
+            />
+          </div>
         </div>
       </div>
 
@@ -177,6 +187,25 @@ export default function DashboardPage() {
       {/* Charts - Show overall summary */}
       {summary && (
         <>
+          {/* Trend Chart */}
+          {allTransactions && allTransactions.length > 0 && (
+            <TrendChart transactions={allTransactions} months={6} />
+          )}
+
+          {/* Monthly Comparison */}
+          <MonthlyComparison 
+            currentMonth={{
+              income: summary.totals.income,
+              expense: summary.totals.expense,
+              month: summary.period.month
+            }}
+            previousMonth={{
+              income: summary.comparison.previousMonth.income,
+              expense: summary.comparison.previousMonth.expense,
+              month: 'Önceki Ay'
+            }}
+          />
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <WeeklyTrendChart data={summary.weeklyTrend} />
             <CategoryPieChart categories={summary.topCategories} />
@@ -195,6 +224,7 @@ export default function DashboardPage() {
         transactions={transactions}
         title={`İşlemler (${transactions.length})`}
         limit={50}
+        onRefresh={handleRefresh}
       />
     </div>
   )

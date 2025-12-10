@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { CATEGORIES } from '@/lib/categories'
+import { useToast } from '@/components/ui/Toast'
 
 interface TransactionEditModalProps {
   transaction: Transaction
@@ -20,6 +21,7 @@ export function TransactionEditModal({
   onClose,
   onSuccess
 }: TransactionEditModalProps) {
+  const { showToast } = useToast()
   const [formData, setFormData] = useState({
     description: transaction.description,
     amount: Math.abs(transaction.amount),
@@ -78,10 +80,13 @@ export function TransactionEditModal({
         tags
       })
 
+      showToast('İşlem başarıyla güncellendi! ✓', 'success')
       onSuccess()
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Güncelleme başarısız')
+      const errorMsg = err instanceof Error ? err.message : 'Güncelleme başarısız'
+      setError(errorMsg)
+      showToast(errorMsg, 'error')
     } finally {
       setLoading(false)
     }
@@ -93,10 +98,13 @@ export function TransactionEditModal({
 
     try {
       await deleteTransaction(transaction.id)
+      showToast('İşlem başarıyla silindi! 🗑️', 'success')
       onSuccess()
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Silme başarısız')
+      const errorMsg = err instanceof Error ? err.message : 'Silme başarısız'
+      setError(errorMsg)
+      showToast(errorMsg, 'error')
     } finally {
       setLoading(false)
     }

@@ -4,18 +4,19 @@ import { CategorySummary } from '@/lib/api'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
 import { formatCurrency } from '@/lib/utils'
+import { getCategoryColor } from '@/lib/categoryColors'
 
 interface CategoryPieChartProps {
   categories: CategorySummary[]
 }
-
-const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4', '#6366f1']
 
 export function CategoryPieChart({ categories }: CategoryPieChartProps) {
   const data = categories.map(cat => ({
     name: cat.categoryLabel,
     value: cat.total,
     percentage: cat.percentage,
+    categoryId: cat.categoryId,
+    color: getCategoryColor(cat.categoryId),
   }))
 
   const CustomTooltip = ({ active, payload }: any) => {
@@ -54,7 +55,7 @@ export function CategoryPieChart({ categories }: CategoryPieChartProps) {
               dataKey="value"
             >
               {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                <Cell key={`cell-${index}`} fill={entry.color} />
               ))}
             </Pie>
             <Tooltip content={<CustomTooltip />} />

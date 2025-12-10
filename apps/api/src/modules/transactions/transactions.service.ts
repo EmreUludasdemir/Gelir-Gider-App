@@ -29,18 +29,6 @@ export class TransactionsService {
       if (query.dateFrom) where.date = { ...where.date as any, gte: new Date(query.dateFrom) };
       if (query.dateTo) where.date = { ...where.date as any, lte: new Date(query.dateTo) };
 
-      // Amount filter logic might need adjustment if amount is negative for expenses
-      // For now assuming filtering absolute amounts or raw amounts
-      // If client sends positive minAmount, we might check abs(amount)
-      // Prisma filter on calculated field is hard, so direct filter:
-      if (query.minAmount !== undefined) {
-        // This simple filter might fail for expenses (negative numbers) if not handled carefully
-        // For now simpler:
-        // where.amount = { gte: query.minAmount }; 
-        // Better: client should handle sign or we filter in memory?
-        // Let's filter in memory for complex amount logic if needed, or assume backend stores signed values
-      }
-
       if (query.search) {
         where.OR = [
           { description: { contains: query.search } },
