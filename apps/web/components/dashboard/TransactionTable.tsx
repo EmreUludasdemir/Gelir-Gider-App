@@ -101,11 +101,11 @@ export function TransactionTable({ transactions, title = 'Son İşlemler', limit
       const deletePromises = Array.from(selectedIds).map(id => deleteTransaction(id))
       await Promise.all(deletePromises)
       
-      showToast('success', `${selectedIds.size} işlem başarıyla silindi`)
+      showToast(`${selectedIds.size} işlem başarıyla silindi`, 'success')
       setSelectedIds(new Set())
       onRefresh?.()
     } catch (error) {
-      showToast('error', 'İşlemler silinirken bir hata oluştu')
+      showToast('İşlemler silinirken bir hata oluştu', 'error')
       console.error('Bulk delete error:', error)
     } finally {
       setIsDeleting(false)

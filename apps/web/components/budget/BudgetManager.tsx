@@ -49,10 +49,15 @@ export function BudgetManager() {
   ])
 
   const [showAddForm, setShowAddForm] = useState(false)
-  const [newBudget, setNewBudget] = useState({
+  const [newBudget, setNewBudget] = useState<{
+    categoryId: string
+    amount: number
+    period: 'monthly' | 'weekly' | 'yearly'
+    alertThreshold: number
+  }>({
     categoryId: 'market',
     amount: 1000,
-    period: 'monthly' as const,
+    period: 'monthly',
     alertThreshold: 80
   })
 
