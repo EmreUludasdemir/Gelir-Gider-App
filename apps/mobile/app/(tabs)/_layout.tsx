@@ -22,7 +22,7 @@ export default function TabsLayout() {
                     paddingTop: 8,
                 },
                 tabBarLabelStyle: {
-                    fontSize: 11,
+                    fontSize: 10,
                     fontWeight: '600',
                 },
             }}
@@ -55,6 +55,15 @@ export default function TabsLayout() {
                 }}
             />
             <Tabs.Screen
+                name="upload"
+                options={{
+                    title: 'PDF',
+                    tabBarIcon: ({ color, size }) => (
+                        <Ionicons name="document-text" size={size} color={color} />
+                    ),
+                }}
+            />
+            <Tabs.Screen
                 name="stats"
                 options={{
                     title: 'İstatistik',
@@ -75,3 +84,4 @@ export default function TabsLayout() {
         </Tabs>
     );
 }
+
