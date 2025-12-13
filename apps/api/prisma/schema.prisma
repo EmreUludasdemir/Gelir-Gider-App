@@ -18,16 +18,31 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Security fields
+  twoFactorEnabled Boolean @default(false)
+  twoFactorSecret  String?
+  backupCodes      String? // JSON array of hashed backup codes
+
+  // OAuth fields
+  googleId  String? @unique
+  githubId  String? @unique
+  avatarUrl String?
+
+  // Telegram integration
+  telegramChatId String? @unique
+
   transactions Transaction[]
   savingsGoals SavingsGoal[]
   budgets      Budget[]
   preferences  UserPreference?
+  creditCards  CreditCard[]
+  auditLogs    AuditLog[]
 }
 
 model Transaction {
   id     String @id @default(uuid())
   userId String
-  user   User   @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   accountId   String   @default("default")
   date        DateTime
@@ -44,17 +59,21 @@ model Transaction {
   tags  String // Stored as JSON string or comma separated
   notes String?
 
+  // Credit card relation
+  creditCardId String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([date])
+  @@index([creditCardId])
 }
 
 model SavingsGoal {
   id     String @id @default(uuid())
   userId String
-  user   User   @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   name          String
   targetAmount  Float
@@ -73,7 +92,7 @@ model SavingsGoal {
 model Budget {
   id     String @id @default(uuid())
   userId String
-  user   User   @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   categoryId     String
   categoryLabel  String
@@ -92,7 +111,7 @@ model Budget {
 model UserPreference {
   id     String @id @default(uuid())
   userId String @unique
-  user   User   @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   language String @default("tr") // 'tr' | 'en'
   currency String @default("TRY") // 'TRY' | 'USD' | 'EUR'
@@ -102,7 +121,53 @@ model UserPreference {
   emailNotifications Boolean @default(true)
   budgetAlerts       Boolean @default(true)
   weeklyReport       Boolean @default(false)
+  telegramAlerts     Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Credit Card tracking
+model CreditCard {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name           String
+  lastFourDigits String
+  cardType       String  @default("visa") // 'visa' | 'mastercard' | 'amex' | 'other'
+  creditLimit    Float
+  currentBalance Float   @default(0)
+  billingDay     Int     @default(1) // Day of month for statement
+  dueDay         Int     @default(15) // Day of month for payment due
+  minPayment     Float   @default(0)
+  interestRate   Float   @default(0) // APR percentage
+  color          String  @default("#1F2937")
+  isActive       Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// Audit log for security
+model AuditLog {
+  id     String  @id @default(uuid())
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  action    String // 'login' | 'logout' | 'password_change' | 'transaction_create' | etc.
+  entity    String? // 'transaction' | 'budget' | 'user' | etc.
+  entityId  String?
+  details   String? // JSON with additional details
+  ipAddress String?
+  userAgent String?
+  success   Boolean @default(true)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
 }
