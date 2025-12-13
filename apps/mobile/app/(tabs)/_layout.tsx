@@ -22,7 +22,7 @@ export default function TabsLayout() {
                     paddingTop: 8,
                 },
                 tabBarLabelStyle: {
-                    fontSize: 10,
+                    fontSize: 9,
                     fontWeight: '600',
                 },
             }}
@@ -50,7 +50,7 @@ export default function TabsLayout() {
                 options={{
                     title: 'Ekle',
                     tabBarIcon: ({ color, size }) => (
-                        <Ionicons name="add-circle" size={32} color={Colors.primary} />
+                        <Ionicons name="add-circle" size={28} color={Colors.primary} />
                     ),
                 }}
             />
@@ -64,9 +64,18 @@ export default function TabsLayout() {
                 }}
             />
             <Tabs.Screen
+                name="goals"
+                options={{
+                    title: 'Hedefler',
+                    tabBarIcon: ({ color, size }) => (
+                        <Ionicons name="flag" size={size} color={color} />
+                    ),
+                }}
+            />
+            <Tabs.Screen
                 name="stats"
                 options={{
-                    title: 'İstatistik',
+                    title: 'Grafik',
                     tabBarIcon: ({ color, size }) => (
                         <Ionicons name="stats-chart" size={size} color={color} />
                     ),
@@ -84,4 +93,5 @@ export default function TabsLayout() {
         </Tabs>
     );
 }
+
 
