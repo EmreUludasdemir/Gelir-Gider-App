@@ -202,3 +202,74 @@ export interface UploadResult {
   errors: string[];
   transactions: Transaction[];
 }
+
+// Savings Goals
+export interface SavingsGoal {
+  id: string;
+  name: string;
+  targetAmount: number;
+  currentAmount: number;
+  color: string;
+  icon: string;
+  deadline?: string;
+  isCompleted: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateSavingsGoalDto {
+  name: string;
+  targetAmount: number;
+  currentAmount?: number;
+  color?: string;
+  icon?: string;
+  deadline?: string;
+}
+
+export const getSavingsGoals = () => fetchApi<SavingsGoal[]>('/savings-goals');
+export const createSavingsGoal = (data: CreateSavingsGoalDto) =>
+  fetchApi<SavingsGoal>('/savings-goals', { method: 'POST', body: JSON.stringify(data) });
+export const updateSavingsGoal = (id: string, data: Partial<CreateSavingsGoalDto>) =>
+  fetchApi<SavingsGoal>(`/savings-goals/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+export const deleteSavingsGoal = (id: string) =>
+  fetchApi<{ success: boolean }>(`/savings-goals/${id}`, { method: 'DELETE' });
+export const addToSavingsGoal = (id: string, amount: number) =>
+  fetchApi<SavingsGoal>(`/savings-goals/${id}/add`, { method: 'PATCH', body: JSON.stringify({ amount }) });
+
+// Budgets
+export interface Budget {
+  id: string;
+  categoryId: string;
+  categoryLabel: string;
+  limitAmount: number;
+  period: string;
+  alertThreshold: number;
+  isActive: boolean;
+  spent?: number;
+  remaining?: number;
+  percentage?: number;
+  status?: 'ok' | 'warning' | 'over';
+}
+
+export const getBudgets = () => fetchApi<Budget[]>('/budgets');
+export const getBudgetStatus = () => fetchApi<Budget[]>('/budgets/status');
+export const createBudget = (data: { categoryId: string; categoryLabel: string; limitAmount: number }) =>
+  fetchApi<Budget>('/budgets', { method: 'POST', body: JSON.stringify(data) });
+export const deleteBudget = (id: string) =>
+  fetchApi<{ success: boolean }>(`/budgets/${id}`, { method: 'DELETE' });
+
+// Preferences
+export interface UserPreferences {
+  id: string;
+  language: string;
+  currency: string;
+  theme: string;
+  emailNotifications: boolean;
+  budgetAlerts: boolean;
+  weeklyReport: boolean;
+}
+
+export const getPreferences = () => fetchApi<UserPreferences>('/preferences');
+export const updatePreferences = (data: Partial<UserPreferences>) =>
+  fetchApi<UserPreferences>('/preferences', { method: 'PATCH', body: JSON.stringify(data) });
+

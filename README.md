@@ -1,6 +1,15 @@
 # 💰 Gelir-Gider Takip Uygulaması
 
-Modern, full-stack finans yönetim uygulaması. PDF banka ekstrelerini otomatik parse eder ve akıllı kategorilendirme yapar.
+Modern, full-stack finans yönetim uygulaması. PDF banka ekstrelerini otomatik parse eder, akıllı kategorilendirme yapar ve **Gemini AI** ile finansal tavsiyelerde bulunur.
+
+## 🌟 Yeni Özellikler (v2.0)
+
+- 🤖 **AI Destekli İşlem Ekleme**: Doğal dil ile işlem ekleyin ("Bugün markette 250 TL harcadım")
+- 💡 **Finansal İçgörüler**: AI tabanlı harcama analizi ve tavsiyeler
+- 💬 **Finansal Asistan**: Harcamalarınız hakkında sohbet edin
+- 🎯 **Tasarruf Hedefleri**: Finansal hedeflerinizi takip edin
+- 🌙 **Dark Mode**: Göz yormayan karanlık tema
+- 🌍 **Çoklu Dil**: Türkçe ve İngilizce desteği
 
 ## 🏗️ Mimari
 
@@ -16,6 +25,7 @@ Modern, full-stack finans yönetim uygulaması. PDF banka ekstrelerini otomatik 
 - Node.js 20+
 - Python 3.11+
 - npm 10+
+- Gemini API Key (AI özellikleri için)
 
 ### Kurulum
 
@@ -34,6 +44,16 @@ cd services/pdf-parser
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
+```
+
+### Environment Değişkenleri
+
+```bash
+# .env dosyası oluşturun
+cp .env.example .env
+
+# Gemini API anahtarınızı ekleyin
+# API anahtarı almak için: https://aistudio.google.com/app/apikey
 ```
 
 ### Development
@@ -64,34 +84,49 @@ docker-compose up --build
 ├── apps/
 │   ├── web/              # Next.js frontend
 │   │   ├── app/          # App router pages
+│   │   │   ├── dashboard/    # Dashboard sayfaları
+│   │   │   │   ├── goals/    # Tasarruf hedefleri
+│   │   │   │   └── upload/   # PDF yükleme
 │   │   ├── components/   # React components
+│   │   │   ├── dashboard/    # Dashboard bileşenleri
+│   │   │   │   ├── AIInsights.tsx
+│   │   │   │   └── FinancialAssistant.tsx
+│   │   │   └── forms/        # Form bileşenleri
+│   │   │       └── SmartTransactionInput.tsx
 │   │   └── lib/          # Utilities & API client
+│   │       ├── gemini.ts     # Gemini AI servisi
+│   │       ├── PreferencesContext.tsx
+│   │       └── translations.ts
 │   └── api/              # NestJS backend
-│       └── src/
-│           ├── modules/  # Feature modules
-│           └── shared/   # Shared utilities
 ├── services/
 │   └── pdf-parser/       # Python FastAPI microservice
-│       └── app/
-│           ├── main.py
-│           ├── parser.py
-│           └── classifier.py
 ├── package.json          # Root workspace config
 └── docker-compose.yml    # Docker orchestration
 ```
 
 ## ✨ Özellikler
 
+### Temel Özellikler
 - ✅ PDF banka ekstresi yükleme ve otomatik parsing
 - ✅ Akıllı kategori sınıflandırması (15+ kategori)
 - ✅ Manuel işlem ekleme/düzenleme/silme
 - ✅ Dashboard özet kartları (gelir, gider, bakiye)
 - ✅ Kategori bazlı analiz ve grafikler
 - ✅ Tekrarlayan ödeme tespiti
-- ✅ Düşük güvenli işlem önerileri
 - ✅ Haftalık trend görünümü
-- ✅ Responsive tasarım (mobile, tablet, desktop)
-- ✅ Real-time data updates (SWR)
+- ✅ Responsive tasarım
+
+### AI Özellikleri (Gemini API)
+- 🤖 Doğal dil ile işlem ekleme
+- 💡 AI tabanlı finansal içgörüler
+- 💬 Finansal asistan chatbot
+- 📊 Akıllı harcama analizi
+
+### Kullanıcı Deneyimi
+- 🌙 Dark mode desteği
+- 🌍 Türkçe/İngilizce dil seçeneği
+- 💱 TRY/USD/EUR para birimi desteği
+- 🎯 Tasarruf hedefleri takibi
 
 ## 🧪 Test
 
@@ -104,44 +139,19 @@ curl http://localhost:3000
 
 # PDF Parser health check
 curl http://localhost:8001/health
-
-# Get transactions
-curl http://localhost:3001/transactions
-
-# Get dashboard summary
-curl http://localhost:3001/transactions/summary
 ```
 
 ## 📝 API Endpoints
 
 ### Transactions
-- `GET /transactions` - Tüm işlemleri listele (filtrelenebilir)
+- `GET /transactions` - Tüm işlemleri listele
 - `POST /transactions/manual` - Manuel işlem ekle
 - `PATCH /transactions/:id` - İşlem güncelle
 - `DELETE /transactions/:id` - İşlem sil
 - `GET /transactions/summary` - Dashboard özeti
-- `GET /transactions/suggestions` - Düşük güvenli işlemler
-- `GET /transactions/recurring` - Tekrarlayan ödemeler
 
 ### Upload
 - `POST /uploads/pdf` - PDF yükle ve parse et
-
-### PDF Parser
-- `POST /parse` - PDF parse et
-- `POST /classify` - Tek açıklama kategorize et
-
-## 🛠️ Geliştirme
-
-```bash
-# Lint
-npm run lint
-
-# Build
-npm run build
-
-# Clean
-npm run clean
-```
 
 ## 📦 Teknoloji Stack
 
@@ -151,20 +161,19 @@ npm run clean
 - TypeScript
 - Tailwind CSS
 - SWR (data fetching)
-- date-fns
+- @google/generative-ai (Gemini AI)
 - lucide-react (icons)
 
 **Backend:**
 - NestJS 10
 - TypeScript
-- Express
-- Multer (file upload)
-- class-validator
+- Prisma ORM
+- JWT Authentication
 
 **PDF Parser:**
 - FastAPI
 - pdfminer.six
-- python-dateutil
+- pdfplumber
 
 ## 🔒 Güvenlik
 
@@ -172,6 +181,7 @@ npm run clean
 - Input validation (class-validator)
 - File upload size limits (10MB)
 - CORS yapılandırması
+- JWT tabanlı kimlik doğrulama
 
 ## 📄 Lisans
 
@@ -179,4 +189,5 @@ MIT
 
 ## 👨‍💻 Geliştirici
 
-Claude Code tarafından geliştirilmiştir.
+Claude Code & Gemini Code tarafından geliştirilmiştir.
+

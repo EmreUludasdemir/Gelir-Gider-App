@@ -19,31 +19,90 @@ model User {
   updatedAt DateTime @updatedAt
 
   transactions Transaction[]
+  savingsGoals SavingsGoal[]
+  budgets      Budget[]
+  preferences  UserPreference?
 }
 
 model Transaction {
-  id            String   @id @default(uuid())
-  userId        String
-  user          User     @relation(fields: [userId], references: [id])
-  
-  accountId     String   @default("default")
-  date          DateTime
-  description   String
-  amount        Float
-  currency      String   @default("TRY")
-  source        String   // 'pdf' | 'manual'
-  type          String   // 'income' | 'expense'
-  
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  accountId   String   @default("default")
+  date        DateTime
+  description String
+  amount      Float
+  currency    String   @default("TRY")
+  source      String // 'pdf' | 'manual'
+  type        String // 'income' | 'expense'
+
   categoryId    String
   categoryLabel String
-  confidence    Float    @default(100.0)
-  
-  tags          String   // Stored as JSON string or comma separated
-  notes         String?
-  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  confidence    Float  @default(100.0)
+
+  tags  String // Stored as JSON string or comma separated
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([date])
+}
+
+model SavingsGoal {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  name          String
+  targetAmount  Float
+  currentAmount Float     @default(0)
+  color         String    @default("#8B5CF6")
+  icon          String    @default("🎯")
+  deadline      DateTime?
+  isCompleted   Boolean   @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Budget {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  categoryId     String
+  categoryLabel  String
+  limitAmount    Float
+  period         String  @default("monthly") // 'weekly' | 'monthly' | 'yearly'
+  alertThreshold Float   @default(80) // Alert when reaching this percentage
+  isActive       Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, categoryId])
+  @@index([userId])
+}
+
+model UserPreference {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  language String @default("tr") // 'tr' | 'en'
+  currency String @default("TRY") // 'TRY' | 'USD' | 'EUR'
+  theme    String @default("light") // 'light' | 'dark' | 'system'
+
+  // Notification preferences
+  emailNotifications Boolean @default(true)
+  budgetAlerts       Boolean @default(true)
+  weeklyReport       Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

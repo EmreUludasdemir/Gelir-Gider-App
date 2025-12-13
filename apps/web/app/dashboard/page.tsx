@@ -8,10 +8,21 @@ import { RecurringPayments } from '@/components/dashboard/RecurringPayments'
 import { WeeklyTrendChart } from '@/components/dashboard/WeeklyTrendChart'
 import { CategoryPieChart } from '@/components/dashboard/CategoryPieChart'
 import { Spinner } from '@/components/ui/Spinner'
+import { SmartTransactionInput } from '@/components/forms/SmartTransactionInput'
+import { AIInsights } from '@/components/dashboard/AIInsights'
+import { usePreferences } from '@/lib/PreferencesContext'
+import { useTranslation } from '@/lib/translations'
 
 export default function DashboardPage() {
-  const { data: summary, error: summaryError, isLoading: summaryLoading } = useSummary()
-  const { data: transactions, error: transactionsError, isLoading: transactionsLoading } = useTransactions()
+  const { data: summary, error: summaryError, isLoading: summaryLoading, mutate: mutateSummary } = useSummary()
+  const { data: transactions, error: transactionsError, isLoading: transactionsLoading, mutate: mutateTransactions } = useTransactions()
+  const { language, formatCurrency } = usePreferences()
+  const { t } = useTranslation(language)
+
+  const handleTransactionAdded = () => {
+    mutateSummary()
+    mutateTransactions()
+  }
 
   if (summaryLoading || transactionsLoading) {
     return (
@@ -23,9 +34,11 @@ export default function DashboardPage() {
 
   if (summaryError || transactionsError) {
     return (
-      <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-        <p className="text-red-800">
-          Veri yüklenirken hata oluştu. Backend servisi çalışıyor mu?
+      <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+        <p className="text-red-800 dark:text-red-200">
+          {language === 'tr' 
+            ? 'Veri yüklenirken hata oluştu. Backend servisi çalışıyor mu?' 
+            : 'Error loading data. Is the backend service running?'}
         </p>
       </div>
     )
@@ -38,32 +51,38 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600 mt-1">
-          {summary.period.month} {summary.period.year} - Finansal Özet
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('dashboard')}</h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">
+          {summary.period.month} {summary.period.year} - {t('overview')}
         </p>
       </div>
+
+      {/* Smart Transaction Input */}
+      <SmartTransactionInput onSuccess={handleTransactionAdded} />
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard
-          title="Gelir"
+          title={t('income')}
           value={summary.totals.income}
           change={summary.comparison.changePercentage.income}
           icon="📈"
         />
         <StatCard
-          title="Gider"
+          title={t('expense')}
           value={summary.totals.expense}
           change={summary.comparison.changePercentage.expense}
           icon="📉"
         />
         <StatCard
-          title="Bakiye"
+          title={t('balance')}
           value={summary.totals.balance}
           icon="💰"
         />
       </div>
+
+      {/* AI Insights */}
+      <AIInsights />
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -80,9 +99,10 @@ export default function DashboardPage() {
       {/* Recent Transactions */}
       <TransactionTable
         transactions={transactions}
-        title="Son İşlemler"
+        title={t('recent_transactions')}
         limit={10}
       />
     </div>
   )
 }
+
