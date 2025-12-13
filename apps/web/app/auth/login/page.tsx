@@ -3,9 +3,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '@/components/auth-provider';
 
 export default function LoginPage() {
     const router = useRouter();
+    const { login } = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -28,10 +30,10 @@ export default function LoginPage() {
             }
 
             const data = await res.json();
-            localStorage.setItem('token', data.access_token);
-            localStorage.setItem('user', JSON.stringify(data.user));
-
-            router.push('/dashboard');
+            
+            // AuthProvider'daki login fonksiyonunu kullan
+            // Bu hem localStorage'ı hem de global state'i günceller
+            login(data.access_token, data.user);
         } catch (err) {
             setError('Invalid credentials');
         } finally {
@@ -40,6 +42,7 @@ export default function LoginPage() {
     };
 
     return (
+
         <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 py-12 sm:px-6 lg:px-8">
             <div className="sm:mx-auto sm:w-full sm:max-w-md">
                 <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">

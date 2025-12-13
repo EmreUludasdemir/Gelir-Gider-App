@@ -3,9 +3,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '@/components/auth-provider';
 
 export default function RegisterPage() {
     const router = useRouter();
+    const { login } = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [name, setName] = useState('');
@@ -18,26 +20,42 @@ export default function RegisterPage() {
         setError('');
 
         try {
-            const res = await fetch('http://localhost:3001/auth/register', {
+            // Register
+            const registerRes = await fetch('http://localhost:3001/auth/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password, name }),
             });
 
-            if (!res.ok) {
-                throw new Error('Registration failed');
+            if (!registerRes.ok) {
+                const data = await registerRes.json().catch(() => ({}));
+                throw new Error(data.message || 'Registration failed');
             }
 
-            // Auto login or redirect to login
-            router.push('/auth/login');
+            // Auto login after successful registration
+            const loginRes = await fetch('http://localhost:3001/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
+            });
+
+            if (!loginRes.ok) {
+                // If auto-login fails, just redirect to login page
+                router.push('/auth/login');
+                return;
+            }
+
+            const loginData = await loginRes.json();
+            login(loginData.access_token, loginData.user);
         } catch (err) {
-            setError('Registration failed. Try again.');
+            setError(err instanceof Error ? err.message : 'Registration failed. Try again.');
         } finally {
             setLoading(false);
         }
     };
 
     return (
+
         <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 py-12 sm:px-6 lg:px-8">
             <div className="sm:mx-auto sm:w-full sm:max-w-md">
                 <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
