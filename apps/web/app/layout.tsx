@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { ToastProvider } from '@/components/ui/Toast'
 import { PreferencesProvider } from '@/lib/PreferencesContext'
+import { NotificationProvider } from '@/lib/NotificationContext'
 
 export const metadata: Metadata = {
   title: 'Gelir-Gider Takip',
@@ -20,11 +21,14 @@ export default function RootLayout({
       <body className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
         <PreferencesProvider>
           <AuthProvider>
-            <ToastProvider>{children}</ToastProvider>
+            <NotificationProvider>
+              <ToastProvider>{children}</ToastProvider>
+            </NotificationProvider>
           </AuthProvider>
         </PreferencesProvider>
       </body>
     </html>
   )
 }
+
 

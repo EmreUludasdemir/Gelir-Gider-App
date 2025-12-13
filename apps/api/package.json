@@ -28,13 +28,17 @@
     "uuid": "^10.0.0"
   },
   "devDependencies": {
+    "@nestjs/testing": "^10.4.20",
     "@types/bcrypt": "^6.0.0",
     "@types/express": "^4.17.21",
+    "@types/jest": "^30.0.0",
     "@types/multer": "^1.4.12",
     "@types/node": "^22.5.0",
     "@types/passport-jwt": "^4.0.1",
     "@types/uuid": "^10.0.0",
+    "jest": "^30.2.0",
     "prisma": "^5.22.0",
+    "ts-jest": "^29.4.6",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.5.4"
   }
