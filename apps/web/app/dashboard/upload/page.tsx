@@ -20,8 +20,8 @@ export default function UploadPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">PDF Yükleme</h1>
-        <p className="text-gray-600 mt-1">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">PDF Yükleme</h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">
           Banka ekstrenizi yükleyin, otomatik olarak parse edin
         </p>
       </div>
@@ -33,7 +33,7 @@ export default function UploadPage() {
       {result && result.transactions.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-gray-900">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
               Parse Edilen İşlemler ({result.transactions.length})
             </h2>
             <button

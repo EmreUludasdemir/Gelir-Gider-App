@@ -11,6 +11,7 @@ services:
     environment:
       - NODE_ENV=production
       - PDF_PARSER_URL=http://pdf-parser:8001
+      - DATABASE_URL=file:./dev.db
     depends_on:
       - pdf-parser
     healthcheck:
@@ -27,7 +28,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:3001
+      - NEXT_PUBLIC_API_URL=http://api:3001
     depends_on:
       - api
 

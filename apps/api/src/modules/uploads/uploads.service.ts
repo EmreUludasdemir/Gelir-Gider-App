@@ -1,5 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
+import FormData from 'form-data';
 import { TransactionEntity, UploadResult } from '../../shared/types';
 import { classifyTransaction } from '../../shared/categories';
 import { PrismaService } from '../../prisma.service';
@@ -17,17 +18,27 @@ export class UploadsService {
   constructor(private readonly prisma: PrismaService) { }
 
   async processPdf(userId: string, file: Express.Multer.File): Promise<UploadResult> {
+    console.log('🔍 processPdf called with:', { userId, fileName: file?.originalname, fileSize: file?.size, hasBuffer: !!file?.buffer });
+    
     // Validate file
     if (!file) {
+      console.error('❌ No file provided');
       throw new BadRequestException('No file provided');
     }
 
     if (!file.originalname.toLowerCase().endsWith('.pdf')) {
+      console.error('❌ Not a PDF file:', file.originalname);
       throw new BadRequestException('Only PDF files are accepted');
     }
 
     if (file.size > 10 * 1024 * 1024) {
+      console.error('❌ File too large:', file.size);
       throw new BadRequestException('File size must be less than 10MB');
+    }
+
+    if (!file.buffer) {
+      console.error('❌ No file buffer available');
+      throw new BadRequestException('File buffer not available');
     }
 
     const errors: string[] = [];
@@ -37,14 +48,18 @@ export class UploadsService {
       // Call PDF parser service
       const pdfParserUrl = process.env.PDF_PARSER_URL || 'http://localhost:8001';
 
+      // Use form-data for proper multipart/form-data handling in Node.js
       const formData = new FormData();
-      const blob = new Blob([file.buffer], { type: 'application/pdf' });
-      formData.append('file', blob, file.originalname);
+      formData.append('file', file.buffer, {
+        filename: file.originalname,
+        contentType: 'application/pdf',
+      });
 
       // Node 18+ fetch
       const response = await fetch(`${pdfParserUrl}/parse`, {
         method: 'POST',
-        body: formData,
+        body: formData as any,
+        headers: formData.getHeaders(),
       });
 
       if (!response.ok) {
@@ -110,8 +125,11 @@ export class UploadsService {
         transactions,
       };
     } catch (error) {
+      console.error('❌ Error in processPdf:', error);
+      
       // If PDF parser service is not available, return a friendly error
       if (error instanceof Error && error.message.includes('fetch')) {
+        console.error('❌ PDF Parser service not available');
         return {
           success: false,
           filename: file.originalname,
@@ -126,9 +144,9 @@ export class UploadsService {
         };
       }
 
-      throw new BadRequestException(
-        `Failed to process PDF: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
+      const errorMessage = `Failed to process PDF: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      console.error('❌ Throwing BadRequestException:', errorMessage);
+      throw new BadRequestException(errorMessage);
     }
   }
 

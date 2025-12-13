@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Transaction } from '@/lib/api'
 import { exportToCSV, exportToJSON } from '@/lib/export'
 import { Button } from './Button'
+import { useToast } from './Toast'
 
 interface ExportButtonProps {
   transactions: Transaction[]
@@ -12,15 +13,22 @@ interface ExportButtonProps {
 
 export function ExportButton({ transactions, filename }: ExportButtonProps) {
   const [showMenu, setShowMenu] = useState(false)
+  const { showToast } = useToast()
 
   const handleExport = (format: 'csv' | 'json') => {
     const date = new Date().toISOString().split('T')[0]
     const defaultFilename = filename || `transactions-${date}`
 
-    if (format === 'csv') {
-      exportToCSV(transactions, `${defaultFilename}.csv`)
-    } else {
-      exportToJSON(transactions, `${defaultFilename}.json`)
+    try {
+      if (format === 'csv') {
+        exportToCSV(transactions, `${defaultFilename}.csv`)
+        showToast(`${transactions.length} işlem CSV olarak dışa aktarıldı! 📊`, 'success')
+      } else {
+        exportToJSON(transactions, `${defaultFilename}.json`)
+        showToast(`${transactions.length} işlem JSON olarak dışa aktarıldı! 📄`, 'success')
+      }
+    } catch (error) {
+      showToast('Dışa aktarma başarısız oldu', 'error')
     }
 
     setShowMenu(false)
