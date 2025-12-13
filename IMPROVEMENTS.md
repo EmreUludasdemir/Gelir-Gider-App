@@ -360,6 +360,6 @@ npm run build
 
 Herhangi bir sorun veya öneri için lütfen GitHub Issues kullanın.
 
-**Geliştirici:** Claude Code
+**Geliştirici:** Emre Uludaşdemir
 **Versiyon:** 2.0.0
 **Tarih:** Aralık 2024

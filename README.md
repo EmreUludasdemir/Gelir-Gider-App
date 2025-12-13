@@ -199,5 +199,5 @@ MIT
 
 ## 👨‍💻 Geliştirici
 
-Claude Code & Gemini Code tarafından geliştirilmiştir.
+Emre Uludaşdemir tarafından geliştirilmiştir.
 
