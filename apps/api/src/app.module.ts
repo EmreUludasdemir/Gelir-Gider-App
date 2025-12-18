@@ -10,6 +10,7 @@ import { PreferencesModule } from "./modules/preferences/preferences.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { SecurityModule } from "./modules/security/security.module";
 import { CreditCardsModule } from "./modules/credit-cards/credit-cards.module";
+import { BankConnectionsModule } from "./modules/bank-connections/bank-connections.module";
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { CreditCardsModule } from "./modules/credit-cards/credit-cards.module";
     NotificationsModule,
     SecurityModule,
     CreditCardsModule,
+    BankConnectionsModule,
   ],
   controllers: [HealthController],
 })
