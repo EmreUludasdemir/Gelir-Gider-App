@@ -1,4 +1,6 @@
 import { Module } from "@nestjs/common";
+import { APP_GUARD } from "@nestjs/core";
+import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
 import { TransactionsModule } from "./modules/transactions/transactions.module";
 import { UploadsModule } from "./modules/uploads/uploads.module";
 import { HealthController } from "./health.controller";
@@ -12,9 +14,19 @@ import { NotificationsModule } from "./modules/notifications/notifications.modul
 import { SecurityModule } from "./modules/security/security.module";
 import { CreditCardsModule } from "./modules/credit-cards/credit-cards.module";
 import { BankConnectionsModule } from "./modules/bank-connections/bank-connections.module";
+import { ExportModule } from "./modules/export/export.module";
+import { PushModule } from "./modules/push/push.module";
+import { AnalyticsModule } from "./modules/analytics/analytics.module";
 
 @Module({
   imports: [
+    // Rate Limiting: 100 requests per minute per IP
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 100,
+      },
+    ]),
     PrismaModule,
     RedisModule,
     AuthModule,
@@ -27,7 +39,16 @@ import { BankConnectionsModule } from "./modules/bank-connections/bank-connectio
     SecurityModule,
     CreditCardsModule,
     BankConnectionsModule,
+    ExportModule,
+    PushModule,
+    AnalyticsModule,
   ],
   controllers: [HealthController],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}

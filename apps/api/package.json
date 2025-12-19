@@ -32,7 +32,11 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "uuid": "^10.0.0",
-    "ioredis": "^5.4.1"
+    "ioredis": "^5.4.1",
+    "@nestjs/throttler": "^6.2.1",
+    "exceljs": "^4.4.0",
+    "pdfkit": "^0.15.0",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@nestjs/testing": "^10.4.20",

@@ -31,13 +31,14 @@ model User {
   // Telegram integration
   telegramChatId String? @unique
 
-  transactions    Transaction[]
-  savingsGoals    SavingsGoal[]
-  budgets         Budget[]
-  preferences     UserPreference?
-  creditCards     CreditCard[]
-  auditLogs       AuditLog[]
-  bankConnections BankConnection[]
+  transactions      Transaction[]
+  savingsGoals      SavingsGoal[]
+  budgets           Budget[]
+  preferences       UserPreference?
+  creditCards       CreditCard[]
+  auditLogs         AuditLog[]
+  bankConnections   BankConnection[]
+  pushSubscriptions PushSubscription[]
 }
 
 // Bank Connection for API Integration
@@ -201,4 +202,22 @@ model AuditLog {
   @@index([userId])
   @@index([action])
   @@index([createdAt])
+}
+
+// Push Notification Subscriptions
+model PushSubscription {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  endpoint String
+  keys     String // JSON with p256dh and auth keys
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, endpoint])
+  @@index([userId])
+  @@index([isActive])
 }
