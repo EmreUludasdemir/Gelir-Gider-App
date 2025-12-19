@@ -1,0 +1,81 @@
+name: Deploy
+
+on:
+    workflow_dispatch:
+        inputs:
+            environment:
+                description: "Deployment environment"
+                required: true
+                default: "staging"
+                type: choice
+                options:
+                    - staging
+                    - production
+
+env:
+    REGISTRY: ghcr.io
+    IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+    deploy:
+        name: Deploy to ${{ github.event.inputs.environment }}
+        runs-on: ubuntu-latest
+        environment: ${{ github.event.inputs.environment }}
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Log deployment start
+              run: |
+                  echo "🚀 Starting deployment to ${{ github.event.inputs.environment }}"
+                  echo "Commit: ${{ github.sha }}"
+                  echo "Actor: ${{ github.actor }}"
+
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@v3
+
+            - name: Log in to Container Registry
+              uses: docker/login-action@v3
+              with:
+                  registry: ${{ env.REGISTRY }}
+                  username: ${{ github.actor }}
+                  password: ${{ secrets.GITHUB_TOKEN }}
+
+            # Production deployment steps
+            - name: Deploy to Production
+              if: github.event.inputs.environment == 'production'
+              run: |
+                  echo "🎯 Deploying to PRODUCTION"
+                  echo "This is a placeholder for production deployment steps."
+                  echo ""
+                  echo "Example deployment options:"
+                  echo "  - SSH to production server and run docker-compose pull && docker-compose up -d"
+                  echo "  - Use Kubernetes kubectl to update deployments"
+                  echo "  - Trigger a webhook to your hosting provider"
+                  echo ""
+                  echo "Add your deployment commands here:"
+                  echo "  # ssh user@prod-server 'cd /app && docker-compose -f docker-compose.prod.yml pull && docker-compose -f docker-compose.prod.yml up -d'"
+
+            # Staging deployment steps
+            - name: Deploy to Staging
+              if: github.event.inputs.environment == 'staging'
+              run: |
+                  echo "🧪 Deploying to STAGING"
+                  echo "This is a placeholder for staging deployment steps."
+                  echo ""
+                  echo "Add your staging deployment commands here:"
+                  echo "  # ssh user@staging-server 'cd /app && docker-compose pull && docker-compose up -d'"
+
+            - name: Notify deployment complete
+              run: |
+                  echo "✅ Deployment to ${{ github.event.inputs.environment }} completed successfully!"
+                  echo "Deployed at: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+
+            # Optional: Health check after deployment
+            - name: Health Check
+              if: success()
+              run: |
+                  echo "🏥 Running health checks..."
+                  echo "Add health check commands here, for example:"
+                  echo "  # curl -f https://your-app-url.com/health"

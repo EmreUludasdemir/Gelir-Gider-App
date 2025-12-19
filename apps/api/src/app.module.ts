@@ -4,6 +4,7 @@ import { UploadsModule } from "./modules/uploads/uploads.module";
 import { HealthController } from "./health.controller";
 import { AuthModule } from "./modules/auth/auth.module";
 import { PrismaModule } from "./prisma.module";
+import { RedisModule } from "./redis.module";
 import { SavingsGoalsModule } from "./modules/savings-goals/savings-goals.module";
 import { BudgetsModule } from "./modules/budgets/budgets.module";
 import { PreferencesModule } from "./modules/preferences/preferences.module";
@@ -15,6 +16,7 @@ import { BankConnectionsModule } from "./modules/bank-connections/bank-connectio
 @Module({
   imports: [
     PrismaModule,
+    RedisModule,
     AuthModule,
     TransactionsModule,
     UploadsModule,
