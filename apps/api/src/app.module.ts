@@ -17,6 +17,10 @@ import { BankConnectionsModule } from "./modules/bank-connections/bank-connectio
 import { ExportModule } from "./modules/export/export.module";
 import { PushModule } from "./modules/push/push.module";
 import { AnalyticsModule } from "./modules/analytics/analytics.module";
+import { BillsModule } from "./modules/bills/bills.module";
+import { DebtsModule } from "./modules/debts/debts.module";
+import { SubscriptionsModule } from "./modules/subscriptions/subscriptions.module";
+import { ImportsModule } from "./modules/imports/imports.module";
 
 @Module({
   imports: [
@@ -42,6 +46,10 @@ import { AnalyticsModule } from "./modules/analytics/analytics.module";
     ExportModule,
     PushModule,
     AnalyticsModule,
+    BillsModule,
+    DebtsModule,
+    SubscriptionsModule,
+    ImportsModule,
   ],
   controllers: [HealthController],
   providers: [
