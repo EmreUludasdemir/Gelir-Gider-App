@@ -21,6 +21,7 @@ import { BillsModule } from "./modules/bills/bills.module";
 import { DebtsModule } from "./modules/debts/debts.module";
 import { SubscriptionsModule } from "./modules/subscriptions/subscriptions.module";
 import { ImportsModule } from "./modules/imports/imports.module";
+import { ReportsModule } from "./modules/reports/reports.module";
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { ImportsModule } from "./modules/imports/imports.module";
     DebtsModule,
     SubscriptionsModule,
     ImportsModule,
+    ReportsModule,
   ],
   controllers: [HealthController],
   providers: [
