@@ -1,6 +1,7 @@
-import { Module } from "@nestjs/common";
-import { APP_GUARD } from "@nestjs/core";
+import { Module, MiddlewareConsumer, NestModule, RequestMethod } from "@nestjs/common";
+import { APP_GUARD, APP_FILTER } from "@nestjs/core";
 import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
+import { WinstonModule } from "nest-winston";
 import { TransactionsModule } from "./modules/transactions/transactions.module";
 import { UploadsModule } from "./modules/uploads/uploads.module";
 import { HealthController } from "./health.controller";
@@ -23,9 +24,19 @@ import { SubscriptionsModule } from "./modules/subscriptions/subscriptions.modul
 import { ImportsModule } from "./modules/imports/imports.module";
 import { ReportsModule } from "./modules/reports/reports.module";
 import { SmsParserModule } from "./modules/sms-parser/sms-parser.module";
+import { 
+  winstonConfig, 
+  LoggingMiddleware, 
+  GlobalExceptionFilter,
+  SanitizationMiddleware,
+  SecurityMiddleware,
+  HppMiddleware,
+} from "./shared";
 
 @Module({
   imports: [
+    // Winston Logger
+    WinstonModule.forRoot(winstonConfig),
     // Rate Limiting: 100 requests per minute per IP
     ThrottlerModule.forRoot([
       {
@@ -61,6 +72,22 @@ import { SmsParserModule } from "./modules/sms-parser/sms-parser.module";
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
     },
+    {
+      provide: APP_FILTER,
+      useClass: GlobalExceptionFilter,
+    },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    // Security middleware chain
+    consumer
+      .apply(
+        SecurityMiddleware,    // Attack pattern detection
+        HppMiddleware,         // HTTP Parameter Pollution protection
+        SanitizationMiddleware, // Input sanitization
+        LoggingMiddleware,     // Request/Response logging
+      )
+      .forRoutes({ path: '*', method: RequestMethod.ALL });
+  }
+}
