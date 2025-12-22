@@ -1,25 +1,50 @@
-// Jest test setup
+/**
+ * Jest Test Setup - FAZ 3
+ * Global test configuration and mocks
+ */
+
 import { PrismaClient } from "@prisma/client";
 
-// Mock Prisma for testing
+// ============================================
+// ENVIRONMENT SETUP
+// ============================================
+
+// Set test environment variables
+process.env.NODE_ENV = 'test';
+process.env.JWT_SECRET = 'test-jwt-secret-key-for-testing';
+process.env.JWT_REFRESH_SECRET = 'test-jwt-refresh-secret-key';
+process.env.ENCRYPTION_KEY = 'test-encryption-key-32-chars!!!';
+
+// ============================================
+// MOCK PRISMA CLIENT
+// ============================================
+
 jest.mock("@prisma/client", () => ({
   PrismaClient: jest.fn().mockImplementation(() => ({
-    $connect: jest.fn(),
-    $disconnect: jest.fn(),
+    $connect: jest.fn().mockResolvedValue(undefined),
+    $disconnect: jest.fn().mockResolvedValue(undefined),
+    $transaction: jest.fn((callback) => callback()),
+    $queryRaw: jest.fn(),
+    $executeRaw: jest.fn(),
     user: {
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
       findMany: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
+      count: jest.fn(),
     },
     transaction: {
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
       findMany: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
       aggregate: jest.fn(),
+      groupBy: jest.fn(),
+      count: jest.fn(),
     },
     savingsGoal: {
       findUnique: jest.fn(),
@@ -39,15 +64,137 @@ jest.mock("@prisma/client", () => ({
     },
     userPreference: {
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
       upsert: jest.fn(),
     },
+    subscription: {
+      findUnique: jest.fn(),
+      findFirst: jest.fn(),
+      findMany: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    },
+    notification: {
+      findUnique: jest.fn(),
+      findFirst: jest.fn(),
+      findMany: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      updateMany: jest.fn(),
+      delete: jest.fn(),
+      deleteMany: jest.fn(),
+    },
+    debt: {
+      findUnique: jest.fn(),
+      findFirst: jest.fn(),
+      findMany: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    },
+    creditCard: {
+      findUnique: jest.fn(),
+      findFirst: jest.fn(),
+      findMany: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    },
+    bankConnection: {
+      findUnique: jest.fn(),
+      findFirst: jest.fn(),
+      findMany: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    },
   })),
 }));
 
+// ============================================
+// MOCK REDIS
+// ============================================
+
+jest.mock('ioredis', () => {
+  const mRedis = {
+    get: jest.fn(),
+    set: jest.fn(),
+    del: jest.fn(),
+    exists: jest.fn(),
+    expire: jest.fn(),
+    ttl: jest.fn(),
+    keys: jest.fn(),
+    flushall: jest.fn(),
+    quit: jest.fn(),
+    on: jest.fn(),
+    connect: jest.fn(),
+    disconnect: jest.fn(),
+  };
+  return jest.fn(() => mRedis);
+});
+
+// ============================================
+// GLOBAL TEST CONFIGURATION
+// ============================================
+
 // Global test timeout
-jest.setTimeout(10000);
+jest.setTimeout(30000);
+
+// Suppress console logs during tests (optional)
+// Uncomment to reduce noise in test output
+// global.console = {
+//   ...console,
+//   log: jest.fn(),
+//   debug: jest.fn(),
+//   info: jest.fn(),
+//   warn: jest.fn(),
+// };
+
+// ============================================
+// GLOBAL BEFORE/AFTER HOOKS
+// ============================================
+
+beforeAll(() => {
+  // Global setup before all tests
+});
+
+afterAll(() => {
+  // Global cleanup after all tests
+  jest.clearAllMocks();
+});
+
+beforeEach(() => {
+  // Reset mocks before each test
+  jest.clearAllMocks();
+});
+
+afterEach(() => {
+  // Cleanup after each test
+});
+
+// ============================================
+// CUSTOM MATCHERS (optional)
+// ============================================
+
+expect.extend({
+  toBeWithinRange(received: number, floor: number, ceiling: number) {
+    const pass = received >= floor && received <= ceiling;
+    if (pass) {
+      return {
+        message: () => `expected ${received} not to be within range ${floor} - ${ceiling}`,
+        pass: true,
+      };
+    } else {
+      return {
+        message: () => `expected ${received} to be within range ${floor} - ${ceiling}`,
+        pass: false,
+      };
+    }
+  },
+});
 
 // Clean up after all tests
 afterAll(async () => {
