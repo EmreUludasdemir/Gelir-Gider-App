@@ -6,9 +6,12 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+// Connection pooling için PgBouncer kullanılabilir
+// DATABASE_URL formatı: postgresql://user:password@host:5432/dbname?schema=public
 
 model User {
   id        String   @id @default(uuid())

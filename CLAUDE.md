@@ -1,14 +1,14 @@
 # 🧠 CLAUDE.md - Proje Hafıza Dosyası
 
 > Bu dosya Claude'un projeyi hatırlaması ve tutarlı çalışması için oluşturulmuştur.
-> Son güncelleme: 2024-12-22
+> Son güncelleme: 2025-01-15
 
 ---
 
 ## 📋 PROJE ÖZETİ
 
 **Proje Adı:** Gelir-Gider Takip Uygulaması  
-**Versiyon:** v2.0  
+**Versiyon:** v2.5  
 **Sahibi:** Emre Uludeşdemir (@EmreUludasdemir)  
 **Repo:** https://github.com/EmreUludasdemir/Gelir-Gider-Uygulamas--Claude  
 **Branch:** claude/finance-tracker-app-01CwGjpwSVn1dh1sqZnkDXvU
@@ -37,10 +37,10 @@ Modern, full-stack finans yönetim uygulaması. PDF banka ekstrelerini otomatik 
               ┌──────────────┼──────────────┐
               ▼              ▼              ▼
          ┌─────────┐   ┌─────────┐   ┌─────────────┐
-         │ SQLite  │   │ Redis   │   │ PDF Parser  │
+         │PostgreSQL│   │ Redis   │   │ PDF Parser  │
          │   DB    │   │ Cache   │   │ (FastAPI)   │
-         └─────────┘   └─────────┘   │ :8001       │
-                                     └─────────────┘
+         │  :5432  │   │  :6379  │   │ :8001       │
+         └─────────┘   └─────────┘   └─────────────┘
 ```
 
 ### Klasör Yapısı
@@ -254,13 +254,39 @@ npm run dev:parser
 ### Environment Variables
 ```env
 # apps/api/.env
-DATABASE_URL="file:./prisma/dev.db"
+DATABASE_URL="postgresql://finance_user:password@localhost:5432/finance_db"
 JWT_SECRET="your-secret"
 GEMINI_API_KEY="your-gemini-key"
+REDIS_HOST="localhost"
+REDIS_PORT=6379
 
 # apps/web/.env.local
 NEXT_PUBLIC_API_URL="http://localhost:3001"
 NEXT_PUBLIC_GEMINI_API_KEY="your-gemini-key"
+```
+
+### Docker ile Çalıştırma
+```bash
+# PostgreSQL + Redis + API + Web
+docker-compose up -d
+
+# Sadece PostgreSQL ve Redis
+docker-compose up -d postgres redis
+
+# Migration çalıştır
+cd apps/api && npx prisma migrate dev
+```
+
+---
+
+## 📊 PERFORMANS ENDPOİNTLERİ
+
+```
+GET /health           - Genel sağlık durumu (DB + Cache)
+GET /health/ready     - Readiness probe (DB bağlantısı)
+GET /health/live      - Liveness probe (uptime)
+GET /performance/metrics - Cache istatistikleri
+GET /performance/health  - Sistem sağlık durumu
 ```
 
 ---
@@ -269,12 +295,55 @@ NEXT_PUBLIC_GEMINI_API_KEY="your-gemini-key"
 
 | Tarih | Karar | Sebep |
 |-------|-------|-------|
-| 2024-12 | SQLite → Production'da PostgreSQL planı | Başlangıç için basitlik |
+| 2024-12 | SQLite → PostgreSQL (v2.5) | Production-ready veritabanı |
 | 2024-12 | Monorepo yapısı | Paylaşımlı tipler ve kolay yönetim |
 | 2024-12 | Next.js App Router | Modern React patterns |
 | 2024-12 | Tailwind CSS | Hızlı UI geliştirme |
 | 2024-12 | Gemini AI | Ücretsiz tier, Türkçe desteği |
-| 2025-12-22 | Winston Logger + Global Exception Filter | Merkezi hata yönetimi ve logging |
+| 2025-01-15 | Winston Logger + Global Exception Filter | Merkezi hata yönetimi ve logging |
+| 2025-01-15 | Redis Cache + Compression | Performans optimizasyonu |
+| 2025-01-15 | PostgreSQL + Connection Pooling | Ölçeklenebilir veritabanı |
+
+---
+
+## 🚀 TAMAMLANAN FAZ'LAR
+
+### FAZ 1: Error Handling & Logging ✅
+- Winston Logger ile structured logging
+- Global Exception Filter
+- Standart Error Response formatı
+- Request logging (method, url, duration)
+- Log dosyaları (combined, error, exceptions)
+
+### FAZ 2: Security Layer ✅
+- Rate limiting (Throttler)
+- CORS yapılandırması
+- Helmet security headers
+- Input validation (class-validator)
+- Audit logging
+
+### FAZ 3: Test Infrastructure ✅
+- 141 test (10 test suite)
+- Unit testler (services, controllers)
+- Integration testler
+- E2E testler
+- Test utilities ve mocks
+
+### FAZ 4: Performance & Cache ✅
+- Redis Cache Service (ioredis)
+- Cache decorators (@Cacheable, @CacheInvalidate)
+- Gzip compression middleware
+- Performance monitoring endpoint (/performance/metrics)
+- Query optimization indexes
+- Cache invalidation strategy
+
+### FAZ 5: PostgreSQL Migration ✅
+- Prisma schema: sqlite → postgresql
+- Docker Compose: PostgreSQL + Redis containers
+- Connection pooling ayarları
+- Health check endpoints (database, cache)
+- Transaction retry logic
+- .env.example güncellendi
 
 ---
 
@@ -336,17 +405,27 @@ NEXT_PUBLIC_GEMINI_API_KEY="your-gemini-key"
 ### Yüksek Öncelik
 - [ ] Gerçek banka API entegrasyonu
 - [ ] Push notification altyapısı
-- [ ] E2E testler
+- [ ] CI/CD pipeline (GitHub Actions)
 
 ### Orta Öncelik
 - [ ] Daha fazla banka formatı desteği
 - [ ] Gelişmiş raporlama
 - [ ] Export (CSV, PDF)
+- [ ] Multi-tenant desteği
 
 ### Düşük Öncelik
 - [ ] Desktop uygulaması (Electron)
 - [ ] Apple Watch app
 - [ ] Telegram bot
+
+### Tamamlanan ✅
+- [x] SQLite → PostgreSQL migration
+- [x] Redis cache layer
+- [x] Response compression (Gzip)
+- [x] Performance monitoring
+- [x] Error handling & logging
+- [x] Security layer (rate limiting, CORS)
+- [x] Test infrastructure (141 test)
 
 ---
 

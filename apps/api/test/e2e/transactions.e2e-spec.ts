@@ -4,15 +4,15 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import * as request from 'supertest';
-import { AppModule } from '../../app.module';
-import { PrismaService } from '../../prisma.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import request from 'supertest';
+import { AppModule } from '../../src/app.module';
+import { PrismaService } from '../../src/prisma.service';
+import { JwtAuthGuard } from '../../src/modules/auth/jwt-auth.guard';
 import {
   createMockUser,
   createMockTransaction,
   createMockPrismaService,
-} from '../../../test/test-utils';
+} from '../test-utils';
 
 describe('Transactions Controller (e2e)', () => {
   let app: INestApplication;

@@ -4,10 +4,10 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import * as request from 'supertest';
-import { AppModule } from '../../app.module';
-import { PrismaService } from '../../prisma.service';
-import { createMockUser, createMockPrismaService } from '../../../test/test-utils';
+import request from 'supertest';
+import { AppModule } from '../../src/app.module';
+import { PrismaService } from '../../src/prisma.service';
+import { createMockUser, createMockPrismaService } from '../test-utils';
 
 describe('Auth Controller (e2e)', () => {
   let app: INestApplication;

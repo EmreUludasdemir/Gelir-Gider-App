@@ -1,19 +1,65 @@
 version: '3.8'
 
 services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: finance-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-finance_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-finance_secret_2024}
+      POSTGRES_DB: ${POSTGRES_DB:-finance_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-finance_user} -d ${POSTGRES_DB:-finance_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: finance-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # NestJS API
   api:
     build:
       context: ./apps/api
       dockerfile: Dockerfile
+    container_name: finance-api
+    restart: unless-stopped
     ports:
       - "3001:3001"
     environment:
       - NODE_ENV=production
       - PDF_PARSER_URL=http://pdf-parser:8001
-      - DATABASE_URL=file:./dev.db
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-finance_user}:${POSTGRES_PASSWORD:-finance_secret_2024}@postgres:5432/${POSTGRES_DB:-finance_db}?schema=public
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=${JWT_SECRET:-your-jwt-secret-key}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     depends_on:
-      - pdf-parser
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      pdf-parser:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
       interval: 30s
@@ -25,6 +71,8 @@ services:
     build:
       context: ./apps/web
       dockerfile: Dockerfile
+    container_name: finance-web
+    restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
@@ -37,6 +85,8 @@ services:
     build:
       context: ./services/pdf-parser
       dockerfile: Dockerfile
+    container_name: finance-pdf-parser
+    restart: unless-stopped
     ports:
       - "8001:8001"
     healthcheck:
@@ -44,6 +94,12 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
 
 networks:
   default:
