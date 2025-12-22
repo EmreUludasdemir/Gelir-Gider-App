@@ -36,7 +36,10 @@
     "@nestjs/throttler": "^6.2.1",
     "exceljs": "^4.4.0",
     "pdfkit": "^0.15.0",
-    "web-push": "^3.6.7"
+    "web-push": "^3.6.7",
+    "speakeasy": "^2.0.0",
+    "qrcode": "^1.5.3",
+    "csv-parse": "^5.5.3"
   },
   "devDependencies": {
     "@nestjs/testing": "^10.4.20",
@@ -47,6 +50,7 @@
     "@types/node": "^22.5.0",
     "@types/passport-jwt": "^4.0.1",
     "@types/uuid": "^10.0.0",
+    "@types/qrcode": "^1.5.5",
     "jest": "^30.2.0",
     "prisma": "^5.22.0",
     "ts-jest": "^29.4.6",

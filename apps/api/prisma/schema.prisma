@@ -39,6 +39,9 @@ model User {
   auditLogs         AuditLog[]
   bankConnections   BankConnection[]
   pushSubscriptions PushSubscription[]
+  bills             Bill[]
+  debts             Debt[]
+  subscriptions     Subscription[]
 }
 
 // Bank Connection for API Integration
@@ -218,6 +221,78 @@ model PushSubscription {
   updatedAt DateTime @updatedAt
 
   @@unique([userId, endpoint])
+  @@index([userId])
+  @@index([isActive])
+}
+
+// Bill / Fatura Hatırlatıcı
+model Bill {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name          String
+  amount        Float
+  currency      String   @default("TRY")
+  dueDate       DateTime
+  frequency     String   @default("monthly") // 'once' | 'weekly' | 'monthly' | 'yearly'
+  categoryId    String
+  categoryLabel String
+  isPaid        Boolean  @default(false)
+  reminderDays  Int      @default(3) // Days before due date to remind
+  notes         String?
+  paidAt        DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([dueDate])
+  @@index([isPaid])
+}
+
+// Debt / Borç Takibi
+model Debt {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  personName  String
+  amount      Float
+  currency    String    @default("TRY")
+  type        String    // 'owed_to_me' | 'i_owe'
+  description String?
+  dueDate     DateTime?
+  isPaid      Boolean   @default(false)
+  paidAt      DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([type])
+  @@index([isPaid])
+}
+
+// Subscription / Abonelik Yönetimi
+model Subscription {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name            String
+  amount          Float
+  currency        String   @default("TRY")
+  billingCycle    String   @default("monthly") // 'weekly' | 'monthly' | 'yearly'
+  nextBillingDate DateTime
+  categoryId      String
+  categoryLabel   String
+  isActive        Boolean  @default(true)
+  notes           String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([userId])
   @@index([isActive])
 }
