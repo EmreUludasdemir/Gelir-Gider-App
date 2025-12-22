@@ -100,9 +100,14 @@ model Transaction {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Performance indexes for common queries
   @@index([userId])
   @@index([date])
   @@index([creditCardId])
+  @@index([userId, date])           // Combined index for user's transactions by date range
+  @@index([userId, type])           // Filter by transaction type (income/expense)
+  @@index([userId, categoryId])     // Filter by category
+  @@index([type])                   // Global type filter
 }
 
 model SavingsGoal {

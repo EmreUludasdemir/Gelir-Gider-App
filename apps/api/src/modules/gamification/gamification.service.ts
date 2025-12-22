@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { PrismaService } from "../prisma/prisma.service";
+import { PrismaService } from "../../prisma.service";
 
 export interface Achievement {
   id: string;
@@ -302,7 +302,7 @@ export class GamificationService {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const dates = new Set(
+    const dates = new Set<number>(
       transactions.map((t) => {
         const d = new Date(t.createdAt);
         d.setHours(0, 0, 0, 0);

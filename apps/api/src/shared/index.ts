@@ -30,3 +30,12 @@ export {
   Encryption, 
   validateSecurityConfig 
 } from './security/security.config';
+
+// Cache exports
+export { CacheService, CachePrefix, CacheTTL } from './cache';
+export { CacheModule } from './cache';
+export { Cacheable, CacheInvalidate, CacheTransactions, CacheTransactionSummary, CacheBudgets } from './cache';
+
+// Performance exports
+export { CompressionMiddleware, createCompressionMiddleware, CompressionPresets } from './performance';
+export { PerformanceController, PerformanceModule } from './performance';

@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, LoggerService } from '@nestjs/common';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { v4 as uuidv4 } from 'uuid';
 import {
   TransactionEntity,
@@ -13,38 +14,55 @@ import {
 } from '../../shared/types';
 import { classifyTransaction } from '../../shared/categories';
 import { PrismaService } from '../../prisma.service';
+import { CacheService, CachePrefix, CacheTTL } from '../../shared/cache';
 import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class TransactionsService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
+    @Inject(WINSTON_MODULE_NEST_PROVIDER)
+    private readonly logger: LoggerService,
+  ) { }
 
   async findAll(userId: string, query?: TransactionQuery): Promise<TransactionEntity[]> {
-    const where: Prisma.TransactionWhereInput = { userId };
+    // Generate cache key based on query
+    const queryHash = query ? this.cache.hashQuery(query) : 'all';
+    const cacheKey = this.cache.buildKey(CachePrefix.TRANSACTION_LIST, userId, queryHash);
 
-    if (query) {
-      if (query.type) where.type = query.type;
-      if (query.categoryId) where.categoryId = query.categoryId;
-      if (query.source) where.source = query.source;
-      if (query.dateFrom) where.date = { ...where.date as any, gte: new Date(query.dateFrom) };
-      if (query.dateTo) where.date = { ...where.date as any, lte: new Date(query.dateTo) };
+    // Try cache first
+    return this.cache.getOrSet(
+      cacheKey,
+      async () => {
+        const where: Prisma.TransactionWhereInput = { userId };
 
-      if (query.search) {
-        where.OR = [
-          { description: { contains: query.search } },
-          { categoryLabel: { contains: query.search } },
-        ];
-      }
-    }
+        if (query) {
+          if (query.type) where.type = query.type;
+          if (query.categoryId) where.categoryId = query.categoryId;
+          if (query.source) where.source = query.source;
+          if (query.dateFrom) where.date = { ...where.date as any, gte: new Date(query.dateFrom) };
+          if (query.dateTo) where.date = { ...where.date as any, lte: new Date(query.dateTo) };
 
-    const transactions = await this.prisma.transaction.findMany({
-      where,
-      orderBy: query?.sortBy ? { [query.sortBy]: query.sortOrder || 'desc' } : { date: 'desc' },
-      take: query?.limit,
-      skip: query?.offset,
-    });
+          if (query.search) {
+            where.OR = [
+              { description: { contains: query.search } },
+              { categoryLabel: { contains: query.search } },
+            ];
+          }
+        }
 
-    return transactions.map(this.mapToEntity);
+        const transactions = await this.prisma.transaction.findMany({
+          where,
+          orderBy: query?.sortBy ? { [query.sortBy]: query.sortOrder || 'desc' } : { date: 'desc' },
+          take: query?.limit,
+          skip: query?.offset,
+        });
+
+        return transactions.map(this.mapToEntity);
+      },
+      CacheTTL.MEDIUM,
+    );
   }
 
   async findOne(userId: string, id: string): Promise<TransactionEntity> {
@@ -90,6 +108,12 @@ export class TransactionsService {
       },
     });
 
+    // Invalidate transaction caches
+    await this.cache.invalidateTransactions(userId);
+    this.logger.debug(`Transaction created, cache invalidated for user ${userId}`, {
+      context: 'TransactionsService',
+    });
+
     return this.mapToEntity(transaction);
   }
 
@@ -112,6 +136,12 @@ export class TransactionsService {
       data,
     });
 
+    // Invalidate transaction caches
+    await this.cache.invalidateTransactions(userId);
+    this.logger.debug(`Transaction updated, cache invalidated for user ${userId}`, {
+      context: 'TransactionsService',
+    });
+
     return this.mapToEntity(updated);
   }
 
@@ -122,129 +152,146 @@ export class TransactionsService {
     }
 
     await this.prisma.transaction.delete({ where: { id } });
+
+    // Invalidate transaction caches
+    await this.cache.invalidateTransactions(userId);
+    this.logger.debug(`Transaction deleted, cache invalidated for user ${userId}`, {
+      context: 'TransactionsService',
+    });
+
     return { success: true };
   }
 
   async getSummary(userId: string, query?: TransactionQuery): Promise<DashboardSummary> {
-    const now = new Date();
-    let currentMonth = now.getMonth();
-    let currentYear = now.getFullYear();
+    // Build cache key based on query parameters
+    const queryHash = query ? this.cache.hashQuery(query) : 'default';
+    const cacheKey = this.cache.buildKey(CachePrefix.TRANSACTION_SUMMARY, userId, queryHash);
 
-    // Allow month/year selection from query
-    if (query?.dateFrom) {
-      const queryDate = new Date(query.dateFrom);
-      currentMonth = queryDate.getMonth();
-      currentYear = queryDate.getFullYear();
-    }
+    return this.cache.getOrSet(
+      cacheKey,
+      async () => {
+        const now = new Date();
+        let currentMonth = now.getMonth();
+        let currentYear = now.getFullYear();
 
-    const startOfMonth = new Date(currentYear, currentMonth, 1);
-    const endOfMonth = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59);
+        // Allow month/year selection from query
+        if (query?.dateFrom) {
+          const queryDate = new Date(query.dateFrom);
+          currentMonth = queryDate.getMonth();
+          currentYear = queryDate.getFullYear();
+        }
 
-    const prevMonthStart = new Date(currentYear, currentMonth - 1, 1);
-    const prevMonthEnd = new Date(currentYear, currentMonth, 0, 23, 59, 59);
+        const startOfMonth = new Date(currentYear, currentMonth, 1);
+        const endOfMonth = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59);
 
-    // Fetch current and previous month transactions
-    const [currentTransactions, prevTransactions] = await Promise.all([
-      this.prisma.transaction.findMany({
-        where: { userId, date: { gte: startOfMonth, lte: endOfMonth } },
-      }),
-      this.prisma.transaction.findMany({
-        where: { userId, date: { gte: prevMonthStart, lte: prevMonthEnd } },
-      }),
-    ]);
+        const prevMonthStart = new Date(currentYear, currentMonth - 1, 1);
+        const prevMonthEnd = new Date(currentYear, currentMonth, 0, 23, 59, 59);
 
-    // Calculate totals
-    const totals = {
-      income: 0,
-      expense: 0,
-      balance: 0,
-      transactionCount: currentTransactions.length,
-    };
+        // Fetch current and previous month transactions
+        const [currentTransactions, prevTransactions] = await Promise.all([
+          this.prisma.transaction.findMany({
+            where: { userId, date: { gte: startOfMonth, lte: endOfMonth } },
+          }),
+          this.prisma.transaction.findMany({
+            where: { userId, date: { gte: prevMonthStart, lte: prevMonthEnd } },
+          }),
+        ]);
 
-    currentTransactions.forEach(tx => {
-      if (tx.type === 'income') totals.income += Math.abs(tx.amount);
-      else totals.expense += Math.abs(tx.amount);
-    });
+        // Calculate totals
+        const totals = {
+          income: 0,
+          expense: 0,
+          balance: 0,
+          transactionCount: currentTransactions.length,
+        };
 
-    totals.balance = totals.income - totals.expense;
+        currentTransactions.forEach(tx => {
+          if (tx.type === 'income') totals.income += Math.abs(tx.amount);
+          else totals.expense += Math.abs(tx.amount);
+        });
 
-    // Previous month totals
-    const prevTotals = { income: 0, expense: 0 };
-    prevTransactions.forEach(tx => {
-      if (tx.type === 'income') prevTotals.income += Math.abs(tx.amount);
-      else prevTotals.expense += Math.abs(tx.amount);
-    });
+        totals.balance = totals.income - totals.expense;
 
-    // Comparison
-    const comparison = {
-      previousMonth: prevTotals,
-      changePercentage: {
-        income: prevTotals.income > 0 ? ((totals.income - prevTotals.income) / prevTotals.income) * 100 : 0,
-        expense: prevTotals.expense > 0 ? ((totals.expense - prevTotals.expense) / prevTotals.expense) * 100 : 0,
+        // Previous month totals
+        const prevTotals = { income: 0, expense: 0 };
+        prevTransactions.forEach(tx => {
+          if (tx.type === 'income') prevTotals.income += Math.abs(tx.amount);
+          else prevTotals.expense += Math.abs(tx.amount);
+        });
+
+        // Comparison
+        const comparison = {
+          previousMonth: prevTotals,
+          changePercentage: {
+            income: prevTotals.income > 0 ? ((totals.income - prevTotals.income) / prevTotals.income) * 100 : 0,
+            expense: prevTotals.expense > 0 ? ((totals.expense - prevTotals.expense) / prevTotals.expense) * 100 : 0,
+          },
+        };
+
+        // Top categories (Expense)
+        const categoryMap = new Map<string, { total: number; count: number; label: string }>();
+        currentTransactions
+          .filter(tx => tx.type === 'expense')
+          .forEach(tx => {
+            const existing = categoryMap.get(tx.categoryId) || { total: 0, count: 0, label: tx.categoryLabel };
+            existing.total += Math.abs(tx.amount);
+            existing.count += 1;
+            categoryMap.set(tx.categoryId, existing);
+          });
+
+        const topCategories: CategorySummary[] = Array.from(categoryMap.entries())
+          .map(([categoryId, data]) => ({
+            categoryId,
+            categoryLabel: data.label,
+            total: data.total,
+            percentage: totals.expense > 0 ? (data.total / totals.expense) * 100 : 0,
+            transactionCount: data.count,
+            trend: 'stable' as const,
+          }))
+          .sort((a, b) => b.total - a.total)
+          .slice(0, 5);
+
+        // Weekly trend
+        const weeklyTrend: WeeklyData[] = [];
+        for (let i = 3; i >= 0; i--) {
+          const weekStart = new Date(now);
+          weekStart.setDate(now.getDate() - (i + 1) * 7);
+          const weekEnd = new Date(weekStart);
+          weekEnd.setDate(weekStart.getDate() + 7);
+
+          const weekTransactions = await this.prisma.transaction.findMany({
+            where: { userId, date: { gte: weekStart, lte: weekEnd } },
+          });
+
+          let weekIncome = 0, weekExpense = 0;
+          weekTransactions.forEach(tx => {
+            if (tx.type === 'income') weekIncome += Math.abs(tx.amount);
+            else weekExpense += Math.abs(tx.amount);
+          });
+
+          weeklyTrend.push({
+            week: `Week ${4 - i}`,
+            income: weekIncome,
+            expense: weekExpense,
+          });
+        }
+
+        return {
+          period: {
+            month: now.toLocaleString('tr-TR', { month: 'long' }),
+            year: currentYear,
+            startDate: startOfMonth.toISOString(),
+            endDate: endOfMonth.toISOString(),
+          },
+          totals,
+          comparison,
+          topCategories,
+          weeklyTrend,
+          recurringPayments: await this.getRecurringPayments(userId),
+        };
       },
-    };
-
-    // Top categories (Expense)
-    const categoryMap = new Map<string, { total: number; count: number; label: string }>();
-    currentTransactions
-      .filter(tx => tx.type === 'expense')
-      .forEach(tx => {
-        const existing = categoryMap.get(tx.categoryId) || { total: 0, count: 0, label: tx.categoryLabel };
-        existing.total += Math.abs(tx.amount);
-        existing.count += 1;
-        categoryMap.set(tx.categoryId, existing);
-      });
-
-    const topCategories: CategorySummary[] = Array.from(categoryMap.entries())
-      .map(([categoryId, data]) => ({
-        categoryId,
-        categoryLabel: data.label,
-        total: data.total,
-        percentage: totals.expense > 0 ? (data.total / totals.expense) * 100 : 0,
-        transactionCount: data.count,
-        trend: 'stable' as const,
-      }))
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 5);
-
-    // Weekly trend
-    const weeklyTrend: WeeklyData[] = [];
-    for (let i = 3; i >= 0; i--) {
-      const weekStart = new Date(now);
-      weekStart.setDate(now.getDate() - (i + 1) * 7);
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekStart.getDate() + 7);
-
-      const weekTransactions = await this.prisma.transaction.findMany({
-        where: { userId, date: { gte: weekStart, lte: weekEnd } },
-      });
-
-      let weekIncome = 0, weekExpense = 0;
-      weekTransactions.forEach(tx => {
-        if (tx.type === 'income') weekIncome += Math.abs(tx.amount);
-        else weekExpense += Math.abs(tx.amount);
-      });
-
-      weeklyTrend.push({
-        week: `Week ${4 - i}`,
-        income: weekIncome,
-        expense: weekExpense,
-      });
-    }
-
-    return {
-      period: {
-        month: now.toLocaleString('tr-TR', { month: 'long' }),
-        year: currentYear,
-        startDate: startOfMonth.toISOString(),
-        endDate: endOfMonth.toISOString(),
-      },
-      totals,
-      comparison,
-      topCategories,
-      weeklyTrend,
-      recurringPayments: await this.getRecurringPayments(userId),
-    };
+      CacheTTL.SHORT, // 1 minute TTL for dashboard - data changes frequently
+    );
   }
 
   async getSuggestions(userId: string): Promise<Suggestion[]> {

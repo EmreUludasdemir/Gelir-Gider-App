@@ -345,14 +345,133 @@ npm run build
 - [ ] Dark mode
 
 ### Technical Improvements:
-- [ ] Unit tests (Jest)
+- [x] Unit tests (Jest) - ✅ FAZ 3 Completed (141 tests)
 - [ ] E2E tests (Playwright)
 - [ ] CI/CD pipeline (GitHub Actions)
 - [ ] Docker compose production config
 - [ ] PostgreSQL support
-- [ ] Redis caching
+- [x] Redis caching - ✅ FAZ 4 Completed
 - [ ] WebSocket real-time updates
 - [ ] Mobile app (React Native)
+
+---
+
+## 🚀 FAZ 4: Performance & Cache Layer (TAMAMLANDI ✅)
+
+### 1. Redis Cache Service (`apps/api/src/shared/cache/`)
+
+#### Yeni Dosyalar:
+- `cache.service.ts` - Enhanced Redis cache service
+- `cache.module.ts` - Global cache module
+- `cache.decorators.ts` - Cacheable decorators
+- `index.ts` - Barrel export
+
+#### Özellikler:
+- **TTL Presets:**
+  - SHORT: 60s (frequently changing data)
+  - MEDIUM: 300s (dashboard, summary)
+  - LONG: 900s (reports, analytics)
+  - VERY_LONG: 3600s (static data)
+  - USER_SESSION: 86400s (user preferences)
+
+- **Cache Key Prefixes:**
+  - TRANSACTION, TRANSACTION_LIST, TRANSACTION_SUMMARY
+  - BUDGET, BUDGET_SUMMARY
+  - USER, USER_PROFILE
+  - ANALYTICS, CATEGORY, SUGGESTIONS, RECURRING
+
+- **Methods:**
+  - `get<T>(key)` - Get cached value
+  - `set(key, value, ttl)` - Set cache with TTL
+  - `getOrSet<T>(key, fetchFn, ttl)` - Cache-aside pattern
+  - `del(key)` - Delete single key
+  - `delPattern(pattern)` - Delete by pattern
+  - `invalidateUser(userId)` - Clear all user caches
+  - `invalidateTransactions(userId)` - Clear transaction caches
+  - `invalidateBudgets(userId)` - Clear budget caches
+  - `buildKey(prefix, userId, ...parts)` - Build cache key
+  - `hashQuery(query)` - MD5 hash for query parameters
+  - `getStats()` - Cache hit/miss statistics
+
+- **Features:**
+  - Graceful degradation when Redis unavailable
+  - Connection retry strategy
+  - Cache statistics and metrics
+  - Automatic fallback mode
+
+### 2. Transaction Cache Layer
+
+#### Cached Methods:
+- `findAll()` - MEDIUM TTL (5 min)
+- `getSummary()` - MEDIUM TTL (5 min)
+
+#### Cache Invalidation:
+- `create()` - Invalidates transaction caches
+- `update()` - Invalidates transaction caches
+- `delete()` - Invalidates transaction caches
+
+### 3. Budget Cache Layer
+
+#### Cached Methods:
+- `findAll()` - MEDIUM TTL (5 min)
+- `getBudgetStatus()` - SHORT TTL (1 min)
+
+#### Cache Invalidation:
+- `create()` - Invalidates budget caches
+- `update()` - Invalidates budget caches
+- `delete()` - Invalidates budget caches
+
+### 4. Response Compression (`apps/api/src/shared/performance/`)
+
+#### Yeni Dosyalar:
+- `compression.middleware.ts` - Gzip compression middleware
+- `performance.controller.ts` - Performance monitoring endpoints
+- `performance.module.ts` - Performance module
+
+#### Compression Presets:
+- **balanced**: threshold 1kb, level 6
+- **fast**: threshold 2kb, level 1
+- **best**: threshold 512b, level 9
+- **api**: threshold 256b, level 6
+
+### 5. Performance Monitoring
+
+#### Endpoints:
+- `GET /performance/metrics` - System metrics
+  - Uptime, Memory usage, CPU usage
+  - Cache hit/miss statistics
+  - Database latency
+
+- `GET /performance/health` - Health check
+  - Database connection status
+  - Cache connection status
+  - Memory usage status
+  - Overall health status (healthy/degraded/unhealthy)
+
+- `GET /performance/cache` - Cache statistics
+  - Hits, misses, hit rate
+  - Connection status
+
+### 6. Query Optimization
+
+#### Prisma Index Additions:
+```prisma
+model Transaction {
+  @@index([userId])
+  @@index([date])
+  @@index([creditCardId])
+  @@index([userId, date])       // Combined index
+  @@index([userId, type])       // Filter by type
+  @@index([userId, categoryId]) // Filter by category
+  @@index([type])               // Global type filter
+}
+```
+
+### Test Results:
+```
+Test Suites: 10 passed, 10 total
+Tests:       141 passed, 141 total
+```
 
 ---
 
@@ -362,4 +481,4 @@ Herhangi bir sorun veya öneri için lütfen GitHub Issues kullanın.
 
 **Geliştirici:** Emre Uludaşdemir
 **Versiyon:** 2.0.0
-**Tarih:** Aralık 2024
+**Tarih:** Ocak 2025

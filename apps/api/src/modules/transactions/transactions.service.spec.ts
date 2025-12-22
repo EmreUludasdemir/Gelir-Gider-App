@@ -5,28 +5,58 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { TransactionsService } from './transactions.service';
 import { PrismaService } from '../../prisma.service';
+import { CacheService } from '../../shared/cache';
 import {
   createMockTransaction,
   createMockPrismaService,
   DateHelpers,
 } from '../../../test/test-utils';
 
+// Mock CacheService
+const createMockCacheService = () => ({
+  get: jest.fn().mockResolvedValue(null),
+  set: jest.fn().mockResolvedValue(undefined),
+  getOrSet: jest.fn().mockImplementation(async (_key, fetchFn) => fetchFn()),
+  del: jest.fn().mockResolvedValue(undefined),
+  delPattern: jest.fn().mockResolvedValue(undefined),
+  invalidateUser: jest.fn().mockResolvedValue(undefined),
+  invalidateTransactions: jest.fn().mockResolvedValue(undefined),
+  invalidateBudgets: jest.fn().mockResolvedValue(undefined),
+  buildKey: jest.fn().mockImplementation((...parts) => parts.join(':')),
+  hashQuery: jest.fn().mockReturnValue('hash'),
+  getStats: jest.fn().mockReturnValue({ hits: 0, misses: 0, hitRate: 0, totalOperations: 0, avgResponseTime: 0, isConnected: false }),
+});
+
+// Mock Logger
+const createMockLogger = () => ({
+  log: jest.fn(),
+  error: jest.fn(),
+  warn: jest.fn(),
+  debug: jest.fn(),
+  verbose: jest.fn(),
+});
+
 describe('TransactionsService', () => {
   let service: TransactionsService;
   let prisma: ReturnType<typeof createMockPrismaService>;
+  let cache: ReturnType<typeof createMockCacheService>;
 
   const userId = 'user-test-123';
   const mockTransaction = createMockTransaction();
 
   beforeEach(async () => {
     prisma = createMockPrismaService();
+    cache = createMockCacheService();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TransactionsService,
         { provide: PrismaService, useValue: prisma },
+        { provide: CacheService, useValue: cache },
+        { provide: WINSTON_MODULE_NEST_PROVIDER, useValue: createMockLogger() },
       ],
     }).compile();
 

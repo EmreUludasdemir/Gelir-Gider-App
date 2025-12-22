@@ -11,7 +11,7 @@ import { SmsParserService } from './sms-parser.service';
 import { ParseSmsDto, BulkParseSmsDto, ParsedTransactionDto } from './sms-parser.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { User } from '../auth/user.decorator';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../../prisma.service';
 
 @UseGuards(JwtAuthGuard)
 @Controller('sms-parser')
@@ -65,7 +65,12 @@ export class SmsParserController {
         amount: parsed.amount,
         type: parsed.type,
         description: parsed.merchant || 'SMS Import',
-        category: parsed.category || 'Diğer',
+        categoryId: 'sms_import',
+        categoryLabel: parsed.category || 'Diğer',
+        accountId: 'default',
+        currency: 'TRY',
+        source: 'sms',
+        tags: '[]',
         date: parsed.date,
         notes: `Imported from ${parsed.bankName} SMS. Confidence: ${parsed.confidence}%`,
       },
@@ -98,7 +103,12 @@ export class SmsParserController {
             amount: item.amount,
             type: item.type,
             description: item.merchant || 'SMS Import',
-            category: item.category || 'Diğer',
+            categoryId: 'sms_import',
+            categoryLabel: item.category || 'Diğer',
+            accountId: 'default',
+            currency: 'TRY',
+            source: 'sms',
+            tags: '[]',
             date: item.date,
             notes: `Imported from ${item.bankName} SMS. Confidence: ${item.confidence}%`,
           },

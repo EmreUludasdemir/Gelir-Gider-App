@@ -1,16 +1,31 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, Inject } from '@nestjs/common';
 import { PrismaService } from '../../prisma.service';
 import { CreateBudgetDto, UpdateBudgetDto } from './dto/budget.dto';
+import { CacheService, CachePrefix, CacheTTL } from '../../shared/cache';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
+import { Logger as LoggerService } from 'winston';
 
 @Injectable()
 export class BudgetsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private cache: CacheService,
+    @Inject(WINSTON_MODULE_NEST_PROVIDER) private readonly logger: LoggerService,
+  ) {}
 
   async findAll(userId: string) {
-    return this.prisma.budget.findMany({
-      where: { userId, isActive: true },
-      orderBy: { categoryLabel: 'asc' },
-    });
+    const cacheKey = this.cache.buildKey(CachePrefix.BUDGET, userId, 'list');
+    
+    return this.cache.getOrSet(
+      cacheKey,
+      async () => {
+        return this.prisma.budget.findMany({
+          where: { userId, isActive: true },
+          orderBy: { categoryLabel: 'asc' },
+        });
+      },
+      CacheTTL.MEDIUM,
+    );
   }
 
   async findOne(id: string, userId: string) {
@@ -35,7 +50,7 @@ export class BudgetsService {
       throw new ConflictException('Budget for this category already exists');
     }
 
-    return this.prisma.budget.create({
+    const budget = await this.prisma.budget.create({
       data: {
         userId,
         categoryId: dto.categoryId,
@@ -45,15 +60,31 @@ export class BudgetsService {
         alertThreshold: dto.alertThreshold || 80,
       },
     });
+
+    // Invalidate budget caches
+    await this.cache.invalidateBudgets(userId);
+    this.logger.debug(`Budget created, cache invalidated for user ${userId}`, {
+      context: 'BudgetsService',
+    });
+
+    return budget;
   }
 
   async update(id: string, userId: string, dto: UpdateBudgetDto) {
     await this.findOne(id, userId);
 
-    return this.prisma.budget.update({
+    const budget = await this.prisma.budget.update({
       where: { id },
       data: dto,
     });
+
+    // Invalidate budget caches
+    await this.cache.invalidateBudgets(userId);
+    this.logger.debug(`Budget updated, cache invalidated for user ${userId}`, {
+      context: 'BudgetsService',
+    });
+
+    return budget;
   }
 
   async delete(id: string, userId: string) {
@@ -63,51 +94,65 @@ export class BudgetsService {
       where: { id },
     });
 
+    // Invalidate budget caches
+    await this.cache.invalidateBudgets(userId);
+    this.logger.debug(`Budget deleted, cache invalidated for user ${userId}`, {
+      context: 'BudgetsService',
+    });
+
     return { success: true };
   }
 
   async getBudgetStatus(userId: string) {
-    const budgets = await this.findAll(userId);
+    const cacheKey = this.cache.buildKey(CachePrefix.BUDGET, userId, 'status');
     
-    // Get current period dates
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    return this.cache.getOrSet(
+      cacheKey,
+      async () => {
+        const budgets = await this.findAll(userId);
+        
+        // Get current period dates
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-    // Get spending per category for this month
-    const transactions = await this.prisma.transaction.findMany({
-      where: {
-        userId,
-        type: 'expense',
-        date: {
-          gte: startOfMonth,
-          lte: endOfMonth,
-        },
+        // Get spending per category for this month
+        const transactions = await this.prisma.transaction.findMany({
+          where: {
+            userId,
+            type: 'expense',
+            date: {
+              gte: startOfMonth,
+              lte: endOfMonth,
+            },
+          },
+        });
+
+        // Calculate spending per category
+        const spendingByCategory: Record<string, number> = {};
+        transactions.forEach((t) => {
+          spendingByCategory[t.categoryId] = (spendingByCategory[t.categoryId] || 0) + t.amount;
+        });
+
+        // Map budgets with spending status
+        return budgets.map((budget) => {
+          const spent = spendingByCategory[budget.categoryId] || 0;
+          const percentage = Math.round((spent / budget.limitAmount) * 100);
+          const isOverBudget = spent > budget.limitAmount;
+          const isNearLimit = percentage >= budget.alertThreshold;
+
+          return {
+            ...budget,
+            spent,
+            remaining: Math.max(0, budget.limitAmount - spent),
+            percentage: Math.min(percentage, 100),
+            isOverBudget,
+            isNearLimit,
+            status: isOverBudget ? 'over' : isNearLimit ? 'warning' : 'ok',
+          };
+        });
       },
-    });
-
-    // Calculate spending per category
-    const spendingByCategory: Record<string, number> = {};
-    transactions.forEach((t) => {
-      spendingByCategory[t.categoryId] = (spendingByCategory[t.categoryId] || 0) + t.amount;
-    });
-
-    // Map budgets with spending status
-    return budgets.map((budget) => {
-      const spent = spendingByCategory[budget.categoryId] || 0;
-      const percentage = Math.round((spent / budget.limitAmount) * 100);
-      const isOverBudget = spent > budget.limitAmount;
-      const isNearLimit = percentage >= budget.alertThreshold;
-
-      return {
-        ...budget,
-        spent,
-        remaining: Math.max(0, budget.limitAmount - spent),
-        percentage: Math.min(percentage, 100),
-        isOverBudget,
-        isNearLimit,
-        status: isOverBudget ? 'over' : isNearLimit ? 'warning' : 'ok',
-      };
-    });
+      CacheTTL.SHORT, // 1 minute TTL - budget status changes with transactions
+    );
   }
 }

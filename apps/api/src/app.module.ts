@@ -20,10 +20,12 @@ import { PushModule } from "./modules/push/push.module";
 import { AnalyticsModule } from "./modules/analytics/analytics.module";
 import { BillsModule } from "./modules/bills/bills.module";
 import { DebtsModule } from "./modules/debts/debts.module";
-import { SubscriptionsModule } from "./modules/subscriptions/subscriptions.module";
+import { SubscriptionModule } from "./modules/subscriptions/subscription.module";
 import { ImportsModule } from "./modules/imports/imports.module";
 import { ReportsModule } from "./modules/reports/reports.module";
 import { SmsParserModule } from "./modules/sms-parser/sms-parser.module";
+import { CacheModule } from "./shared/cache";
+import { PerformanceModule } from "./shared/performance";
 import { 
   winstonConfig, 
   LoggingMiddleware, 
@@ -31,12 +33,17 @@ import {
   SanitizationMiddleware,
   SecurityMiddleware,
   HppMiddleware,
+  CompressionMiddleware,
 } from "./shared";
 
 @Module({
   imports: [
     // Winston Logger
     WinstonModule.forRoot(winstonConfig),
+    // Cache Module (Global)
+    CacheModule,
+    // Performance Module
+    PerformanceModule,
     // Rate Limiting: 100 requests per minute per IP
     ThrottlerModule.forRoot([
       {
@@ -61,7 +68,7 @@ import {
     AnalyticsModule,
     BillsModule,
     DebtsModule,
-    SubscriptionsModule,
+    SubscriptionModule,
     ImportsModule,
     ReportsModule,
     SmsParserModule,
@@ -80,9 +87,10 @@ import {
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    // Security middleware chain
+    // Performance and Security middleware chain
     consumer
       .apply(
+        CompressionMiddleware, // Response compression
         SecurityMiddleware,    // Attack pattern detection
         HppMiddleware,         // HTTP Parameter Pollution protection
         SanitizationMiddleware, // Input sanitization
