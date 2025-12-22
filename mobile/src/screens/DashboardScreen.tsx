@@ -19,6 +19,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
+import DonutChart from '../components/charts/DonutChart';
 
 const { width, height } = Dimensions.get('window');
 
@@ -158,16 +159,19 @@ export default function DashboardScreen() {
         {/* Charts Section */}
         <Animated.View style={[styles.section, card1Style]}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Bu Ay
+            Bu Ay - Harcama Dağılımı
           </Text>
-          <View style={[styles.chartCard, { backgroundColor: colors.card }]}>
-            <View style={styles.chartPlaceholder}>
-              <Ionicons name="bar-chart" size={60} color={colors.primary} opacity={0.3} />
-              <Text style={[styles.chartText, { color: colors.textSecondary }]}>
-                Grafik Yükleniyor...
-              </Text>
-            </View>
-          </View>
+          <DonutChart
+            data={[
+              { x: 'Yiyecek', y: 3500, color: '#EF4444' },
+              { x: 'Ulaşım', y: 1200, color: '#F59E0B' },
+              { x: 'Eğlence', y: 800, color: '#8B5CF6' },
+              { x: 'Faturalar', y: 2100, color: '#6366F1' },
+              { x: 'Diğer', y: 1252, color: '#10B981' },
+            ]}
+            centerText="Toplam"
+            centerValue="₺8,852"
+          />
         </Animated.View>
 
         {/* Recent Transactions */}

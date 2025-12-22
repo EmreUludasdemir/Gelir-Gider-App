@@ -22,6 +22,7 @@ import { DebtsModule } from "./modules/debts/debts.module";
 import { SubscriptionsModule } from "./modules/subscriptions/subscriptions.module";
 import { ImportsModule } from "./modules/imports/imports.module";
 import { ReportsModule } from "./modules/reports/reports.module";
+import { SmsParserModule } from "./modules/sms-parser/sms-parser.module";
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { ReportsModule } from "./modules/reports/reports.module";
     SubscriptionsModule,
     ImportsModule,
     ReportsModule,
+    SmsParserModule,
   ],
   controllers: [HealthController],
   providers: [
