@@ -1,38 +1,34 @@
 ---
-name: Bug report
-about: Create a report to help us improve
-title: ''
-labels: ''
-assignees: ''
-
+name: 🐛 Bug Report
+about: Bir hata bildirin ve uygulamayı iyileştirmemize yardımcı olun
+title: '[BUG] '
+labels: 'bug'
+assignees: 'EmreUludasdemir'
 ---
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+## 🐛 Hata Açıklaması
+Hatanın ne olduğunu açık ve net bir şekilde tanımlayın.
 
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+## 📋 Yeniden Üretme Adımları
+1. '...' sayfasına gidin
+2. '...' butonuna tıklayın
+3. '...' aşağı kaydırın
+4. Hatayı görün
 
-**Expected behavior**
-A clear and concise description of what you expected to happen.
+## ✅ Beklenen Davranış
+Ne olmasını beklediğinizi açık ve net bir şekilde tanımlayın.
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
+## 📸 Ekran Görüntüleri
+Varsa, sorunu açıklamaya yardımcı olacak ekran görüntüleri ekleyin.
 
-**Desktop (please complete the following information):**
- - OS: [e.g. iOS]
- - Browser [e.g. chrome, safari]
- - Version [e.g. 22]
+## 🖥️ Ortam Bilgileri
+- **İşletim Sistemi:** [örn. Windows 11, macOS Sonoma]
+- **Tarayıcı:** [örn. Chrome 120, Safari 17]
+- **Uygulama Versiyonu:** [örn. v2.5]
 
-**Smartphone (please complete the following information):**
- - Device: [e.g. iPhone6]
- - OS: [e.g. iOS8.1]
- - Browser [e.g. stock browser, safari]
- - Version [e.g. 22]
+## 📱 Mobil (varsa)
+- **Cihaz:** [örn. iPhone 15, Samsung S24]
+- **İşletim Sistemi:** [örn. iOS 17, Android 14]
 
-**Additional context**
-Add any other context about the problem here.
+## 📝 Ek Bilgiler
+Sorun hakkında başka bağlam ekleyin.

@@ -27,22 +27,48 @@ venv/
 .idea/
 *.swp
 *.swo
+*.sublime-*
 
 # OS
 .DS_Store
 Thumbs.db
+*.exe
+*.dll
 
 # Logs
 *.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 logs/
-apps/api/logs/
+apps/api/logs/*.log
 
 # Testing
 coverage/
 .nyc_output/
+*.lcov
+.jest/
 
 # Misc
 *.tgz
 .cache/
 *.tsbuildinfo
+.turbo/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+prisma/migrations/*.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+
+# Package manager locks (keep only one)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml

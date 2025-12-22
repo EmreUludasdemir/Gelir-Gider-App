@@ -1,203 +1,336 @@
-# 💰 Gelir-Gider Takip Uygulaması
+<p align="center">
+  <img src="https://img.shields.io/badge/version-2.5-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
+  <img src="https://img.shields.io/badge/node-20+-brightgreen.svg" alt="Node.js">
+  <img src="https://img.shields.io/badge/typescript-5.0-blue.svg" alt="TypeScript">
+  <img src="https://img.shields.io/badge/tests-141%20passing-success.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome">
+</p>
 
-Modern, full-stack finans yönetim uygulaması. PDF banka ekstrelerini otomatik parse eder, akıllı kategorilendirme yapar ve **Gemini AI** ile finansal tavsiyelerde bulunur.
+<h1 align="center">💰 Gelir-Gider Takip Uygulaması</h1>
 
-## 🌟 Yeni Özellikler (v2.0)
+<p align="center">
+  <strong>Modern, full-stack finans yönetim uygulaması</strong><br>
+  PDF banka ekstrelerini otomatik parse eder, akıllı kategorilendirme yapar ve <strong>Gemini AI</strong> ile finansal tavsiyeler sunar.
+</p>
 
-- 🤖 **AI Destekli İşlem Ekleme**: Doğal dil ile işlem ekleyin ("Bugün markette 250 TL harcadım")
-- 💡 **Finansal İçgörüler**: AI tabanlı harcama analizi ve tavsiyeler
-- 💬 **Finansal Asistan**: Harcamalarınız hakkında sohbet edin
-- 🎯 **Tasarruf Hedefleri**: Finansal hedeflerinizi takip edin
-- 🌙 **Dark Mode**: Göz yormayan karanlık tema
-- 🌍 **Çoklu Dil**: Türkçe ve İngilizce desteği
+<p align="center">
+  <a href="#-özellikler">Özellikler</a> •
+  <a href="#-hızlı-başlangıç">Kurulum</a> •
+  <a href="#-mimari">Mimari</a> •
+  <a href="#-api-endpoints">API</a> •
+  <a href="#-ekran-görüntüleri">Ekran Görüntüleri</a>
+</p>
 
-## ✨ Yeni Özellikler (v2.0)
+---
 
-- 🚀 **Gelişmiş PDF Parser**: Daha iyi hata yönetimi, çoklu banka desteği, gelişmiş tablo çıkarma
-- 🧠 **Akıllı Kategorilendirme**: 19+ kategori, pattern matching, güven skoru
-- 📊 **Bütçe Yönetimi**: Kategori bazlı bütçe takibi, limitler ve uyarılar
-- ✏️ **İşlem Düzenleme**: Tam özellikli düzenleme modal'ı ile işlemleri yönetin
-- 🎨 **Gelişmiş UI**: Drag & drop PDF yükleme, progress bar, detaylı istatistikler
-- 🔒 **Geliştirilmiş Veritabanı**: Budget, CategoryOverride tabloları, cascade delete
-- 📝 **Detaylı Loglama**: Tüm işlemler için kapsamlı logging
+## ✨ Özellikler
+
+### 🤖 AI Destekli Özellikler
+| Özellik | Açıklama |
+|---------|----------|
+| **Akıllı İşlem Ekleme** | "Bugün markette 250 TL harcadım" → otomatik parse |
+| **Finansal İçgörüler** | AI tabanlı harcama analizi ve tavsiyeler |
+| **Finansal Asistan** | Harcamalarınız hakkında sohbet edin |
+| **Anomali Tespiti** | Beklenmedik harcama uyarıları |
+
+### 💳 Finans Yönetimi
+- ✅ PDF banka ekstresi yükleme (13+ banka desteği)
+- ✅ Akıllı kategori sınıflandırması (19+ kategori)
+- ✅ Bütçe yönetimi ve uyarılar
+- ✅ Tasarruf hedefleri takibi
+- ✅ Fatura ve abonelik yönetimi
+- ✅ Borç takibi
+- ✅ Tekrarlayan ödeme tespiti
+
+### 📊 Raporlama & Analitik
+- ✅ Dashboard özet kartları
+- ✅ Kategori bazlı analiz ve grafikler
+- ✅ PDF & Excel rapor oluşturma
+- ✅ Haftalık/aylık trend analizi
+
+### 🎨 Kullanıcı Deneyimi
+- 🌙 Dark mode desteği
+- 🌍 Türkçe/İngilizce dil seçeneği
+- 💱 Çoklu para birimi (TRY/USD/EUR)
+- 📱 Mobil uyumlu tasarım
+- 🔐 2FA güvenlik
+
+---
 
 ## 🏗️ Mimari
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    FRONTEND (Next.js 14)                    │
+│                    http://localhost:3000                    │
+│        TypeScript • Tailwind CSS • React Query              │
+└────────────────────────────┬────────────────────────────────┘
+                             │ REST API
+                             ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    BACKEND (NestJS 10)                      │
+│                    http://localhost:3001                    │
+│          TypeScript • Prisma ORM • JWT Auth                 │
+└────────────────────────────┬────────────────────────────────┘
+                             │
+         ┌───────────────────┼───────────────────┐
+         ▼                   ▼                   ▼
+   ┌───────────┐       ┌───────────┐       ┌───────────┐
+   │PostgreSQL │       │   Redis   │       │PDF Parser │
+   │   :5432   │       │   :6379   │       │  :8001    │
+   │   (DB)    │       │  (Cache)  │       │ (FastAPI) │
+   └───────────┘       └───────────┘       └───────────┘
+```
 
 | Servis | Teknoloji | Port | Açıklama |
 |--------|-----------|------|----------|
 | **Frontend** | Next.js 14 + TypeScript + Tailwind | 3000 | Modern web arayüzü |
-| **Backend** | NestJS 10 + TypeScript | 3001 | REST API servisi |
-| **PDF Parser** | Python FastAPI + pdfminer.six | 8001 | PDF parsing mikroservisi |
+| **Backend** | NestJS 10 + TypeScript + Prisma | 3001 | REST API servisi |
+| **Database** | PostgreSQL 16 | 5432 | Ana veritabanı |
+| **Cache** | Redis 7 | 6379 | Cache & session |
+| **PDF Parser** | Python FastAPI + pdfplumber | 8001 | PDF parsing mikroservisi |
+
+---
 
 ## 🚀 Hızlı Başlangıç
 
 ### Gereksinimler
 - Node.js 20+
 - Python 3.11+
-- npm 10+
-- Gemini API Key (AI özellikleri için)
+- Docker (önerilen)
+- Gemini API Key ([al](https://aistudio.google.com/app/apikey))
 
-### Kurulum
+### Docker ile Kurulum (Önerilen)
+
+```bash
+# Repository'yi klonla
+git clone https://github.com/EmreUludasdemir/Gelir-Gider-Uygulamas--Claude.git
+cd Gelir-Gider-Uygulamas--Claude
+
+# Environment dosyasını oluştur
+cp apps/api/.env.example apps/api/.env
+# .env dosyasını düzenleyip API key'leri girin
+
+# Tüm servisleri başlat
+docker-compose up -d
+
+# Migration'ları çalıştır
+cd apps/api && npx prisma migrate dev
+```
+
+### Manuel Kurulum
 
 ```bash
 # Root dependencies
 npm install
 
-# Frontend dependencies
-cd apps/web && npm install
-
-# Backend dependencies
+# Backend
 cd apps/api && npm install
+npx prisma generate
+npx prisma migrate dev
+cd ../..
 
-# Python dependencies
+# Frontend
+cd apps/web && npm install
+cd ../..
+
+# PDF Parser
 cd services/pdf-parser
 python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
+.venv\Scripts\activate  # Windows
 pip install -r requirements.txt
-```
+cd ../..
 
-### Environment Değişkenleri
-
-```bash
-# .env dosyası oluşturun
-cp .env.example .env
-
-# Gemini API anahtarınızı ekleyin
-# API anahtarı almak için: https://aistudio.google.com/app/apikey
-```
-
-### Development
-
-```bash
-# Terminal 1: PDF Parser
-npm run dev:parser
-
-# Terminal 2: Backend + Frontend
+# Development
 npm run dev
 ```
 
-Servisler:
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:3001
-- PDF Parser: http://localhost:8001
+### Servisler
+| Servis | URL |
+|--------|-----|
+| Frontend | http://localhost:3000 |
+| Backend API | http://localhost:3001 |
+| API Docs | http://localhost:3001/api |
+| PDF Parser | http://localhost:8001 |
 
-### Docker ile Çalıştırma
+---
 
-```bash
-docker-compose up --build
+## 📡 API Endpoints
+
+### 🔐 Authentication
+```http
+POST /auth/register     # Kayıt ol
+POST /auth/login        # Giriş yap
+POST /auth/refresh      # Token yenile
+GET  /auth/profile      # Profil bilgisi
+POST /auth/2fa/enable   # 2FA aktifleştir
 ```
 
-## 📁 Proje Yapısı
-
-```
-.
-├── apps/
-│   ├── web/              # Next.js frontend
-│   │   ├── app/          # App router pages
-│   │   │   ├── dashboard/    # Dashboard sayfaları
-│   │   │   │   ├── goals/    # Tasarruf hedefleri
-│   │   │   │   └── upload/   # PDF yükleme
-│   │   ├── components/   # React components
-│   │   │   ├── dashboard/    # Dashboard bileşenleri
-│   │   │   │   ├── AIInsights.tsx
-│   │   │   │   └── FinancialAssistant.tsx
-│   │   │   └── forms/        # Form bileşenleri
-│   │   │       └── SmartTransactionInput.tsx
-│   │   └── lib/          # Utilities & API client
-│   │       ├── gemini.ts     # Gemini AI servisi
-│   │       ├── PreferencesContext.tsx
-│   │       └── translations.ts
-│   └── api/              # NestJS backend
-├── services/
-│   └── pdf-parser/       # Python FastAPI microservice
-├── package.json          # Root workspace config
-└── docker-compose.yml    # Docker orchestration
+### 💳 Transactions
+```http
+GET    /transactions           # Tüm işlemler (pagination, filter)
+POST   /transactions           # Yeni işlem
+GET    /transactions/:id       # İşlem detay
+PATCH  /transactions/:id       # Güncelle
+DELETE /transactions/:id       # Sil
+GET    /transactions/summary   # Dashboard özeti
 ```
 
-## ✨ Özellikler
+### 📊 Budgets & Goals
+```http
+GET  /budgets              # Tüm bütçeler
+POST /budgets              # Yeni bütçe
+GET  /budgets/alerts       # Bütçe uyarıları
+GET  /savings-goals        # Tasarruf hedefleri
+POST /savings-goals        # Yeni hedef
+```
 
-### Temel Özellikler
-- ✅ PDF banka ekstresi yükleme ve otomatik parsing
-- ✅ Akıllı kategori sınıflandırması (15+ kategori)
-- ✅ Manuel işlem ekleme/düzenleme/silme
-- ✅ Dashboard özet kartları (gelir, gider, bakiye)
-- ✅ Kategori bazlı analiz ve grafikler
-- ✅ Tekrarlayan ödeme tespiti
-- ✅ Haftalık trend görünümü
-- ✅ Responsive tasarım
+### 📈 Reports
+```http
+GET /reports/generate?format=pdf&startDate=X&endDate=Y
+GET /reports/generate?format=excel&startDate=X&endDate=Y
+```
 
-### AI Özellikleri (Gemini API)
-- 🤖 Doğal dil ile işlem ekleme
-- 💡 AI tabanlı finansal içgörüler
-- 💬 Finansal asistan chatbot
-- 📊 Akıllı harcama analizi
+### ❤️ Health Checks
+```http
+GET /health          # Genel sağlık durumu
+GET /health/ready    # Readiness probe
+GET /health/live     # Liveness probe
+```
 
-### Kullanıcı Deneyimi
-- 🌙 Dark mode desteği
-- 🌍 Türkçe/İngilizce dil seçeneği
-- 💱 TRY/USD/EUR para birimi desteği
-- 🎯 Tasarruf hedefleri takibi
+---
 
 ## 🧪 Test
 
 ```bash
-# Backend health check
-curl http://localhost:3001/health
+# Backend testleri (141 test)
+cd apps/api && npm test
 
-# Frontend health check
-curl http://localhost:3000
+# Coverage raporu
+npm run test:cov
 
-# PDF Parser health check
-curl http://localhost:8001/health
+# E2E testler
+npm run test:e2e
 ```
 
-## 📝 API Endpoints
+**Test Durumu:** 141 test ✅ | 10 test suite | ~11s
 
-### Transactions
-- `GET /transactions` - Tüm işlemleri listele
-- `POST /transactions/manual` - Manuel işlem ekle
-- `PATCH /transactions/:id` - İşlem güncelle
-- `DELETE /transactions/:id` - İşlem sil
-- `GET /transactions/summary` - Dashboard özeti
+---
 
-### Upload
-- `POST /uploads/pdf` - PDF yükle ve parse et
+## 🛡️ Güvenlik
+
+- ✅ JWT tabanlı kimlik doğrulama
+- ✅ İki faktörlü doğrulama (2FA)
+- ✅ Rate limiting
+- ✅ CORS yapılandırması
+- ✅ Helmet security headers
+- ✅ Input sanitization
+- ✅ SQL injection koruması
+- ✅ XSS koruması
+
+---
 
 ## 📦 Teknoloji Stack
 
-**Frontend:**
+<table>
+<tr>
+<td>
+
+**Frontend**
 - Next.js 14 (App Router)
 - React 18
-- TypeScript
+- TypeScript 5
 - Tailwind CSS
-- SWR (data fetching)
-- @google/generative-ai (Gemini AI)
-- lucide-react (icons)
+- React Query / SWR
+- Recharts
 
-**Backend:**
+</td>
+<td>
+
+**Backend**
 - NestJS 10
-- TypeScript
+- TypeScript 5
 - Prisma ORM
-- JWT Authentication
+- PostgreSQL 16
+- Redis 7
+- Winston Logger
 
-**PDF Parser:**
-- FastAPI
-- pdfminer.six
-- pdfplumber
+</td>
+<td>
 
-## 🔒 Güvenlik
+**DevOps**
+- Docker & Docker Compose
+- GitHub Actions CI/CD
+- Jest & Playwright
+- ESLint & Prettier
 
-- TypeScript strict mode
-- Input validation (class-validator)
-- File upload size limits (10MB)
-- CORS yapılandırması
-- JWT tabanlı kimlik doğrulama
+</td>
+</tr>
+</table>
+
+---
+
+## 🗂️ Proje Yapısı
+
+```
+.
+├── 📁 apps/
+│   ├── 📁 api/               # NestJS Backend
+│   │   ├── prisma/           # Database schema
+│   │   ├── src/
+│   │   │   ├── modules/      # Feature modules
+│   │   │   └── shared/       # Shared utilities
+│   │   └── test/             # Tests
+│   │
+│   ├── 📁 web/               # Next.js Frontend
+│   │   ├── app/              # App Router pages
+│   │   ├── components/       # React components
+│   │   └── lib/              # Utilities
+│   │
+│   └── 📁 mobile/            # React Native (Expo)
+│
+├── 📁 services/
+│   └── 📁 pdf-parser/        # Python FastAPI
+│
+├── 📁 .github/
+│   ├── workflows/            # CI/CD pipelines
+│   └── ISSUE_TEMPLATE/       # Issue templates
+│
+├── 📄 docker-compose.yml     # Docker orchestration
+├── 📄 CLAUDE.md              # Project memory file
+└── 📄 README.md
+```
+
+---
+
+## 🤝 Katkıda Bulunma
+
+Katkılarınızı memnuniyetle karşılıyoruz! Lütfen şu adımları izleyin:
+
+1. Fork yapın
+2. Feature branch oluşturun (`git checkout -b feature/amazing-feature`)
+3. Değişikliklerinizi commit edin (`git commit -m 'feat: Add amazing feature'`)
+4. Branch'i push edin (`git push origin feature/amazing-feature`)
+5. Pull Request açın
+
+---
 
 ## 📄 Lisans
 
-MIT
+Bu proje [MIT](LICENSE) lisansı altında lisanslanmıştır.
+
+---
 
 ## 👨‍💻 Geliştirici
 
-Emre Uludaşdemir tarafından geliştirilmiştir.
+<p align="center">
+  <strong>Emre Uludaşdemir</strong><br>
+  <a href="https://github.com/EmreUludasdemir">@EmreUludasdemir</a>
+</p>
 
+---
+
+<p align="center">
+  ⭐ Bu projeyi beğendiyseniz yıldız vermeyi unutmayın!
+</p>
