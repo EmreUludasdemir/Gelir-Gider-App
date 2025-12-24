@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { useNotification } from './NotificationContext';
+import { useNotifications } from './NotificationContext';
 
 /**
  * API Error Response (Backend ile uyumlu)
@@ -156,7 +156,7 @@ export class NetworkError extends Error {
 export function useApiError() {
   const [error, setError] = useState<ApiError | NetworkError | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const { addNotification } = useNotification();
+  const { addNotification } = useNotifications();
 
   const clearError = useCallback(() => {
     setError(null);
@@ -187,6 +187,7 @@ export function useApiError() {
 
       addNotification({
         type: 'error',
+        title: 'Hata',
         message,
         duration: 5000,
       });

@@ -12,8 +12,10 @@ import { SmartTransactionInput } from '@/components/forms/SmartTransactionInput'
 import { AIInsights } from '@/components/dashboard/AIInsights'
 import { usePreferences } from '@/lib/PreferencesContext'
 import { useTranslation } from '@/lib/translations'
+import { useAuth } from '@/components/auth-provider'
 
 export default function DashboardPage() {
+  const { loading: authLoading, isAuthenticated } = useAuth()
   const { data: summary, error: summaryError, isLoading: summaryLoading, mutate: mutateSummary } = useSummary()
   const { data: transactions, error: transactionsError, isLoading: transactionsLoading, mutate: mutateTransactions } = useTransactions()
   const { language, formatCurrency } = usePreferences()
@@ -22,6 +24,15 @@ export default function DashboardPage() {
   const handleTransactionAdded = () => {
     mutateSummary()
     mutateTransactions()
+  }
+
+  // Wait for auth to be ready before showing data
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Spinner size="lg" />
+      </div>
+    )
   }
 
   if (summaryLoading || transactionsLoading) {
@@ -37,7 +48,7 @@ export default function DashboardPage() {
       <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
         <p className="text-red-800 dark:text-red-200">
           {language === 'tr' 
-            ? 'Veri yüklenirken hata oluştu. Backend servisi çalışıyor mu?' 
+            ? 'Veri yüklenirken hata oluştu. Backend servisi çalışıyor mu?'  
             : 'Error loading data. Is the backend service running?'}
         </p>
       </div>

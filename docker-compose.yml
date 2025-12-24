@@ -49,9 +49,10 @@ services:
       - NODE_ENV=production
       - PDF_PARSER_URL=http://pdf-parser:8001
       - DATABASE_URL=postgresql://${POSTGRES_USER:-finance_user}:${POSTGRES_PASSWORD:-finance_secret_2024}@postgres:5432/${POSTGRES_DB:-finance_db}?schema=public
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - JWT_SECRET=${JWT_SECRET:-your-jwt-secret-key}
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-for-production-2024-very-long}
+      - SESSION_SECRET=${SESSION_SECRET:-your-super-secret-session-key-for-production-2024-very-long}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-your-super-secret-encryption-key-for-production-2024-very-long}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
     depends_on:
       postgres:
@@ -61,7 +62,7 @@ services:
       pdf-parser:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3001/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -76,7 +77,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://api:3001
+      - NEXT_PUBLIC_API_URL=http://localhost:3001
     depends_on:
       - api
 
@@ -90,7 +91,7 @@ services:
     ports:
       - "8001:8001"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
       interval: 30s
       timeout: 10s
       retries: 3

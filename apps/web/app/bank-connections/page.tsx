@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import BankConnectionCard from '../../components/bank/BankConnectionCard';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../components/auth-provider';
 
 interface BankConnection {
     id: string;
@@ -46,8 +46,10 @@ export default function BankConnectionsPage() {
                 fetchWithAuth('/bank-connections'),
                 fetchWithAuth('/bank-connections/banks'),
             ]);
-            setConnections(connectionsRes);
-            setAvailableBanks(banksRes);
+            const connectionsData = await connectionsRes.json();
+            const banksData = await banksRes.json();
+            setConnections(connectionsData);
+            setAvailableBanks(banksData);
         } catch (err) {
             setError('Banka bağlantıları yüklenirken hata oluştu');
         } finally {

@@ -337,10 +337,7 @@ export class GamificationService {
     achievement: Achievement
   ): Promise<void> {
     // In a real implementation, you'd have a UserAchievements table
-    // For now, we'll use a simple approach
-    console.log(
-      `User ${userId} unlocked: ${achievement.name} (+${achievement.xpReward} XP)`
-    );
+    // Achievement unlock is handled silently
   }
 
   // Get user progress

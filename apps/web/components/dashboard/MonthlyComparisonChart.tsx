@@ -43,18 +43,24 @@ export function MonthlyComparisonChart({ data, currency = 'TRY' }: MonthlyCompar
     const expenseChange = ((current.expense - previous.expense) / previous.expense) * 100
     const savingsChange = ((current.savings! - previous.savings!) / Math.abs(previous.savings!)) * 100
 
+    const getTrend = (value: number): 'up' | 'down' | 'same' => {
+      if (value > 0) return 'up'
+      if (value < 0) return 'down'
+      return 'same'
+    }
+
     return {
       income: {
         value: incomeChange,
-        trend: incomeChange > 0 ? 'up' : incomeChange < 0 ? 'down' : 'same',
+        trend: getTrend(incomeChange),
       },
       expense: {
         value: expenseChange,
-        trend: expenseChange > 0 ? 'up' : expenseChange < 0 ? 'down' : 'same',
+        trend: getTrend(expenseChange),
       },
       savings: {
         value: savingsChange,
-        trend: savingsChange > 0 ? 'up' : savingsChange < 0 ? 'down' : 'same',
+        trend: getTrend(savingsChange),
       },
     }
   }, [chartData])
@@ -120,7 +126,7 @@ export function MonthlyComparisonChart({ data, currency = 'TRY' }: MonthlyCompar
           <XAxis dataKey="month" />
           <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} />
           <Tooltip
-            formatter={(value: number) => formatCurrency(value)}
+            formatter={(value) => formatCurrency(Number(value) || 0)}
             labelStyle={{ color: '#374151' }}
           />
           <Legend />

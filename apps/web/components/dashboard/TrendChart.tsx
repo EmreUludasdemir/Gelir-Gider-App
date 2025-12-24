@@ -53,7 +53,10 @@ export function TrendChart({ transactions, months = 6 }: TrendChartProps) {
     return data
   }, [transactions, months])
 
-  const formatTooltipValue = (value: number) => formatCurrency(value, 'TRY')
+  const formatTooltipValue = (value: number | string | Array<number | string>) => {
+    const numValue = typeof value === 'number' ? value : Number(value) || 0
+    return formatCurrency(numValue, 'TRY')
+  }
 
   return (
     <Card>
@@ -75,7 +78,7 @@ export function TrendChart({ transactions, months = 6 }: TrendChartProps) {
               tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
             />
             <Tooltip 
-              formatter={formatTooltipValue}
+              formatter={(value) => formatCurrency(Number(value) || 0, 'TRY')}
               contentStyle={{
                 backgroundColor: 'var(--tooltip-bg, #fff)',
                 border: '1px solid var(--tooltip-border, #e5e7eb)',

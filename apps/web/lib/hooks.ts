@@ -1,12 +1,43 @@
 'use client'
 
 import useSWR from 'swr'
+import { useEffect, useState } from 'react'
 import { fetcher, DashboardSummary, Transaction, Suggestion, RecurringPayment } from './api'
+
+// Hook to get token reactively
+function useToken() {
+  const [token, setToken] = useState<string | null>(null)
+  
+  useEffect(() => {
+    // Check token immediately and on storage changes
+    const checkToken = () => {
+      const t = localStorage.getItem('token')
+      setToken(t)
+    }
+    
+    checkToken()
+    
+    // Listen for storage changes (in case token is set after mount)
+    window.addEventListener('storage', checkToken)
+    
+    // Also check periodically for the first few seconds (handles race conditions)
+    const interval = setInterval(checkToken, 500)
+    setTimeout(() => clearInterval(interval), 3000)
+    
+    return () => {
+      window.removeEventListener('storage', checkToken)
+      clearInterval(interval)
+    }
+  }, [])
+  
+  return token
+}
 
 export function useTransactions(query?: Record<string, string>) {
   const params = new URLSearchParams(query).toString()
+  const token = useToken()
   return useSWR<Transaction[]>(
-    `/transactions${params ? `?${params}` : ''}`,
+    token ? `/transactions${params ? `?${params}` : ''}` : null,
     fetcher,
     { refreshInterval: 30000 }
   )
@@ -14,19 +45,22 @@ export function useTransactions(query?: Record<string, string>) {
 
 export function useSummary(query?: Record<string, string>) {
   const params = new URLSearchParams(query).toString()
+  const token = useToken()
   return useSWR<DashboardSummary>(
-    `/transactions/summary${params ? `?${params}` : ''}`,
+    token ? `/transactions/summary${params ? `?${params}` : ''}` : null,
     fetcher,
     { refreshInterval: 60000 }
   )
 }
 
 export function useSuggestions() {
-  return useSWR<Suggestion[]>('/transactions/suggestions', fetcher)
+  const token = useToken()
+  return useSWR<Suggestion[]>(token ? '/transactions/suggestions' : null, fetcher)
 }
 
 export function useRecurring() {
-  return useSWR<RecurringPayment[]>('/transactions/recurring', fetcher)
+  const token = useToken()
+  return useSWR<RecurringPayment[]>(token ? '/transactions/recurring' : null, fetcher)
 }
 
 export function useRefreshAll() {

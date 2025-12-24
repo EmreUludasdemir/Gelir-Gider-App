@@ -4,9 +4,11 @@ import React, { useState, useEffect } from 'react';
 
 interface BudgetAlert {
   id: string;
-  category: string;
+  category?: string;
+  categoryLabel?: string;
   spent: number;
-  limit: number;
+  limit?: number;
+  amount?: number;
   percentage: number;
 }
 
@@ -47,6 +49,8 @@ export function BudgetAlerts({ budgets }: Props) {
           : 'bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800';
         const iconColor = isOver ? 'text-red-500' : 'text-amber-500';
         const textColor = isOver ? 'text-red-800 dark:text-red-200' : 'text-amber-800 dark:text-amber-200';
+        const categoryName = alert.category || alert.categoryLabel || 'Kategori';
+        const limitAmount = alert.limit || alert.amount || 0;
 
         return (
           <div
@@ -67,11 +71,11 @@ export function BudgetAlerts({ budgets }: Props) {
 
             <div className="flex-1">
               <h4 className={`font-semibold ${textColor}`}>
-                {isOver ? `${alert.category} Bütçesi Aşıldı!` : `${alert.category} Bütçesi Dolmak Üzere`}
+                {isOver ? `${categoryName} Bütçesi Aşıldı!` : `${categoryName} Bütçesi Dolmak Üzere`}
               </h4>
               <p className={`text-sm ${isOver ? 'text-red-600 dark:text-red-300' : 'text-amber-600 dark:text-amber-300'} mt-1`}>
-                ₺{alert.spent.toLocaleString('tr-TR')} / ₺{alert.limit.toLocaleString('tr-TR')}
-                <span className="ml-2 font-medium">(%{alert.percentage})</span>
+                ₺{alert.spent.toLocaleString('tr-TR')} / ₺{limitAmount.toLocaleString('tr-TR')}
+                <span className="ml-2 font-medium">(%{Math.round(alert.percentage)})</span>
               </p>
 
               {/* Progress bar */}

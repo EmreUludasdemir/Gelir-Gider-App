@@ -18,26 +18,20 @@ export class UploadsService {
   constructor(private readonly prisma: PrismaService) { }
 
   async processPdf(userId: string, file: Express.Multer.File): Promise<UploadResult> {
-    console.log('🔍 processPdf called with:', { userId, fileName: file?.originalname, fileSize: file?.size, hasBuffer: !!file?.buffer });
-    
     // Validate file
     if (!file) {
-      console.error('❌ No file provided');
       throw new BadRequestException('No file provided');
     }
 
     if (!file.originalname.toLowerCase().endsWith('.pdf')) {
-      console.error('❌ Not a PDF file:', file.originalname);
       throw new BadRequestException('Only PDF files are accepted');
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      console.error('❌ File too large:', file.size);
       throw new BadRequestException('File size must be less than 10MB');
     }
 
     if (!file.buffer) {
-      console.error('❌ No file buffer available');
       throw new BadRequestException('File buffer not available');
     }
 

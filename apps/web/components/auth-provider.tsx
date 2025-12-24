@@ -15,6 +15,7 @@ interface AuthContextType {
     login: (token: string, user: User) => void;
     logout: () => void;
     isAuthenticated: boolean;
+    fetchWithAuth: (url: string, options?: RequestInit) => Promise<Response>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -23,6 +24,7 @@ const AuthContext = createContext<AuthContextType>({
     login: () => { },
     logout: () => { },
     isAuthenticated: false,
+    fetchWithAuth: async () => new Response(),
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -70,15 +72,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const login = (token: string, userData: User) => {
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(userData));
+        // Set cookie for middleware auth check
+        document.cookie = `token=${token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
         setUser(userData);
-        router.push('/dashboard');
+        // Use window.location for full page reload to ensure middleware picks up the cookie
+        window.location.href = '/dashboard';
     };
 
     const logout = () => {
         localStorage.removeItem('token');
+        // Clear auth cookie
+        document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
         localStorage.removeItem('user');
         setUser(null);
         router.push('/auth/login');
+    };
+
+    const fetchWithAuth = async (url: string, options: RequestInit = {}): Promise<Response> => {
+        const token = localStorage.getItem('token');
+        const headers = {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            ...options.headers,
+        };
+
+        const response = await fetch(url, {
+            ...options,
+            headers,
+        });
+
+        // Token expired - logout user
+        if (response.status === 401) {
+            logout();
+        }
+
+        return response;
     };
 
     if (loading) {
@@ -90,7 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     return (
-        <AuthContext.Provider value={{ user, loading, login, logout, isAuthenticated: !!user }}>
+        <AuthContext.Provider value={{ user, loading, login, logout, isAuthenticated: !!user, fetchWithAuth }}>
             {children}
         </AuthContext.Provider>
     );

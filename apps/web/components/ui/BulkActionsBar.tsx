@@ -85,7 +85,7 @@ export function BulkActionsBar({
                             onClick={() => handleCategorySelect(category.id, category.label)}
                             className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded transition-colors"
                           >
-                            <span className="text-lg">{category.icon}</span>
+                            <span className="text-lg">{category.emoji}</span>
                             <span>{category.label}</span>
                           </button>
                         ))}
