@@ -12,10 +12,12 @@ import {
     UseGuards,
     ParseIntPipe,
     DefaultValuePipe,
+    ValidationPipe,
 } from '@nestjs/common';
 import { BillsService } from './bills.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { User } from '../auth/user.decorator';
+import { CreateBillDto, UpdateBillDto } from './dto/bill.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('bills')
@@ -24,7 +26,10 @@ export class BillsController {
 
     @Post()
     @HttpCode(HttpStatus.CREATED)
-    create(@User('id') userId: string, @Body() createBillDto: any) {
+    create(
+        @User('id') userId: string,
+        @Body(new ValidationPipe({ transform: true, whitelist: true })) createBillDto: CreateBillDto
+    ) {
         return this.billsService.create(userId, createBillDto);
     }
 
@@ -61,7 +66,7 @@ export class BillsController {
     update(
         @User('id') userId: string,
         @Param('id') id: string,
-        @Body() updateBillDto: any,
+        @Body(new ValidationPipe({ transform: true, whitelist: true })) updateBillDto: UpdateBillDto,
     ) {
         return this.billsService.update(userId, id, updateBillDto);
     }

@@ -41,8 +41,12 @@ export class TransactionsService {
           if (query.type) where.type = query.type;
           if (query.categoryId) where.categoryId = query.categoryId;
           if (query.source) where.source = query.source;
-          if (query.dateFrom) where.date = { ...where.date as any, gte: new Date(query.dateFrom) };
-          if (query.dateTo) where.date = { ...where.date as any, lte: new Date(query.dateTo) };
+
+          // Build date range filter properly
+          const dateFilter: Prisma.DateTimeFilter = {};
+          if (query.dateFrom) dateFilter.gte = new Date(query.dateFrom);
+          if (query.dateTo) dateFilter.lte = new Date(query.dateTo);
+          if (Object.keys(dateFilter).length > 0) where.date = dateFilter;
 
           if (query.search) {
             where.OR = [
