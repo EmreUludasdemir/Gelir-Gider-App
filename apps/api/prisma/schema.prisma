@@ -2,7 +2,7 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
@@ -108,12 +108,12 @@ model Transaction {
   @@index([userId])
   @@index([date])
   @@index([creditCardId])
-  @@index([userId, date])           // Combined index for user's transactions by date range
-  @@index([userId, type])           // Filter by transaction type (income/expense)
-  @@index([userId, categoryId])     // Filter by category
+  @@index([userId, date]) // Combined index for user's transactions by date range
+  @@index([userId, type]) // Filter by transaction type (income/expense)
+  @@index([userId, categoryId]) // Filter by category
   @@index([userId, categoryId, date]) // Category + date range queries (optimized)
-  @@index([type])                   // Global type filter
-  @@index([source])                 // Filter by source (pdf/manual)
+  @@index([type]) // Global type filter
+  @@index([source]) // Filter by source (pdf/manual)
 }
 
 model SavingsGoal {
@@ -244,13 +244,13 @@ model Bill {
 
   name          String
   amount        Float
-  currency      String   @default("TRY")
+  currency      String    @default("TRY")
   dueDate       DateTime
-  frequency     String   @default("monthly") // 'once' | 'weekly' | 'monthly' | 'yearly'
+  frequency     String    @default("monthly") // 'once' | 'weekly' | 'monthly' | 'yearly'
   categoryId    String
   categoryLabel String
-  isPaid        Boolean  @default(false)
-  reminderDays  Int      @default(3) // Days before due date to remind
+  isPaid        Boolean   @default(false)
+  reminderDays  Int       @default(3) // Days before due date to remind
   notes         String?
   paidAt        DateTime?
 
@@ -271,7 +271,7 @@ model Debt {
   personName  String
   amount      Float
   currency    String    @default("TRY")
-  type        String    // 'owed_to_me' | 'i_owe'
+  type        String // 'owed_to_me' | 'i_owe'
   description String?
   dueDate     DateTime?
   isPaid      Boolean   @default(false)
