@@ -70,7 +70,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     }
 
     try {
-      const me = await this.callApi('getMe');
+      const me = await this.callApi<{ username: string }>('getMe');
       this.logger.log(`Telegram bot initialized: @${me.username}`);
       this.startPolling();
     } catch (error) {
@@ -250,7 +250,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     try {
       await this.prisma.transaction.create({
         data: {
-          userId,
+          user: { connect: { id: userId } },
           description: parsed.description,
           amount: parsed.type === 'expense' ? -parsed.amount : parsed.amount,
           type: parsed.type,
@@ -258,6 +258,9 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
           categoryLabel: parsed.categoryLabel,
           date: new Date(),
           currency: 'TRY',
+          source: 'telegram',
+          tags: '',
+          accountId: 'default',
         },
       });
 
@@ -285,7 +288,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
 
     try {
       const budgets = await this.prisma.budget.findMany({
-        where: { userId },
+        where: { userId, isActive: true },
       });
 
       if (budgets.length === 0) {
@@ -293,16 +296,36 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         return;
       }
 
+      // Calculate spent amounts for current period
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      const transactions = await this.prisma.transaction.findMany({
+        where: {
+          userId,
+          type: 'expense',
+          date: { gte: startOfMonth },
+        },
+      });
+
+      // Calculate spent per category
+      const spentByCategory = new Map<string, number>();
+      for (const tx of transactions) {
+        const current = spentByCategory.get(tx.categoryId) || 0;
+        spentByCategory.set(tx.categoryId, current + Math.abs(tx.amount));
+      }
+
       let message = '📊 *Bütçe Durumu*\n\n';
 
       for (const budget of budgets) {
-        const percentage = Math.round((budget.spent / budget.amount) * 100);
+        const spent = spentByCategory.get(budget.categoryId) || 0;
+        const percentage = Math.round((spent / budget.limitAmount) * 100);
         const bar = this.createProgressBar(percentage);
         const emoji = percentage >= 90 ? '🔴' : percentage >= 70 ? '🟡' : '🟢';
 
-        message += `${emoji} *${budget.categoryName}*\n`;
+        message += `${emoji} *${budget.categoryLabel}*\n`;
         message += `${bar} ${percentage}%\n`;
-        message += `${budget.spent.toLocaleString('tr-TR')} / ${budget.amount.toLocaleString('tr-TR')} ₺\n\n`;
+        message += `${spent.toLocaleString('tr-TR')} / ${budget.limitAmount.toLocaleString('tr-TR')} ₺\n\n`;
       }
 
       await this.sendMessage(chatId, message, { parse_mode: 'Markdown' });
@@ -414,7 +437,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
 
         await this.prisma.transaction.create({
           data: {
-            userId,
+            user: { connect: { id: userId } },
             description: parsed.description,
             amount: parsed.type === 'expense' ? -parsed.amount : parsed.amount,
             type: parsed.type,
@@ -422,6 +445,9 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
             categoryLabel: parsed.categoryLabel,
             date: new Date(),
             currency: 'TRY',
+            source: 'telegram',
+            tags: '',
+            accountId: 'default',
           },
         });
 
