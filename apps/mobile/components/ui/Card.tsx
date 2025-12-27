@@ -1,10 +1,11 @@
 import React from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
-import { Colors, BorderRadius, Shadows, Spacing } from '@/constants/theme';
+import { BorderRadius, Shadows, Spacing } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface CardProps {
     children: React.ReactNode;
-    style?: ViewStyle;
+    style?: ViewStyle | ViewStyle[];
     variant?: 'default' | 'elevated' | 'outlined';
     padding?: 'none' | 'sm' | 'md' | 'lg';
 }
@@ -15,6 +16,8 @@ export function Card({
     variant = 'default',
     padding = 'md'
 }: CardProps) {
+    const { colors, isDark } = useTheme();
+
     const paddingStyles: Record<string, number> = {
         none: 0,
         sm: Spacing.sm,
@@ -24,17 +27,17 @@ export function Card({
 
     const variantStyles: Record<string, ViewStyle> = {
         default: {
-            backgroundColor: Colors.card,
+            backgroundColor: colors.card,
             ...Shadows.sm,
         },
         elevated: {
-            backgroundColor: Colors.card,
-            ...Shadows.lg,
+            backgroundColor: colors.card,
+            ...(isDark ? Shadows.sm : Shadows.lg),
         },
         outlined: {
-            backgroundColor: Colors.card,
+            backgroundColor: colors.card,
             borderWidth: 1,
-            borderColor: Colors.gray200,
+            borderColor: colors.border,
         },
     };
 
@@ -44,7 +47,7 @@ export function Card({
                 styles.card,
                 variantStyles[variant],
                 { padding: paddingStyles[padding] },
-                style
+                ...(Array.isArray(style) ? style : [style])
             ]}
         >
             {children}
