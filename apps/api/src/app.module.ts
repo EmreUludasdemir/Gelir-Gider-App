@@ -29,6 +29,7 @@ import { RealtimeModule } from "./modules/realtime/realtime.module";
 import { AiAnalyticsModule } from "./modules/ai-analytics/ai-analytics.module";
 import { CacheModule } from "./shared/cache";
 import { PerformanceModule } from "./shared/performance";
+import { MonitoringModule } from "./shared/monitoring";
 import { 
   winstonConfig, 
   LoggingMiddleware, 
@@ -78,6 +79,7 @@ import {
     TelegramModule,
     RealtimeModule,
     AiAnalyticsModule,
+    MonitoringModule,
   ],
   controllers: [HealthController],
   providers: [
