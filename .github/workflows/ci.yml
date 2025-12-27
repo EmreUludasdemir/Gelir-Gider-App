@@ -52,12 +52,10 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
-          cache-dependency-path: apps/api/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: |
-          cd apps/api
-          npm ci
+        run: npm ci
 
       - name: Generate Prisma Client
         run: |
@@ -113,12 +111,10 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
-          cache-dependency-path: apps/web/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: |
-          cd apps/web
-          npm ci
+        run: npm ci
 
       - name: Run linting
         run: |
