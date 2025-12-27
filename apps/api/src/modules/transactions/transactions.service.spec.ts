@@ -516,7 +516,7 @@ describe('TransactionsService', () => {
 
       const result = await service.findOne(userId, txWithNullNotes.id);
 
-      expect(result.notes).toBeNull();
+      expect(result.notes).toBeUndefined();
     });
 
     it('should parse tags from JSON string', async () => {
