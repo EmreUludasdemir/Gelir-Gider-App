@@ -193,7 +193,7 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
   /**
    * Set value in cache
    */
-  async set(key: string, value: any, ttl: number = CacheTTL.MEDIUM): Promise<void> {
+  async set(key: string, value: unknown, ttl: number = CacheTTL.MEDIUM): Promise<void> {
     if (!this.isAvailable()) return;
 
     try {

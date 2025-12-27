@@ -104,7 +104,7 @@ export const Sanitize = {
   /**
    * Sanitize number
    */
-  number(value: any): number | null {
+  number(value: unknown): number | null {
     if (value === null || value === undefined) return null;
     const num = Number(value);
     return isNaN(num) ? null : num;
@@ -113,7 +113,7 @@ export const Sanitize = {
   /**
    * Sanitize boolean
    */
-  boolean(value: any): boolean {
+  boolean(value: unknown): boolean {
     if (typeof value === 'boolean') return value;
     if (typeof value === 'string') {
       return value.toLowerCase() === 'true' || value === '1';
@@ -172,9 +172,9 @@ export const Sanitize = {
   /**
    * Sanitize money amount
    */
-  money(value: any): number | null {
+  money(value: unknown): number | null {
     if (value === null || value === undefined) return null;
-    const num = typeof value === 'string' 
+    const num = typeof value === 'string'
       ? parseFloat(value.replace(/[^\d.-]/g, ''))
       : Number(value);
     return isNaN(num) || num < 0 ? null : Math.round(num * 100) / 100;

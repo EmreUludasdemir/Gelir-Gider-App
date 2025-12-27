@@ -42,7 +42,23 @@ export class SavingsGoalsService {
   async update(id: string, userId: string, dto: UpdateSavingsGoalDto) {
     await this.findOne(id, userId);
 
-    const data: any = { ...dto };
+    const data: Partial<{
+      name: string;
+      targetAmount: number;
+      currentAmount: number;
+      color: string;
+      icon: string;
+      deadline: Date | null;
+      isCompleted: boolean;
+    }> = {
+      name: dto.name,
+      targetAmount: dto.targetAmount,
+      currentAmount: dto.currentAmount,
+      color: dto.color,
+      icon: dto.icon,
+      isCompleted: dto.isCompleted,
+    };
+
     if (dto.deadline) {
       data.deadline = new Date(dto.deadline);
     }

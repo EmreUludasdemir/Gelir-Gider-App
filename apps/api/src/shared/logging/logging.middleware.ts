@@ -40,11 +40,11 @@ export class LoggingMiddleware implements NestMiddleware {
 
     // Response'u dinle
     const originalSend = res.send.bind(res);
-    let responseBody: any;
+    let responseBody: unknown;
 
-    res.send = (body: any) => {
+    res.send = (body: unknown) => {
       responseBody = body;
-      return originalSend(body);
+      return originalSend(body as string | Buffer);
     };
 
     // Response tamamlandığında
@@ -99,7 +99,7 @@ export class LoggingMiddleware implements NestMiddleware {
 /**
  * Sensitive data'yı maskele
  */
-export function maskSensitiveData(data: any): any {
+export function maskSensitiveData(data: unknown): unknown {
   if (!data || typeof data !== 'object') {
     return data;
   }

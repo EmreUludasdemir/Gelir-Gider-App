@@ -97,7 +97,7 @@ export class ImportsService {
 
     private async parseExcel(buffer: Buffer): Promise<ParsedRow[]> {
         const workbook = new ExcelJS.Workbook();
-        await workbook.xlsx.load(buffer);
+        await workbook.xlsx.load(buffer as unknown as ExcelJS.Buffer);
 
         const worksheet = workbook.worksheets[0];
         if (!worksheet) {

@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../prisma.service";
+import { User } from "@prisma/client";
 
 export interface OAuthProfile {
   provider: "google" | "github";
@@ -14,7 +15,7 @@ export class OAuthService {
   constructor(private prisma: PrismaService) {}
 
   // Find or create user from OAuth profile
-  async findOrCreateUser(profile: OAuthProfile): Promise<any> {
+  async findOrCreateUser(profile: OAuthProfile): Promise<User> {
     // First, try to find by provider ID
     const providerField =
       profile.provider === "google" ? "googleId" : "githubId";

@@ -119,13 +119,14 @@ export class PushService implements OnModuleInit {
           JSON.stringify(payload)
         );
         sent++;
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const err = error as { message?: string; statusCode?: number };
         this.logger.error(
-          `Failed to send push to ${sub.endpoint}: ${error.message}`
+          `Failed to send push to ${sub.endpoint}: ${err.message || 'Unknown error'}`
         );
 
         // Mark invalid subscriptions as inactive
-        if (error.statusCode === 410 || error.statusCode === 404) {
+        if (err.statusCode === 410 || err.statusCode === 404) {
           failedEndpoints.push(sub.endpoint);
         }
       }

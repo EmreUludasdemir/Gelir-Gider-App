@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma.service';
-import { Prisma } from '@prisma/client';
+import { Prisma, Bill } from '@prisma/client';
 import { CreateBillDto, UpdateBillDto, BillQueryDto } from './dto/bill.dto';
 
 @Injectable()
@@ -135,7 +135,7 @@ export class BillsService {
         return bill;
     }
 
-    private async createNextRecurringBill(bill: any) {
+    private async createNextRecurringBill(bill: Bill) {
         const nextDueDate = new Date(bill.dueDate);
 
         switch (bill.frequency) {
