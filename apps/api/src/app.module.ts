@@ -26,6 +26,7 @@ import { ReportsModule } from "./modules/reports/reports.module";
 import { SmsParserModule } from "./modules/sms-parser/sms-parser.module";
 import { TelegramModule } from "./modules/telegram/telegram.module";
 import { RealtimeModule } from "./modules/realtime/realtime.module";
+import { AiAnalyticsModule } from "./modules/ai-analytics/ai-analytics.module";
 import { CacheModule } from "./shared/cache";
 import { PerformanceModule } from "./shared/performance";
 import { 
@@ -76,6 +77,7 @@ import {
     SmsParserModule,
     TelegramModule,
     RealtimeModule,
+    AiAnalyticsModule,
   ],
   controllers: [HealthController],
   providers: [
