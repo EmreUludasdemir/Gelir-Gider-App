@@ -2,9 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, 'claude/**']
   pull_request:
-    branches: [main]
+    branches: [main, develop]
 
 env:
   NODE_VERSION: "20"
@@ -124,6 +124,11 @@ jobs:
         run: |
           cd apps/web
           npm run lint
+
+      - name: TypeScript type check
+        run: |
+          cd apps/web
+          npx tsc --noEmit
 
       - name: Build
         env:

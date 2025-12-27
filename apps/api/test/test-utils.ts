@@ -111,6 +111,116 @@ export interface MockBudget {
   updatedAt: Date;
 }
 
+/**
+ * Mock Credit Card Factory
+ */
+export const createMockCreditCard = (overrides: Partial<MockCreditCard> = {}): MockCreditCard => ({
+  id: 'card-test-123',
+  userId: 'user-test-123',
+  name: 'Test Kredi Kartı',
+  lastFourDigits: '1234',
+  cardType: 'visa',
+  creditLimit: 10000,
+  currentBalance: 2500,
+  billingDay: 15,
+  dueDay: 5,
+  minPayment: 250,
+  interestRate: 2.5,
+  color: '#1F2937',
+  isActive: true,
+  createdAt: new Date('2024-01-01'),
+  updatedAt: new Date('2024-01-01'),
+  ...overrides,
+});
+
+export interface MockCreditCard {
+  id: string;
+  userId: string;
+  name: string;
+  lastFourDigits: string;
+  cardType: string;
+  creditLimit: number;
+  currentBalance: number;
+  billingDay: number;
+  dueDay: number;
+  minPayment: number;
+  interestRate: number;
+  color: string;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Mock Bank Connection Factory
+ */
+export const createMockBankConnection = (overrides: Partial<MockBankConnection> = {}): MockBankConnection => ({
+  id: 'bank-conn-test-123',
+  userId: 'user-test-123',
+  bankCode: 'mock',
+  bankName: 'Demo Banka',
+  accountNumber: '1234567890',
+  accountName: 'Test Hesap',
+  accountType: 'checking',
+  accessToken: 'mock-access-token',
+  refreshToken: 'mock-refresh-token',
+  lastSyncAt: new Date('2024-01-15'),
+  lastSyncStatus: 'success',
+  syncError: null,
+  isActive: true,
+  createdAt: new Date('2024-01-01'),
+  updatedAt: new Date('2024-01-01'),
+  ...overrides,
+});
+
+export interface MockBankConnection {
+  id: string;
+  userId: string;
+  bankCode: string;
+  bankName: string;
+  accountNumber: string;
+  accountName: string;
+  accountType: string;
+  accessToken: string;
+  refreshToken: string;
+  lastSyncAt: Date | null;
+  lastSyncStatus: string;
+  syncError: string | null;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Mock User Preference Factory
+ */
+export const createMockUserPreference = (overrides: Partial<MockUserPreference> = {}): MockUserPreference => ({
+  id: 'pref-test-123',
+  userId: 'user-test-123',
+  language: 'tr',
+  currency: 'TRY',
+  theme: 'light',
+  emailNotifications: true,
+  budgetAlerts: true,
+  weeklyReport: false,
+  createdAt: new Date('2024-01-01'),
+  updatedAt: new Date('2024-01-01'),
+  ...overrides,
+});
+
+export interface MockUserPreference {
+  id: string;
+  userId: string;
+  language: string;
+  currency: string;
+  theme: string;
+  emailNotifications: boolean;
+  budgetAlerts: boolean;
+  weeklyReport: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // ============================================
 // MOCK SERVICES
 // ============================================
@@ -177,6 +287,33 @@ export const createMockPrismaService = () => ({
     update: jest.fn(),
     updateMany: jest.fn(),
     delete: jest.fn(),
+  },
+  creditCard: {
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
+    findFirst: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    count: jest.fn(),
+  },
+  bankConnection: {
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
+    findFirst: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    count: jest.fn(),
+  },
+  auditLog: {
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
+    findFirst: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    count: jest.fn(),
   },
   $connect: jest.fn(),
   $disconnect: jest.fn(),
