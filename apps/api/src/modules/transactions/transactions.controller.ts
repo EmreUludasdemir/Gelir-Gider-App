@@ -16,6 +16,7 @@ import {
   CreateTransactionDto,
   UpdateTransactionDto,
   TransactionQuery,
+  JwtPayload,
 } from '../../shared/types';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { User } from '../auth/user.decorator';
@@ -26,39 +27,39 @@ export class TransactionsController {
   constructor(private readonly transactionsService: TransactionsService) { }
 
   @Get()
-  findAll(@User() user: any, @Query() query: TransactionQuery) {
+  findAll(@User() user: JwtPayload, @Query() query: TransactionQuery) {
     return this.transactionsService.findAll(user.id, query);
   }
 
   @Get('summary')
-  getSummary(@User() user: any, @Query() query: TransactionQuery) {
+  getSummary(@User() user: JwtPayload, @Query() query: TransactionQuery) {
     return this.transactionsService.getSummary(user.id, query);
   }
 
   @Get('suggestions')
-  getSuggestions(@User() user: any) {
+  getSuggestions(@User() user: JwtPayload) {
     return this.transactionsService.getSuggestions(user.id);
   }
 
   @Get('recurring')
-  getRecurringPayments(@User() user: any) {
+  getRecurringPayments(@User() user: JwtPayload) {
     return this.transactionsService.getRecurringPayments(user.id);
   }
 
   @Get(':id')
-  findOne(@User() user: any, @Param('id') id: string) {
+  findOne(@User() user: JwtPayload, @Param('id') id: string) {
     return this.transactionsService.findOne(user.id, id);
   }
 
   @Post('manual')
   @HttpCode(HttpStatus.CREATED)
-  create(@User() user: any, @Body() createDto: CreateTransactionDto) {
+  create(@User() user: JwtPayload, @Body() createDto: CreateTransactionDto) {
     return this.transactionsService.create(user.id, createDto);
   }
 
   @Patch(':id')
   update(
-    @User() user: any,
+    @User() user: JwtPayload,
     @Param('id') id: string,
     @Body() updateDto: UpdateTransactionDto,
   ) {
@@ -67,7 +68,7 @@ export class TransactionsController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
-  delete(@User() user: any, @Param('id') id: string) {
+  delete(@User() user: JwtPayload, @Param('id') id: string) {
     return this.transactionsService.delete(user.id, id);
   }
 }

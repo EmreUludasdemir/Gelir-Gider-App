@@ -12,6 +12,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadsService } from './uploads.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { User } from '../auth/user.decorator';
+import { JwtPayload } from '../../shared/types';
 
 @UseGuards(JwtAuthGuard)
 @Controller('uploads')
@@ -21,11 +22,11 @@ export class UploadsController {
   @Post('pdf')
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(FileInterceptor('file'))
-  async uploadPdf(@User() user: any, @UploadedFile() file: Express.Multer.File) {
+  async uploadPdf(@User() user: JwtPayload, @UploadedFile() file: Express.Multer.File) {
     if (!file) {
       throw new BadRequestException('No file provided');
     }
-    
+
     return this.uploadsService.processPdf(user.id, file);
   }
 }

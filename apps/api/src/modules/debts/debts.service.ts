@@ -1,31 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma.service';
 import { Prisma } from '@prisma/client';
-
-interface CreateDebtDto {
-    personName: string;
-    amount: number;
-    currency?: string;
-    type: 'owed_to_me' | 'i_owe';
-    description?: string;
-    dueDate?: string;
-}
-
-interface UpdateDebtDto {
-    personName?: string;
-    amount?: number;
-    type?: 'owed_to_me' | 'i_owe';
-    description?: string;
-    dueDate?: string;
-    isPaid?: boolean;
-}
-
-interface PaginationQuery {
-    page?: number;
-    limit?: number;
-    type?: 'owed_to_me' | 'i_owe';
-    isPaid?: boolean;
-}
+import { CreateDebtDto, UpdateDebtDto, DebtQueryDto } from './dto/debt.dto';
 
 @Injectable()
 export class DebtsService {
@@ -45,7 +21,7 @@ export class DebtsService {
         });
     }
 
-    async findAll(userId: string, query: PaginationQuery = {}) {
+    async findAll(userId: string, query: Partial<DebtQueryDto> = {}) {
         const { page = 1, limit = 20, type, isPaid } = query;
         const skip = (page - 1) * limit;
 

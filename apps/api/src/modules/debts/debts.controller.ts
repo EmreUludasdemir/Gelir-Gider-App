@@ -16,6 +16,7 @@ import {
 import { DebtsService } from './debts.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { User } from '../auth/user.decorator';
+import { CreateDebtDto, UpdateDebtDto } from './dto/debt.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('debts')
@@ -24,7 +25,7 @@ export class DebtsController {
 
     @Post()
     @HttpCode(HttpStatus.CREATED)
-    create(@User('id') userId: string, @Body() createDebtDto: any) {
+    create(@User('id') userId: string, @Body() createDebtDto: CreateDebtDto) {
         return this.debtsService.create(userId, createDebtDto);
     }
 
@@ -54,7 +55,7 @@ export class DebtsController {
     update(
         @User('id') userId: string,
         @Param('id') id: string,
-        @Body() updateDebtDto: any,
+        @Body() updateDebtDto: UpdateDebtDto,
     ) {
         return this.debtsService.update(userId, id, updateDebtDto);
     }
