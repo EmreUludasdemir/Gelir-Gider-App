@@ -1,5 +1,6 @@
 'use client'
 
+import { memo, useMemo, useCallback } from 'react'
 import { CategorySummary } from '@/lib/api'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
@@ -10,16 +11,29 @@ interface CategoryPieChartProps {
   categories: CategorySummary[]
 }
 
-export function CategoryPieChart({ categories }: CategoryPieChartProps) {
-  const data = categories.map(cat => ({
+interface TooltipPayload {
+  name: string
+  value: number
+  payload: {
+    percentage: number
+  }
+}
+
+interface CustomTooltipProps {
+  active?: boolean
+  payload?: TooltipPayload[]
+}
+
+export const CategoryPieChart = memo(function CategoryPieChart({ categories }: CategoryPieChartProps) {
+  const data = useMemo(() => categories.map(cat => ({
     name: cat.categoryLabel,
     value: cat.total,
     percentage: cat.percentage,
     categoryId: cat.categoryId,
     color: getCategoryColor(cat.categoryId),
-  }))
+  })), [categories])
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  const renderCustomTooltip = useCallback(({ active, payload }: CustomTooltipProps) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
@@ -34,7 +48,7 @@ export function CategoryPieChart({ categories }: CategoryPieChartProps) {
       )
     }
     return null
-  }
+  }, [])
 
   return (
     <Card>
@@ -58,11 +72,11 @@ export function CategoryPieChart({ categories }: CategoryPieChartProps) {
                 <Cell key={`cell-${index}`} fill={entry.color} />
               ))}
             </Pie>
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={renderCustomTooltip} />
             <Legend />
           </PieChart>
         </ResponsiveContainer>
       </CardContent>
     </Card>
   )
-}
+})
