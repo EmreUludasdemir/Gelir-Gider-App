@@ -117,7 +117,7 @@ describe('ErrorBoundary', () => {
     // Click to show details
     fireEvent.click(detailsButton)
 
-    // Details should now be visible
-    expect(screen.getByText(/Error:/i)).toBeInTheDocument()
+    // Details should now be visible - check for Stack section
+    expect(screen.getByText('Stack:')).toBeInTheDocument()
   })
 })
