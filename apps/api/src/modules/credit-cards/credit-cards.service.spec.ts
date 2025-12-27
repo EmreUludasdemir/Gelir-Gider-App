@@ -11,6 +11,7 @@ import {
   createMockCreditCard,
   createMockPrismaService,
 } from '../../../test/test-utils';
+import type { UpdateCreditCardDto } from './dto/credit-card.dto';
 
 describe('CreditCardService', () => {
   let service: CreditCardService;
@@ -182,7 +183,7 @@ describe('CreditCardService', () => {
   // UPDATE TESTS
   // ============================================
   describe('update', () => {
-    const updateDto = {
+    const updateDto: UpdateCreditCardDto = {
       name: 'Güncellenmiş Kart',
       creditLimit: 20000,
     };
