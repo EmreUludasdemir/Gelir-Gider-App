@@ -22,6 +22,41 @@ interface ParsedRow {
     notes?: string;
 }
 
+interface RawRecord {
+    date?: string | Date;
+    tarih?: string | Date;
+    Date?: string | Date;
+    Tarih?: string | Date;
+    işlem_tarihi?: string | Date;
+    description?: string;
+    açıklama?: string;
+    Description?: string;
+    Açıklama?: string;
+    aciklama?: string;
+    amount?: string | number;
+    tutar?: string | number;
+    Amount?: string | number;
+    Tutar?: string | number;
+    miktar?: string | number;
+    type?: string;
+    tip?: string;
+    Type?: string;
+    Tip?: string;
+    işlem_tipi?: string;
+    category?: string;
+    kategori?: string;
+    Category?: string;
+    Kategori?: string;
+    notes?: string;
+    notlar?: string;
+    Notes?: string;
+    Notlar?: string;
+    [key: string]: unknown;
+}
+
+type DateValue = string | Date | number | null | undefined;
+type AmountValue = string | number | null | undefined;
+
 @Injectable()
 export class ImportsService {
     private readonly logger = new Logger(ImportsService.name);
@@ -57,12 +92,12 @@ export class ImportsService {
             trim: true,
         });
 
-        return records.map((record: any) => this.normalizeRow(record));
+        return records.map((record: RawRecord) => this.normalizeRow(record));
     }
 
     private async parseExcel(buffer: Buffer): Promise<ParsedRow[]> {
         const workbook = new ExcelJS.Workbook();
-        await workbook.xlsx.load(buffer as any);
+        await workbook.xlsx.load(buffer);
 
         const worksheet = workbook.worksheets[0];
         if (!worksheet) {
@@ -79,10 +114,10 @@ export class ImportsService {
                     headers.push(String(cell.value).toLowerCase());
                 });
             } else {
-                const rowData: any = {};
+                const rowData: RawRecord = {};
                 row.eachCell((cell, colNumber) => {
                     const header = headers[colNumber - 1];
-                    rowData[header] = cell.value;
+                    rowData[header] = cell.value as string | number | Date;
                 });
 
                 if (Object.keys(rowData).length > 0) {
@@ -94,7 +129,7 @@ export class ImportsService {
         return rows;
     }
 
-    private normalizeRow(record: any): ParsedRow {
+    private normalizeRow(record: RawRecord): ParsedRow {
         // Support multiple column name variations
         const date =
             record.date || record.tarih || record.Date || record.Tarih || record.işlem_tarihi;
@@ -122,7 +157,7 @@ export class ImportsService {
         };
     }
 
-    private parseDate(value: any): string {
+    private parseDate(value: DateValue): string {
         if (!value) {
             return new Date().toISOString().split('T')[0];
         }
@@ -151,7 +186,7 @@ export class ImportsService {
         return new Date().toISOString().split('T')[0];
     }
 
-    private parseAmount(value: any): number {
+    private parseAmount(value: AmountValue): number {
         if (typeof value === 'number') {
             return Math.abs(value);
         }
@@ -163,7 +198,7 @@ export class ImportsService {
         return isNaN(num) ? 0 : Math.abs(num);
     }
 
-    private parseType(typeValue: any, amountValue: any): 'income' | 'expense' {
+    private parseType(typeValue: string | undefined, amountValue: AmountValue): 'income' | 'expense' {
         if (typeValue) {
             const str = String(typeValue).toLowerCase();
             if (str.includes('gelir') || str.includes('income') || str.includes('giriş')) {
@@ -281,9 +316,9 @@ export class ImportsService {
                 column.width = 20;
             });
 
-            // This is async, but we'll handle it synchronously for now
-            // In production, you might want to return a Promise
-            return workbook.xlsx.writeBuffer() as any;
+            // Note: writeBuffer() returns Promise<ExcelJS.Buffer>
+            // Using type assertion for synchronous return signature
+            return workbook.xlsx.writeBuffer() as unknown as Buffer;
         }
     }
 }
