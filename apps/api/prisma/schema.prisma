@@ -46,6 +46,8 @@ model User {
   bills             Bill[]
   debts             Debt[]
   subscriptions     Subscription[]
+  telegramLinks     TelegramLink[]
+  telegramLinkCodes TelegramLinkCode[]
 }
 
 // Bank Connection for API Integration
@@ -304,4 +306,30 @@ model Subscription {
 
   @@index([userId])
   @@index([isActive])
+}
+
+// Telegram Integration
+model TelegramLink {
+  id         String @id @default(uuid())
+  telegramId String @unique
+  userId     String
+  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model TelegramLinkCode {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
 }
