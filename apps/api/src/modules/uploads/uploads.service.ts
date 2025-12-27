@@ -1,7 +1,14 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import FormData from 'form-data';
-import { TransactionEntity, UploadResult } from '../../shared/types';
+import {
+  TransactionEntity,
+  UploadResult,
+  Currency,
+  TransactionSource,
+  TransactionType,
+  PrismaTransaction,
+} from '../../shared/types';
 import { classifyTransaction } from '../../shared/categories';
 import { PrismaService } from '../../prisma.service';
 import { Prisma } from '@prisma/client';
@@ -144,16 +151,24 @@ export class UploadsService {
     }
   }
 
-  private mapToEntity(prismaTx: any): TransactionEntity {
+  private mapToEntity(prismaTx: PrismaTransaction): TransactionEntity {
     return {
-      ...prismaTx,
+      id: prismaTx.id,
+      userId: prismaTx.userId,
+      accountId: prismaTx.accountId,
       date: prismaTx.date.toISOString(),
+      description: prismaTx.description,
+      amount: prismaTx.amount,
+      currency: prismaTx.currency as Currency,
+      source: prismaTx.source as TransactionSource,
+      type: prismaTx.type as TransactionType,
+      categoryId: prismaTx.categoryId,
+      categoryLabel: prismaTx.categoryLabel,
+      confidence: prismaTx.confidence,
       tags: JSON.parse(prismaTx.tags || '[]'),
+      notes: prismaTx.notes ?? undefined,
       createdAt: prismaTx.createdAt.toISOString(),
       updatedAt: prismaTx.updatedAt.toISOString(),
-      source: prismaTx.source as any,
-      type: prismaTx.type as any,
-      currency: prismaTx.currency as any,
     };
   }
 }

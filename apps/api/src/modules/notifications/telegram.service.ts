@@ -1,4 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
+import { TelegramWebhookDto } from "./dto/notification.dto";
 
 export interface TelegramMessage {
   chatId: string;
@@ -188,7 +189,7 @@ Kalan: ₺${(target - current).toLocaleString("tr-TR")}
   }
 
   // Webhook handler for incoming messages
-  async handleWebhook(update: any): Promise<{ response: string } | null> {
+  async handleWebhook(update: TelegramWebhookDto): Promise<{ response: string } | null> {
     if (!update.message?.text) return null;
 
     const chatId = update.message.chat.id.toString();
