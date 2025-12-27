@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "../../prisma.service";
 import { User } from "@prisma/client";
 
@@ -12,6 +12,8 @@ export interface OAuthProfile {
 
 @Injectable()
 export class OAuthService {
+  private readonly logger = new Logger(OAuthService.name);
+
   constructor(private prisma: PrismaService) {}
 
   // Find or create user from OAuth profile
@@ -139,7 +141,7 @@ export class OAuthService {
         avatarUrl: profile.picture,
       };
     } catch (error) {
-      console.error("Google OAuth error:", error);
+      this.logger.error("Google OAuth error:", error);
       return null;
     }
   }
@@ -202,7 +204,7 @@ export class OAuthService {
         avatarUrl: profile.avatar_url,
       };
     } catch (error) {
-      console.error("GitHub OAuth error:", error);
+      this.logger.error("GitHub OAuth error:", error);
       return null;
     }
   }

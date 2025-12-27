@@ -1,8 +1,9 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
+import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from "@nestjs/common";
 import { Redis } from "ioredis";
 
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(RedisService.name);
   private client: Redis;
   private readonly defaultTTL = 60; // 60 seconds
 
@@ -31,7 +32,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       const value = await this.client.get(key);
       return value ? JSON.parse(value) : null;
     } catch (error) {
-      console.error(`Redis GET error for key ${key}:`, error);
+      this.logger.error(`Redis GET error for key ${key}:`, error);
       return null;
     }
   }
@@ -48,7 +49,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
         await this.client.setex(key, this.defaultTTL, serialized);
       }
     } catch (error) {
-      console.error(`Redis SET error for key ${key}:`, error);
+      this.logger.error(`Redis SET error for key ${key}:`, error);
     }
   }
 
@@ -59,7 +60,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     try {
       await this.client.del(key);
     } catch (error) {
-      console.error(`Redis DEL error for key ${key}:`, error);
+      this.logger.error(`Redis DEL error for key ${key}:`, error);
     }
   }
 
@@ -73,7 +74,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
         await this.client.del(...keys);
       }
     } catch (error) {
-      console.error(`Redis DEL pattern error for ${pattern}:`, error);
+      this.logger.error(`Redis DEL pattern error for ${pattern}:`, error);
     }
   }
 
@@ -85,7 +86,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       const result = await this.client.exists(key);
       return result === 1;
     } catch (error) {
-      console.error(`Redis EXISTS error for key ${key}:`, error);
+      this.logger.error(`Redis EXISTS error for key ${key}:`, error);
       return false;
     }
   }

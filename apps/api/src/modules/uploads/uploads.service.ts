@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import FormData from 'form-data';
 import {
@@ -22,6 +22,8 @@ interface ParsedTransaction {
 
 @Injectable()
 export class UploadsService {
+  private readonly logger = new Logger(UploadsService.name);
+
   constructor(private readonly prisma: PrismaService) { }
 
   async processPdf(userId: string, file: Express.Multer.File): Promise<UploadResult> {
@@ -126,11 +128,11 @@ export class UploadsService {
         transactions,
       };
     } catch (error) {
-      console.error('❌ Error in processPdf:', error);
-      
+      this.logger.error('Error in processPdf:', error);
+
       // If PDF parser service is not available, return a friendly error
       if (error instanceof Error && error.message.includes('fetch')) {
-        console.error('❌ PDF Parser service not available');
+        this.logger.error('PDF Parser service not available');
         return {
           success: false,
           filename: file.originalname,
@@ -146,7 +148,7 @@ export class UploadsService {
       }
 
       const errorMessage = `Failed to process PDF: ${error instanceof Error ? error.message : 'Unknown error'}`;
-      console.error('❌ Throwing BadRequestException:', errorMessage);
+      this.logger.error('Throwing BadRequestException:', errorMessage);
       throw new BadRequestException(errorMessage);
     }
   }
