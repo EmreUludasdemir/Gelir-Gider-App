@@ -1,5 +1,6 @@
 'use client'
 
+import { memo, useMemo } from 'react'
 import { Card, CardContent } from '@/components/ui/Card'
 import { formatCurrency, getChangeIcon, getChangeColor } from '@/lib/utils'
 
@@ -12,20 +13,20 @@ interface StatCardProps {
   format?: 'currency' | 'number'
 }
 
-export function StatCard({ 
-  title, 
-  value, 
-  currency = 'TRY', 
-  change, 
+export const StatCard = memo(function StatCard({
+  title,
+  value,
+  currency = 'TRY',
+  change,
   icon,
   format = 'currency'
 }: StatCardProps) {
-  const formatValue = () => {
+  const formattedValue = useMemo(() => {
     if (format === 'number') {
       return value.toLocaleString('tr-TR')
     }
     return formatCurrency(value, currency)
-  }
+  }, [value, currency, format])
 
   return (
     <Card className="hover:shadow-md transition-shadow">
@@ -34,7 +35,7 @@ export function StatCard({
           <div className="flex-1">
             <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">{title}</p>
             <p className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white break-words">
-              {formatValue()}
+              {formattedValue}
             </p>
             {change !== undefined && (
               <p className={`text-sm mt-1 ${getChangeColor(change)}`}>
@@ -48,4 +49,4 @@ export function StatCard({
       </CardContent>
     </Card>
   )
-}
+})

@@ -4,6 +4,7 @@ import { CalendarService } from "./calendar.service";
 import { TelegramService } from "./telegram.service";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { User } from "../auth/user.decorator";
+import { TelegramWebhookDto } from "./dto/notification.dto";
 
 @Controller("notifications")
 export class NotificationsController {
@@ -63,7 +64,7 @@ export class NotificationsController {
   }
 
   @Post("telegram/webhook")
-  async handleTelegramWebhook(@Body() update: any) {
+  async handleTelegramWebhook(@Body() update: TelegramWebhookDto) {
     const result = await this.telegramService.handleWebhook(update);
 
     if (result && result.response.startsWith("transaction:")) {

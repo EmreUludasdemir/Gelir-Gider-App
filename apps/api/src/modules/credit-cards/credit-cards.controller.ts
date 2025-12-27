@@ -10,11 +10,13 @@ import {
 } from "@nestjs/common";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { User } from "../auth/user.decorator";
+import { CreditCardService } from "./credit-cards.service";
 import {
-  CreditCardService,
   CreateCreditCardDto,
   UpdateCreditCardDto,
-} from "./credit-cards.service";
+  CreditCardAmountDto,
+  InstallmentCalculationDto,
+} from "./dto/credit-card.dto";
 
 @Controller("credit-cards")
 @UseGuards(JwtAuthGuard)
@@ -59,28 +61,26 @@ export class CreditCardsController {
   async addExpense(
     @Param("id") id: string,
     @User("id") userId: string,
-    @Body("amount") amount: number
+    @Body() dto: CreditCardAmountDto
   ) {
-    return this.creditCardService.addExpense(id, userId, amount);
+    return this.creditCardService.addExpense(id, userId, dto.amount);
   }
 
   @Post(":id/payment")
   async makePayment(
     @Param("id") id: string,
     @User("id") userId: string,
-    @Body("amount") amount: number
+    @Body() dto: CreditCardAmountDto
   ) {
-    return this.creditCardService.makePayment(id, userId, amount);
+    return this.creditCardService.makePayment(id, userId, dto.amount);
   }
 
   @Post("calculate-installment")
-  async calculateInstallment(
-    @Body() body: { totalAmount: number; months: number; interestRate: number }
-  ) {
+  async calculateInstallment(@Body() dto: InstallmentCalculationDto) {
     return this.creditCardService.calculateInstallment(
-      body.totalAmount,
-      body.months,
-      body.interestRate
+      dto.totalAmount,
+      dto.months,
+      dto.interestRate
     );
   }
 }

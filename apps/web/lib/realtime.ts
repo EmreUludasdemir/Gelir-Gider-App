@@ -10,7 +10,7 @@ interface WebSocketConfig {
 
 interface WebSocketMessage {
   type: string;
-  payload: any;
+  payload: Record<string, unknown>;
 }
 
 export function useWebSocket(config: WebSocketConfig) {
@@ -30,7 +30,6 @@ export function useWebSocket(config: WebSocketConfig) {
       ws.onopen = () => {
         setIsConnected(true);
         reconnectAttempts.current = 0;
-        console.log("WebSocket connected");
       };
 
       ws.onmessage = (event) => {
@@ -49,9 +48,6 @@ export function useWebSocket(config: WebSocketConfig) {
         // Attempt to reconnect
         if (reconnectAttempts.current < maxReconnectAttempts) {
           reconnectAttempts.current++;
-          console.log(
-            `WebSocket reconnecting... (${reconnectAttempts.current}/${maxReconnectAttempts})`
-          );
           reconnectTimeoutRef.current = setTimeout(connect, reconnectDelay);
         }
       };

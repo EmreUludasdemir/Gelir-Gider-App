@@ -2,6 +2,35 @@ export type TransactionSource = 'pdf' | 'manual';
 export type TransactionType = 'income' | 'expense';
 export type Currency = 'TRY' | 'USD' | 'EUR';
 
+// JWT Payload from auth
+export interface JwtPayload {
+  id: string;
+  email: string;
+  iat?: number;
+  exp?: number;
+}
+
+// Prisma Transaction type for internal use
+export interface PrismaTransaction {
+  id: string;
+  userId: string;
+  accountId: string;
+  date: Date;
+  description: string;
+  amount: number;
+  currency: string;
+  source: string;
+  type: string;
+  categoryId: string;
+  categoryLabel: string;
+  confidence: number;
+  tags: string;
+  notes: string | null;
+  creditCardId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface TransactionEntity {
   id: string;
   userId: string;

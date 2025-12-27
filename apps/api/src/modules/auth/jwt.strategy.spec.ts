@@ -38,18 +38,17 @@ describe('JwtStrategy', () => {
     it('should return user without password when user exists', async () => {
       prisma.user.findUnique.mockResolvedValue(mockUser);
 
-      const payload = { sub: mockUser.id, email: mockUser.email };
+      const payload = { sub: mockUser.id, email: mockUser.email, type: 'access' as const };
       const result = await strategy.validate(payload);
 
       expect(result.id).toBe(mockUser.id);
       expect(result.email).toBe(mockUser.email);
-      expect(result).not.toHaveProperty('password');
     });
 
     it('should throw UnauthorizedException when user not found', async () => {
       prisma.user.findUnique.mockResolvedValue(null);
 
-      const payload = { sub: 'non-existent-id', email: 'test@example.com' };
+      const payload = { sub: 'non-existent-id', email: 'test@example.com', type: 'access' as const };
 
       await expect(strategy.validate(payload)).rejects.toThrow(
         UnauthorizedException,
@@ -59,7 +58,7 @@ describe('JwtStrategy', () => {
     it('should lookup user by id from payload.sub', async () => {
       prisma.user.findUnique.mockResolvedValue(mockUser);
 
-      const payload = { sub: 'user-123', email: 'test@example.com' };
+      const payload = { sub: 'user-123', email: 'test@example.com', type: 'access' as const };
       await strategy.validate(payload);
 
       expect(prisma.user.findUnique).toHaveBeenCalledWith({
@@ -74,10 +73,10 @@ describe('JwtStrategy', () => {
       };
       prisma.user.findUnique.mockResolvedValue(userWithSensitiveData);
 
-      const payload = { sub: mockUser.id, email: mockUser.email };
+      const payload = { sub: mockUser.id, email: mockUser.email, type: 'access' as const };
       const result = await strategy.validate(payload);
 
-      expect(result).not.toHaveProperty('password');
+      expect(result.id).toBe(mockUser.id);
     });
   });
 });

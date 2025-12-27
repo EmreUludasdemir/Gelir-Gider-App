@@ -2,6 +2,7 @@ import { Controller, Get, Query, UseGuards } from "@nestjs/common";
 import { AnalyticsService } from "./analytics.service";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { User } from "../auth/user.decorator";
+import { JwtPayload } from "../../shared/types";
 
 @UseGuards(JwtAuthGuard)
 @Controller("analytics")
@@ -14,7 +15,7 @@ export class AnalyticsController {
    */
   @Get("comparison")
   async getMonthlyComparison(
-    @User() user: any,
+    @User() user: JwtPayload,
     @Query("months") months?: string
   ) {
     const monthCount = parseInt(months || "6", 10);
@@ -27,7 +28,7 @@ export class AnalyticsController {
    */
   @Get("trends")
   async getCategoryTrends(
-    @User() user: any,
+    @User() user: JwtPayload,
     @Query("period") period?: "week" | "month"
   ) {
     return this.analyticsService.getCategoryTrends(user.id, period || "month");
@@ -38,7 +39,7 @@ export class AnalyticsController {
    * GET /analytics/forecast
    */
   @Get("forecast")
-  async getSpendingForecast(@User() user: any) {
+  async getSpendingForecast(@User() user: JwtPayload) {
     return this.analyticsService.getSpendingForecast(user.id);
   }
 
@@ -47,7 +48,7 @@ export class AnalyticsController {
    * GET /analytics/daily
    */
   @Get("daily")
-  async getDailySpending(@User() user: any) {
+  async getDailySpending(@User() user: JwtPayload) {
     return this.analyticsService.getDailySpending(user.id);
   }
 
@@ -56,7 +57,7 @@ export class AnalyticsController {
    * GET /analytics/savings
    */
   @Get("savings")
-  async getSavingsRate(@User() user: any) {
+  async getSavingsRate(@User() user: JwtPayload) {
     return this.analyticsService.getSavingsRate(user.id);
   }
 }

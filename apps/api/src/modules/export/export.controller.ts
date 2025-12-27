@@ -4,6 +4,7 @@ import { ExportService } from "./export.service";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { User } from "../auth/user.decorator";
 import { SkipThrottle } from "@nestjs/throttler";
+import { JwtPayload } from "../../shared/types";
 
 interface ExportQueryDto {
   dateFrom?: string;
@@ -25,7 +26,7 @@ export class ExportController {
   @SkipThrottle()
   @Header("Content-Type", "text/csv; charset=utf-8")
   async exportCSV(
-    @User() user: any,
+    @User() user: JwtPayload,
     @Query() query: ExportQueryDto,
     @Res() res: Response
   ) {
@@ -47,7 +48,7 @@ export class ExportController {
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
   )
   async exportExcel(
-    @User() user: any,
+    @User() user: JwtPayload,
     @Query() query: ExportQueryDto,
     @Res() res: Response
   ) {
@@ -65,7 +66,7 @@ export class ExportController {
   @Get("pdf")
   @SkipThrottle()
   async exportPDF(
-    @User() user: any,
+    @User() user: JwtPayload,
     @Query() query: ExportQueryDto,
     @Res() res: Response
   ) {

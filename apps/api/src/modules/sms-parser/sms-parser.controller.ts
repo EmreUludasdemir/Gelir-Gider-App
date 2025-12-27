@@ -12,6 +12,12 @@ import { ParseSmsDto, BulkParseSmsDto, ParsedTransactionDto } from './sms-parser
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { User } from '../auth/user.decorator';
 import { PrismaService } from '../../prisma.service';
+import { Transaction } from '@prisma/client';
+
+interface ParseAndCreateResult {
+  transaction: Transaction;
+  parsed: ParsedTransactionDto;
+}
 
 @UseGuards(JwtAuthGuard)
 @Controller('sms-parser')
@@ -48,7 +54,7 @@ export class SmsParserController {
   async parseAndCreate(
     @User('id') userId: string,
     @Body() dto: ParseSmsDto,
-  ): Promise<any> {
+  ): Promise<ParseAndCreateResult> {
     const parsed = await this.smsParserService.parseSms(dto);
 
     if (!parsed) {
@@ -89,7 +95,7 @@ export class SmsParserController {
   async bulkImport(
     @User('id') userId: string,
     @Body() dto: BulkParseSmsDto,
-  ): Promise<{ imported: number; failed: number; transactions: any[] }> {
+  ): Promise<{ imported: number; failed: number; transactions: unknown[] }> {
     const parsed = await this.smsParserService.parseBulk(dto.messages);
 
     const transactions = [];

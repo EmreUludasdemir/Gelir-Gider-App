@@ -98,8 +98,9 @@ class RateLimitStore {
 
 const rateLimitStore = new RateLimitStore();
 
-// Cleanup every 5 minutes
-setInterval(() => rateLimitStore.cleanup(), 5 * 60 * 1000);
+// Cleanup every 5 minutes - unref to not block process exit
+const cleanupInterval = setInterval(() => rateLimitStore.cleanup(), 5 * 60 * 1000);
+cleanupInterval.unref(); // Allows process to exit even with this timer active
 
 /**
  * Enhanced Rate Limiting Middleware Factory

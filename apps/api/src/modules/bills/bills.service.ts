@@ -1,36 +1,7 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma.service';
-import { Prisma } from '@prisma/client';
-
-interface CreateBillDto {
-    name: string;
-    amount: number;
-    currency?: string;
-    dueDate: string;
-    frequency: 'once' | 'weekly' | 'monthly' | 'yearly';
-    categoryId: string;
-    categoryLabel: string;
-    reminderDays?: number;
-    notes?: string;
-}
-
-interface UpdateBillDto {
-    name?: string;
-    amount?: number;
-    dueDate?: string;
-    frequency?: 'once' | 'weekly' | 'monthly' | 'yearly';
-    categoryId?: string;
-    categoryLabel?: string;
-    reminderDays?: number;
-    notes?: string;
-    isPaid?: boolean;
-}
-
-interface PaginationQuery {
-    page?: number;
-    limit?: number;
-    isPaid?: boolean;
-}
+import { Prisma, Bill } from '@prisma/client';
+import { CreateBillDto, UpdateBillDto, BillQueryDto } from './dto/bill.dto';
 
 @Injectable()
 export class BillsService {
@@ -48,7 +19,7 @@ export class BillsService {
                 amount: dto.amount,
                 currency: dto.currency || 'TRY',
                 dueDate: new Date(dto.dueDate),
-                frequency: dto.frequency,
+                frequency: dto.frequency || 'monthly',
                 categoryId: dto.categoryId,
                 categoryLabel: dto.categoryLabel,
                 reminderDays: dto.reminderDays || 3,
@@ -57,7 +28,7 @@ export class BillsService {
         });
     }
 
-    async findAll(userId: string, query: PaginationQuery = {}) {
+    async findAll(userId: string, query: Partial<BillQueryDto> = {}) {
         const { page = 1, limit = 20, isPaid } = query;
         const skip = (page - 1) * limit;
 
@@ -164,7 +135,7 @@ export class BillsService {
         return bill;
     }
 
-    private async createNextRecurringBill(bill: any) {
+    private async createNextRecurringBill(bill: Bill) {
         const nextDueDate = new Date(bill.dueDate);
 
         switch (bill.frequency) {

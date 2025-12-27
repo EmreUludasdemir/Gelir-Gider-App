@@ -4,30 +4,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { PrismaService } from "../../prisma.service";
-
-export interface CreateCreditCardDto {
-  name: string;
-  lastFourDigits: string;
-  cardType?: string;
-  creditLimit: number;
-  currentBalance?: number;
-  billingDay?: number;
-  dueDay?: number;
-  interestRate?: number;
-  color?: string;
-}
-
-export interface UpdateCreditCardDto {
-  name?: string;
-  currentBalance?: number;
-  creditLimit?: number;
-  billingDay?: number;
-  dueDay?: number;
-  minPayment?: number;
-  interestRate?: number;
-  color?: string;
-  isActive?: boolean;
-}
+import { CreateCreditCardDto, UpdateCreditCardDto } from "./dto/credit-card.dto";
 
 @Injectable()
 export class CreditCardService {

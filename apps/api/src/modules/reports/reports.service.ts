@@ -10,6 +10,31 @@ interface ReportOptions {
     format?: 'pdf' | 'excel';
 }
 
+interface TransactionRecord {
+    id: string;
+    date: Date;
+    description: string;
+    amount: number;
+    type: string;
+    currency: string;
+    categoryId: string;
+    categoryLabel: string;
+}
+
+interface CategoryData {
+    income: number;
+    expense: number;
+    count: number;
+}
+
+interface ReportSummary {
+    totalIncome: number;
+    totalExpense: number;
+    balance: number;
+    transactionCount: number;
+    categoryBreakdown: Record<string, CategoryData>;
+}
+
 @Injectable()
 export class ReportsService {
     private readonly logger = new Logger(ReportsService.name);
@@ -40,7 +65,7 @@ export class ReportsService {
         }
     }
 
-    private calculateSummary(transactions: any[]) {
+    private calculateSummary(transactions: TransactionRecord[]): ReportSummary {
         const income = transactions
             .filter(t => t.type === 'income')
             .reduce((sum, t) => sum + t.amount, 0);
@@ -49,7 +74,7 @@ export class ReportsService {
             .filter(t => t.type === 'expense')
             .reduce((sum, t) => sum + t.amount, 0);
 
-        const categoryBreakdown = transactions.reduce((acc, t) => {
+        const categoryBreakdown = transactions.reduce<Record<string, CategoryData>>((acc, t) => {
             if (!acc[t.categoryLabel]) {
                 acc[t.categoryLabel] = { income: 0, expense: 0, count: 0 };
             }
@@ -71,7 +96,7 @@ export class ReportsService {
         };
     }
 
-    private async generateExcel(transactions: any[], summary: any, startDate: Date, endDate: Date) {
+    private async generateExcel(transactions: TransactionRecord[], summary: ReportSummary, startDate: Date, endDate: Date) {
         const workbook = new ExcelJS.Workbook();
 
         // Summary Sheet
@@ -119,7 +144,7 @@ export class ReportsService {
             { header: 'İşlem Sayısı', key: 'count', width: 15 },
         ];
 
-        Object.entries(summary.categoryBreakdown).forEach(([category, data]: [string, any]) => {
+        Object.entries(summary.categoryBreakdown).forEach(([category, data]) => {
             catSheet.addRow({
                 category,
                 income: data.income.toFixed(2),
@@ -143,7 +168,7 @@ export class ReportsService {
         return workbook.xlsx.writeBuffer();
     }
 
-    private async generatePDF(transactions: any[], summary: any, startDate: Date, endDate: Date) {
+    private async generatePDF(transactions: TransactionRecord[], summary: ReportSummary, startDate: Date, endDate: Date) {
         return new Promise<Buffer>((resolve, reject) => {
             const doc = new PDFDocument({ size: 'A4', margin: 50 });
             const buffers: Buffer[] = [];
@@ -173,7 +198,7 @@ export class ReportsService {
             doc.moveDown(0.5);
             doc.fontSize(10);
 
-            Object.entries(summary.categoryBreakdown).forEach(([category, data]: [string, any]) => {
+            Object.entries(summary.categoryBreakdown).forEach(([category, data]) => {
                 doc.text(`${category}:`);
                 doc.text(`  Gelir: ${data.income.toFixed(2)} TRY | Gider: ${data.expense.toFixed(2)} TRY | İşlem: ${data.count}`, {
                     indent: 20,

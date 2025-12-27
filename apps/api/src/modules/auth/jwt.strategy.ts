@@ -3,6 +3,14 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../../prisma.service';
 
+interface JwtTokenPayload {
+    sub: string;
+    email: string;
+    type: 'access' | 'refresh';
+    iat?: number;
+    exp?: number;
+}
+
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
     constructor(private prisma: PrismaService) {
@@ -13,7 +21,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         });
     }
 
-    async validate(payload: any) {
+    async validate(payload: JwtTokenPayload) {
         const user = await this.prisma.user.findUnique({
             where: { id: payload.sub },
         });
@@ -23,7 +31,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         }
 
         // Return user object which will be injected into request
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { password, ...result } = user;
-        return result;
+        return { id: result.id, email: result.email };
     }
 }

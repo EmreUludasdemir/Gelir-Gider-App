@@ -4,6 +4,7 @@ import {
   BadRequestException,
 } from "@nestjs/common";
 import { PrismaService } from "../../prisma.service";
+import { Transaction } from "@prisma/client";
 import {
   CreateBankConnectionDto,
   UpdateBankConnectionDto,
@@ -174,8 +175,8 @@ export class BankConnectionsService {
     userId: string,
     bankCode: string,
     bankTransactions: BankTransaction[]
-  ) {
-    const created: any[] = [];
+  ): Promise<Transaction[]> {
+    const created: Transaction[] = [];
 
     for (const tx of bankTransactions) {
       // Check for duplicates

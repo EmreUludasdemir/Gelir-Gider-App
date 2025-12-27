@@ -10,6 +10,7 @@ import {
 import { PushService } from "./push.service";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { User } from "../auth/user.decorator";
+import { JwtPayload } from "../../shared/types";
 
 interface SubscribeDto {
   endpoint: string;
@@ -34,7 +35,7 @@ export class PushController {
    */
   @Post("subscribe")
   @HttpCode(HttpStatus.CREATED)
-  async subscribe(@User() user: any, @Body() dto: SubscribeDto) {
+  async subscribe(@User() user: JwtPayload, @Body() dto: SubscribeDto) {
     return this.pushService.subscribe(user.id, dto);
   }
 
@@ -44,7 +45,7 @@ export class PushController {
    */
   @Delete("unsubscribe")
   @HttpCode(HttpStatus.OK)
-  async unsubscribe(@User() user: any, @Body() dto: UnsubscribeDto) {
+  async unsubscribe(@User() user: JwtPayload, @Body() dto: UnsubscribeDto) {
     return this.pushService.unsubscribe(user.id, dto.endpoint);
   }
 
@@ -54,7 +55,7 @@ export class PushController {
    */
   @Post("test")
   @HttpCode(HttpStatus.OK)
-  async sendTest(@User() user: any) {
+  async sendTest(@User() user: JwtPayload) {
     const sent = await this.pushService.sendToUser(user.id, {
       title: "🎉 Test Bildirimi",
       body: "Push bildirimleri çalışıyor!",

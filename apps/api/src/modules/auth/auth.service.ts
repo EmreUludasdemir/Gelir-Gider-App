@@ -25,6 +25,13 @@ interface TokenResponse {
     };
 }
 
+interface UserForToken {
+    id: string;
+    email: string;
+    name: string | null;
+    twoFactorEnabled: boolean;
+}
+
 @Injectable()
 export class AuthService {
     private readonly logger = new Logger(AuthService.name);
@@ -251,7 +258,7 @@ export class AuthService {
         return { message: '2FA disabled successfully' };
     }
 
-    private async generateTokens(user: any): Promise<TokenResponse> {
+    private async generateTokens(user: UserForToken): Promise<TokenResponse> {
         const accessPayload: TokenPayload = {
             sub: user.id,
             email: user.email,

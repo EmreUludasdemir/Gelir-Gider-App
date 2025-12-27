@@ -4,6 +4,7 @@ import * as ExcelJS from "exceljs";
 import * as PDFDocument from "pdfkit";
 import { Response } from "express";
 import { TransactionQuery } from "../../shared/types";
+import { Prisma } from "@prisma/client";
 
 interface ExportFilters {
   dateFrom?: string;
@@ -17,14 +18,14 @@ export class ExportService {
   constructor(private readonly prisma: PrismaService) {}
 
   private async getTransactions(userId: string, filters: ExportFilters) {
-    const where: any = { userId };
+    const where: Prisma.TransactionWhereInput = { userId };
 
-    if (filters.dateFrom) {
-      where.date = { ...where.date, gte: new Date(filters.dateFrom) };
-    }
-    if (filters.dateTo) {
-      where.date = { ...where.date, lte: new Date(filters.dateTo) };
-    }
+    // Build date filter
+    const dateFilter: Prisma.DateTimeFilter = {};
+    if (filters.dateFrom) dateFilter.gte = new Date(filters.dateFrom);
+    if (filters.dateTo) dateFilter.lte = new Date(filters.dateTo);
+    if (Object.keys(dateFilter).length > 0) where.date = dateFilter;
+
     if (filters.type) {
       where.type = filters.type;
     }

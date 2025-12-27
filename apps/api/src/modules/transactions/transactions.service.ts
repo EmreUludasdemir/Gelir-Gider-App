@@ -11,6 +11,10 @@ import {
   RecurringPayment,
   CategorySummary,
   WeeklyData,
+  Currency,
+  TransactionSource,
+  TransactionType,
+  PrismaTransaction,
 } from '../../shared/types';
 import { classifyTransaction } from '../../shared/categories';
 import { PrismaService } from '../../prisma.service';
@@ -41,8 +45,12 @@ export class TransactionsService {
           if (query.type) where.type = query.type;
           if (query.categoryId) where.categoryId = query.categoryId;
           if (query.source) where.source = query.source;
-          if (query.dateFrom) where.date = { ...where.date as any, gte: new Date(query.dateFrom) };
-          if (query.dateTo) where.date = { ...where.date as any, lte: new Date(query.dateTo) };
+
+          // Build date filter properly
+          const dateFilter: Prisma.DateTimeFilter = {};
+          if (query.dateFrom) dateFilter.gte = new Date(query.dateFrom);
+          if (query.dateTo) dateFilter.lte = new Date(query.dateTo);
+          if (Object.keys(dateFilter).length > 0) where.date = dateFilter;
 
           if (query.search) {
             where.OR = [
@@ -305,7 +313,7 @@ export class TransactionsService {
       transactionId: tx.id,
       description: tx.description,
       amount: tx.amount,
-      currency: tx.currency as any,
+      currency: tx.currency as Currency,
       currentCategory: tx.categoryLabel,
       suggestedCategories: [{ categoryId: 'other', categoryLabel: 'Diğer', confidence: 30 }],
       createdAt: new Date().toISOString(),
@@ -316,8 +324,9 @@ export class TransactionsService {
     // Simplified logic: fetch all, group by description in memory
     // Proper DB way: groupBy description, having count > 1 (Prisma supports basic groupBy)
 
+    type PrismaTransactionResult = Awaited<ReturnType<typeof this.prisma.transaction.findMany>>[number];
     const transactions = await this.prisma.transaction.findMany({ where: { userId } });
-    const recurringMap = new Map<string, any[]>();
+    const recurringMap = new Map<string, PrismaTransactionResult[]>();
 
     transactions.forEach(tx => {
       const key = tx.description.toLowerCase().trim();
@@ -327,7 +336,7 @@ export class TransactionsService {
     });
 
     const recurring: RecurringPayment[] = [];
-    recurringMap.forEach((txs, key) => {
+    recurringMap.forEach((txs) => {
       if (txs.length >= 2) {
         const latest = txs.sort((a, b) => b.date.getTime() - a.date.getTime())[0];
         const nextDate = new Date(latest.date);
@@ -337,7 +346,7 @@ export class TransactionsService {
           id: uuidv4(),
           description: latest.description,
           amount: Math.abs(latest.amount),
-          currency: latest.currency as any,
+          currency: latest.currency as Currency,
           frequency: 'monthly',
           categoryLabel: latest.categoryLabel,
           lastDate: latest.date.toISOString(),
@@ -350,16 +359,24 @@ export class TransactionsService {
     return recurring.slice(0, 5);
   }
 
-  private mapToEntity(prismaTx: any): TransactionEntity {
+  private mapToEntity(prismaTx: PrismaTransaction): TransactionEntity {
     return {
-      ...prismaTx,
+      id: prismaTx.id,
+      userId: prismaTx.userId,
+      accountId: prismaTx.accountId,
       date: prismaTx.date.toISOString(),
+      description: prismaTx.description,
+      amount: prismaTx.amount,
+      currency: prismaTx.currency as Currency,
+      source: prismaTx.source as TransactionSource,
+      type: prismaTx.type as TransactionType,
+      categoryId: prismaTx.categoryId,
+      categoryLabel: prismaTx.categoryLabel,
+      confidence: prismaTx.confidence,
       tags: JSON.parse(prismaTx.tags || '[]'),
+      notes: prismaTx.notes ?? undefined,
       createdAt: prismaTx.createdAt.toISOString(),
       updatedAt: prismaTx.updatedAt.toISOString(),
-      source: prismaTx.source as any,
-      type: prismaTx.type as any,
-      currency: prismaTx.currency as any,
     };
   }
 }

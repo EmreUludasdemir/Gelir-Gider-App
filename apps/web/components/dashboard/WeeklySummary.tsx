@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 
 interface WeeklyData {
     day: string;
@@ -12,33 +12,32 @@ interface Props {
     data?: WeeklyData[];
 }
 
-export function WeeklySummary({ data }: Props) {
+const DEFAULT_WEEK_DATA: WeeklyData[] = [
+    { day: 'Pzt', income: 0, expense: 120 },
+    { day: 'Sal', income: 0, expense: 85 },
+    { day: 'Çar', income: 5000, expense: 230 },
+    { day: 'Per', income: 0, expense: 45 },
+    { day: 'Cum', income: 0, expense: 380 },
+    { day: 'Cmt', income: 0, expense: 520 },
+    { day: 'Paz', income: 200, expense: 150 },
+];
+
+export const WeeklySummary = memo(function WeeklySummary({ data }: Props) {
     const [weekData, setWeekData] = useState<WeeklyData[]>([]);
 
     useEffect(() => {
-        if (data) {
-            setWeekData(data);
-        } else {
-            // Mock data for the week
-            setWeekData([
-                { day: 'Pzt', income: 0, expense: 120 },
-                { day: 'Sal', income: 0, expense: 85 },
-                { day: 'Çar', income: 5000, expense: 230 },
-                { day: 'Per', income: 0, expense: 45 },
-                { day: 'Cum', income: 0, expense: 380 },
-                { day: 'Cmt', income: 0, expense: 520 },
-                { day: 'Paz', income: 200, expense: 150 },
-            ]);
-        }
+        setWeekData(data || DEFAULT_WEEK_DATA);
     }, [data]);
 
-    const maxValue = Math.max(...weekData.flatMap(d => [d.income, d.expense]), 1);
-    const totalIncome = weekData.reduce((sum, d) => sum + d.income, 0);
-    const totalExpense = weekData.reduce((sum, d) => sum + d.expense, 0);
+    const { maxValue, totalIncome, totalExpense } = useMemo(() => ({
+        maxValue: Math.max(...weekData.flatMap(d => [d.income, d.expense]), 1),
+        totalIncome: weekData.reduce((sum, d) => sum + d.income, 0),
+        totalExpense: weekData.reduce((sum, d) => sum + d.expense, 0),
+    }), [weekData]);
 
-    const getBarHeight = (value: number) => {
+    const getBarHeight = useCallback((value: number) => {
         return `${Math.max((value / maxValue) * 100, 5)}%`;
-    };
+    }, [maxValue]);
 
     return (
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
@@ -112,4 +111,4 @@ export function WeeklySummary({ data }: Props) {
             </div>
         </div>
     );
-}
+})
