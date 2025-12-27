@@ -1,9 +1,9 @@
 'use client'
 
-import { memo, useMemo, useCallback } from 'react'
+import { memo, useMemo } from 'react'
 import { CategorySummary } from '@/lib/api'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, PieLabelRenderProps } from 'recharts'
 import { formatCurrency } from '@/lib/utils'
 import { getCategoryColor } from '@/lib/categoryColors'
 
@@ -11,17 +11,35 @@ interface CategoryPieChartProps {
   categories: CategorySummary[]
 }
 
-interface TooltipPayload {
+interface ChartDataItem {
   name: string
   value: number
-  payload: {
-    percentage: number
-  }
+  percentage: number
+  categoryId: string
+  color: string
 }
 
 interface CustomTooltipProps {
   active?: boolean
-  payload?: TooltipPayload[]
+  payload?: Array<{ payload: ChartDataItem }>
+}
+
+const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
+  if (active && payload && payload.length > 0) {
+    const data = payload[0].payload
+    return (
+      <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
+        <p className="font-medium mb-1">{data.name}</p>
+        <p className="text-sm text-gray-600">
+          {formatCurrency(data.value)}
+        </p>
+        <p className="text-sm text-gray-500">
+          {data.percentage.toFixed(1)}%
+        </p>
+      </div>
+    )
+  }
+  return null
 }
 
 export const CategoryPieChart = memo(function CategoryPieChart({ categories }: CategoryPieChartProps) {
@@ -32,23 +50,6 @@ export const CategoryPieChart = memo(function CategoryPieChart({ categories }: C
     categoryId: cat.categoryId,
     color: getCategoryColor(cat.categoryId),
   })), [categories])
-
-  const renderCustomTooltip = useCallback(({ active, payload }: CustomTooltipProps) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
-          <p className="font-medium mb-1">{payload[0].name}</p>
-          <p className="text-sm text-gray-600">
-            {formatCurrency(payload[0].value)}
-          </p>
-          <p className="text-sm text-gray-500">
-            {payload[0].payload.percentage.toFixed(1)}%
-          </p>
-        </div>
-      )
-    }
-    return null
-  }, [])
 
   return (
     <Card>
@@ -63,7 +64,10 @@ export const CategoryPieChart = memo(function CategoryPieChart({ categories }: C
               cx="50%"
               cy="50%"
               labelLine={false}
-              label={(entry: any) => `${entry.percentage.toFixed(0)}%`}
+              label={(props: PieLabelRenderProps) => {
+                const entry = props as unknown as ChartDataItem
+                return `${entry.percentage.toFixed(0)}%`
+              }}
               outerRadius={100}
               fill="#8884d8"
               dataKey="value"
@@ -72,7 +76,7 @@ export const CategoryPieChart = memo(function CategoryPieChart({ categories }: C
                 <Cell key={`cell-${index}`} fill={entry.color} />
               ))}
             </Pie>
-            <Tooltip content={renderCustomTooltip} />
+            <Tooltip content={<CustomTooltip />} />
             <Legend />
           </PieChart>
         </ResponsiveContainer>

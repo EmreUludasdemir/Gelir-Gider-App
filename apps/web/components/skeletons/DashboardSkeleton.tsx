@@ -1,9 +1,14 @@
 'use client'
 
-import { memo } from 'react'
+import { memo, CSSProperties } from 'react'
 
-const SkeletonPulse = ({ className = '' }: { className?: string }) => (
-  <div className={`animate-pulse bg-gray-200 dark:bg-gray-700 rounded ${className}`} />
+interface SkeletonPulseProps {
+  className?: string
+  style?: CSSProperties
+}
+
+const SkeletonPulse = ({ className = '', style }: SkeletonPulseProps) => (
+  <div className={`animate-pulse bg-gray-200 dark:bg-gray-700 rounded ${className}`} style={style} />
 )
 
 export const StatCardSkeleton = memo(function StatCardSkeleton() {

@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "next build",
+    "build:analyze": "ANALYZE=true next build",
     "start": "next start -p 3000",
     "lint": "next lint",
     "test": "jest",
@@ -25,6 +26,7 @@
     "swr": "^2.2.5"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^16.1.1",
     "@playwright/test": "^1.40.0",
     "@testing-library/jest-dom": "^6.1.5",
     "@testing-library/react": "^14.1.2",
