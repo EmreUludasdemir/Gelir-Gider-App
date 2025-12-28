@@ -1,21 +1,23 @@
 'use client';
 
 import { TrendingUp, TrendingDown, Minus, ArrowRight, Loader2, BarChart3 } from 'lucide-react';
-import { useTrends } from '@/hooks/useAiAnalytics';
+import { useTrends, SpendingTrend } from '@/hooks/useAiAnalytics';
 
-const trendIcons = {
+type TrendType = 'increasing' | 'decreasing' | 'stable';
+
+const trendIcons: Record<TrendType, typeof TrendingUp> = {
   increasing: TrendingUp,
   decreasing: TrendingDown,
   stable: Minus,
 };
 
-const trendColors = {
+const trendColors: Record<TrendType, string> = {
   increasing: 'text-red-500',
   decreasing: 'text-green-500',
   stable: 'text-gray-500',
 };
 
-const trendBgColors = {
+const trendBgColors: Record<TrendType, string> = {
   increasing: 'bg-red-50 dark:bg-red-900/20',
   decreasing: 'bg-green-50 dark:bg-green-900/20',
   stable: 'bg-gray-50 dark:bg-gray-700/50',
@@ -60,18 +62,18 @@ export function SpendingTrends() {
       </div>
 
       <div className="p-4 space-y-3">
-        {topTrends.map((trend, index) => {
-          const TrendIcon = trendIcons[trend.trend];
+        {topTrends.map((trend: SpendingTrend, index: number) => {
+          const TrendIcon = trendIcons[trend.trend as TrendType];
           return (
             <div
               key={index}
-              className={`p-3 rounded-lg ${trendBgColors[trend.trend]}`}
+              className={`p-3 rounded-lg ${trendBgColors[trend.trend as TrendType]}`}
             >
               <div className="flex items-center justify-between mb-2">
                 <span className="font-medium text-gray-900 dark:text-white">
                   {trend.categoryLabel}
                 </span>
-                <div className={`flex items-center gap-1 ${trendColors[trend.trend]}`}>
+                <div className={`flex items-center gap-1 ${trendColors[trend.trend as TrendType]}`}>
                   <TrendIcon className="w-4 h-4" />
                   <span className="text-sm font-medium">
                     {trend.trend === 'stable' ? '~' : trend.percentageChange > 0 ? '+' : ''}{trend.percentageChange}%

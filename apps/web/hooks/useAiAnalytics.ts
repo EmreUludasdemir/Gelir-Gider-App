@@ -1,7 +1,7 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
-import { api } from '@/lib/api';
+import useSWR from 'swr';
+import { fetcher } from '@/lib/api';
 
 export interface SpendingAnomaly {
   type: 'high_spending' | 'unusual_category' | 'frequency_spike' | 'large_transaction';
@@ -59,57 +59,51 @@ export interface AiAnalyticsSummary {
   generatedAt: string;
 }
 
+interface ApiResponse<T> {
+  data: T;
+}
+
 export function useAnomalies() {
-  return useQuery({
-    queryKey: ['ai-analytics', 'anomalies'],
-    queryFn: async () => {
-      const response = await api.get('/ai-analytics/anomalies');
-      return response.data.data as SpendingAnomaly[];
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
+  const { data, error, isLoading } = useSWR<ApiResponse<SpendingAnomaly[]>>(
+    '/ai-analytics/anomalies',
+    fetcher,
+    { refreshInterval: 5 * 60 * 1000 }
+  );
+  return { data: data?.data, error, isLoading };
 }
 
 export function useTrends() {
-  return useQuery({
-    queryKey: ['ai-analytics', 'trends'],
-    queryFn: async () => {
-      const response = await api.get('/ai-analytics/trends');
-      return response.data.data as SpendingTrend[];
-    },
-    staleTime: 5 * 60 * 1000,
-  });
+  const { data, error, isLoading } = useSWR<ApiResponse<SpendingTrend[]>>(
+    '/ai-analytics/trends',
+    fetcher,
+    { refreshInterval: 5 * 60 * 1000 }
+  );
+  return { data: data?.data, error, isLoading };
 }
 
 export function useFinancialHealth() {
-  return useQuery({
-    queryKey: ['ai-analytics', 'health'],
-    queryFn: async () => {
-      const response = await api.get('/ai-analytics/health');
-      return response.data.data as FinancialHealth;
-    },
-    staleTime: 10 * 60 * 1000, // 10 minutes
-  });
+  const { data, error, isLoading } = useSWR<ApiResponse<FinancialHealth>>(
+    '/ai-analytics/health',
+    fetcher,
+    { refreshInterval: 10 * 60 * 1000 }
+  );
+  return { data: data?.data, error, isLoading };
 }
 
 export function useCategoryInsights() {
-  return useQuery({
-    queryKey: ['ai-analytics', 'category-insights'],
-    queryFn: async () => {
-      const response = await api.get('/ai-analytics/category-insights');
-      return response.data.data as CategoryInsight[];
-    },
-    staleTime: 5 * 60 * 1000,
-  });
+  const { data, error, isLoading } = useSWR<ApiResponse<CategoryInsight[]>>(
+    '/ai-analytics/category-insights',
+    fetcher,
+    { refreshInterval: 5 * 60 * 1000 }
+  );
+  return { data: data?.data, error, isLoading };
 }
 
 export function useAiAnalyticsSummary() {
-  return useQuery({
-    queryKey: ['ai-analytics', 'summary'],
-    queryFn: async () => {
-      const response = await api.get('/ai-analytics/summary');
-      return response.data.data as AiAnalyticsSummary;
-    },
-    staleTime: 5 * 60 * 1000,
-  });
+  const { data, error, isLoading } = useSWR<ApiResponse<AiAnalyticsSummary>>(
+    '/ai-analytics/summary',
+    fetcher,
+    { refreshInterval: 5 * 60 * 1000 }
+  );
+  return { data: data?.data, error, isLoading };
 }

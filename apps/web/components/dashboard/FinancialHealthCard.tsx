@@ -14,9 +14,13 @@ import {
   Activity,
   Loader2,
 } from 'lucide-react';
-import { useFinancialHealth, useAnomalies } from '@/hooks/useAiAnalytics';
+import { useFinancialHealth, useAnomalies, FinancialHealthFactor, SpendingAnomaly } from '@/hooks/useAiAnalytics';
 
-const gradeColors = {
+type Grade = 'A' | 'B' | 'C' | 'D' | 'F';
+type Status = 'good' | 'warning' | 'critical';
+type Severity = 'low' | 'medium' | 'high';
+
+const gradeColors: Record<Grade, string> = {
   A: 'text-green-600 bg-green-100 dark:bg-green-900/30',
   B: 'text-blue-600 bg-blue-100 dark:bg-blue-900/30',
   C: 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900/30',
@@ -24,19 +28,19 @@ const gradeColors = {
   F: 'text-red-600 bg-red-100 dark:bg-red-900/30',
 };
 
-const statusIcons = {
+const statusIcons: Record<Status, typeof CheckCircle> = {
   good: CheckCircle,
   warning: AlertCircle,
   critical: XCircle,
 };
 
-const statusColors = {
+const statusColors: Record<Status, string> = {
   good: 'text-green-500',
   warning: 'text-yellow-500',
   critical: 'text-red-500',
 };
 
-const severityColors = {
+const severityColors: Record<Severity, string> = {
   low: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
   medium: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
   high: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
@@ -63,7 +67,7 @@ export function FinancialHealthCard() {
     return null;
   }
 
-  const highSeverityAnomalies = anomalies?.filter(a => a.severity === 'high') || [];
+  const highSeverityAnomalies = anomalies?.filter((a: SpendingAnomaly) => a.severity === 'high') || [];
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -87,7 +91,7 @@ export function FinancialHealthCard() {
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold ${gradeColors[health.grade]}`}>
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold ${gradeColors[health.grade as Grade]}`}>
               {health.grade}
             </div>
             <div>
@@ -130,11 +134,11 @@ export function FinancialHealthCard() {
 
         {/* Quick Stats */}
         <div className="grid grid-cols-4 gap-2 mb-4">
-          {health.factors.map((factor, index) => {
-            const Icon = statusIcons[factor.status];
+          {health.factors.map((factor: FinancialHealthFactor, index: number) => {
+            const Icon = statusIcons[factor.status as Status];
             return (
               <div key={index} className="text-center p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                <Icon className={`w-5 h-5 mx-auto mb-1 ${statusColors[factor.status]}`} />
+                <Icon className={`w-5 h-5 mx-auto mb-1 ${statusColors[factor.status as Status]}`} />
                 <div className="text-xs text-gray-500 dark:text-gray-400 truncate" title={factor.name}>
                   {factor.name}
                 </div>
@@ -156,10 +160,10 @@ export function FinancialHealthCard() {
               </span>
             </div>
             <div className="space-y-2 max-h-32 overflow-y-auto">
-              {anomalies.slice(0, 3).map((anomaly, index) => (
+              {anomalies.slice(0, 3).map((anomaly: SpendingAnomaly, index: number) => (
                 <div
                   key={index}
-                  className={`p-2 rounded-lg text-sm ${severityColors[anomaly.severity]}`}
+                  className={`p-2 rounded-lg text-sm ${severityColors[anomaly.severity as Severity]}`}
                 >
                   <div className="flex items-start gap-2">
                     {anomaly.severity === 'high' ? (
@@ -196,13 +200,13 @@ export function FinancialHealthCard() {
         {/* Detailed Factors */}
         {showDetails && (
           <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-3">
-            {health.factors.map((factor, index) => {
-              const Icon = statusIcons[factor.status];
+            {health.factors.map((factor: FinancialHealthFactor, index: number) => {
+              const Icon = statusIcons[factor.status as Status];
               return (
                 <div key={index} className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <Icon className={`w-5 h-5 ${statusColors[factor.status]}`} />
+                      <Icon className={`w-5 h-5 ${statusColors[factor.status as Status]}`} />
                       <span className="font-medium text-gray-900 dark:text-white">
                         {factor.name}
                       </span>
