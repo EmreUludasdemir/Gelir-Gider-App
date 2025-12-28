@@ -2,9 +2,11 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { toast } from 'sonner';
 
 interface RealtimeConfig {
   token: string | null;
+  showToasts?: boolean;
   onConnect?: () => void;
   onDisconnect?: () => void;
   onTransactionCreated?: (data: TransactionEvent) => void;
@@ -113,22 +115,58 @@ export function useRealtime(config: RealtimeConfig) {
       setIsConnected(false);
     });
 
+    const showToasts = config.showToasts ?? true;
+
+    const formatAmount = (amount: number) => {
+      return new Intl.NumberFormat('tr-TR', {
+        style: 'currency',
+        currency: 'TRY',
+      }).format(amount);
+    };
+
     // Transaction events
     socket.on('transaction:created', (message: RealtimeMessage<TransactionEvent>) => {
       config.onTransactionCreated?.(message.data);
+      if (showToasts) {
+        const { data } = message;
+        toast.success(
+          data.type === 'income' ? 'Yeni Gelir Eklendi' : 'Yeni Gider Eklendi',
+          { description: `${data.description}: ${formatAmount(data.amount)}` }
+        );
+      }
     });
 
     socket.on('transaction:updated', (message: RealtimeMessage<TransactionEvent>) => {
       config.onTransactionUpdated?.(message.data);
+      if (showToasts) {
+        toast.info('İşlem Güncellendi', {
+          description: message.data.description,
+        });
+      }
     });
 
     socket.on('transaction:deleted', (message: RealtimeMessage<{ id: string }>) => {
       config.onTransactionDeleted?.(message.data);
+      if (showToasts) {
+        toast.info('İşlem Silindi');
+      }
     });
 
     // Budget events
     socket.on('budget:alert', (message: RealtimeMessage<BudgetAlert>) => {
       config.onBudgetAlert?.(message.data);
+      if (showToasts) {
+        const { data } = message;
+        if (data.percentage >= 100) {
+          toast.error('Bütçe Aşıldı!', {
+            description: `${data.categoryName}: ${formatAmount(data.spent)} / ${formatAmount(data.limit)}`,
+          });
+        } else {
+          toast.warning('Bütçe Uyarısı', {
+            description: `${data.categoryName} bütçesinin %${Math.round(data.percentage)}'i kullanıldı`,
+          });
+        }
+      }
     });
 
     socket.on('budget:updated', (message: RealtimeMessage<BudgetUpdate>) => {
