@@ -24,8 +24,13 @@ import { SubscriptionModule } from "./modules/subscriptions/subscription.module"
 import { ImportsModule } from "./modules/imports/imports.module";
 import { ReportsModule } from "./modules/reports/reports.module";
 import { SmsParserModule } from "./modules/sms-parser/sms-parser.module";
+import { TelegramModule } from "./modules/telegram/telegram.module";
+import { RealtimeModule } from "./modules/realtime/realtime.module";
+import { AiAnalyticsModule } from "./modules/ai-analytics/ai-analytics.module";
+import { AiModule } from "./modules/ai/ai.module";
 import { CacheModule } from "./shared/cache";
 import { PerformanceModule } from "./shared/performance";
+import { MonitoringModule } from "./shared/monitoring";
 import { 
   winstonConfig, 
   LoggingMiddleware, 
@@ -72,6 +77,11 @@ import {
     ImportsModule,
     ReportsModule,
     SmsParserModule,
+    TelegramModule,
+    RealtimeModule,
+    AiAnalyticsModule,
+    AiModule,
+    MonitoringModule,
   ],
   controllers: [HealthController],
   providers: [

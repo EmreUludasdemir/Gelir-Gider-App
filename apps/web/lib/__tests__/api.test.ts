@@ -1,13 +1,27 @@
-import { api, ApiError, setAuthToken, clearAuthToken } from '../api'
+import { api, ApiError, setAuthToken, clearAuthToken } from '../api-enhanced'
 
 // Mock fetch
 global.fetch = jest.fn()
 
+// Mock localStorage
+const localStorageMock = (() => {
+  let store: Record<string, string> = {}
+  return {
+    getItem: jest.fn((key: string) => store[key] || null),
+    setItem: jest.fn((key: string, value: string) => { store[key] = value }),
+    removeItem: jest.fn((key: string) => { delete store[key] }),
+    clear: jest.fn(() => { store = {} }),
+  }
+})()
+
+Object.defineProperty(window, 'localStorage', {
+  value: localStorageMock,
+})
+
 describe('API Client', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    clearAuthToken()
-    localStorage.clear()
+    localStorageMock.clear()
   })
 
   describe('setAuthToken and clearAuthToken', () => {
@@ -160,8 +174,8 @@ describe('API Client', () => {
 
   describe('Token refresh', () => {
     it('should refresh token when access token expires', async () => {
-      // Set expired token
-      localStorage.getItem = jest.fn((key) => {
+      // Set expired token using mock
+      localStorageMock.getItem.mockImplementation((key: string) => {
         if (key === 'accessToken') return 'expired-token'
         if (key === 'refreshToken') return 'refresh-token'
         if (key === 'tokenExpiry') return (Date.now() - 1000).toString()

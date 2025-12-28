@@ -170,8 +170,12 @@ describe('useBulkSelection', () => {
 
     rerender({ items: newItems })
 
-    // Selection should still work with new items
+    // Selection state persists even for items no longer in list
     expect(result.current.isSelected('1')).toBe(true)
-    expect(result.current.isSelected('2')).toBe(false) // Not in new list
+    expect(result.current.isSelected('2')).toBe(true) // Still in selectedIds
+
+    // But getSelectedItems only returns items that exist in current list
+    expect(result.current.getSelectedItems().length).toBe(1)
+    expect(result.current.getSelectedItems()[0].id).toBe('1')
   })
 })

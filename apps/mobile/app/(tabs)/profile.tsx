@@ -7,11 +7,13 @@ import {
     ScrollView,
     TouchableOpacity,
     Alert,
+    Switch,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme, ThemeMode } from '@/contexts/ThemeContext';
 import { Card } from '@/components/ui/Card';
 import { Colors, Typography, Spacing, BorderRadius } from '@/constants/theme';
 
@@ -27,6 +29,22 @@ interface MenuItem {
 export default function ProfileScreen() {
     const { user, logout } = useAuth();
     const router = useRouter();
+    const { isDark, themeMode, colors, setThemeMode, toggleTheme } = useTheme();
+
+    const getThemeModeLabel = (mode: ThemeMode): string => {
+        switch (mode) {
+            case 'light': return 'Açık';
+            case 'dark': return 'Koyu';
+            case 'system': return 'Sistem';
+        }
+    };
+
+    const handleThemeChange = () => {
+        const modes: ThemeMode[] = ['light', 'dark', 'system'];
+        const currentIndex = modes.indexOf(themeMode);
+        const nextIndex = (currentIndex + 1) % modes.length;
+        setThemeMode(modes[nextIndex]);
+    };
 
     const handleLogout = () => {
         Alert.alert(
@@ -73,10 +91,11 @@ export default function ProfileScreen() {
             onPress: () => Alert.alert('Yakında', 'Bu özellik yakında eklenecek'),
         },
         {
-            icon: 'color-palette-outline',
+            icon: isDark ? 'moon' : 'sunny-outline',
             label: 'Görünüm',
-            subtitle: 'Tema ve dil ayarları',
-            onPress: () => Alert.alert('Yakında', 'Bu özellik yakında eklenecek'),
+            subtitle: `Tema: ${getThemeModeLabel(themeMode)}`,
+            onPress: handleThemeChange,
+            color: isDark ? Colors.primaryLight : Colors.warning,
         },
         {
             icon: 'help-circle-outline',
@@ -93,8 +112,26 @@ export default function ProfileScreen() {
         },
     ];
 
+    const dynamicStyles = {
+        container: {
+            backgroundColor: colors.background,
+        },
+        text: {
+            color: colors.text,
+        },
+        textSecondary: {
+            color: colors.textSecondary,
+        },
+        card: {
+            backgroundColor: colors.card,
+        },
+        border: {
+            borderColor: colors.border,
+        },
+    };
+
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={[styles.container, dynamicStyles.container]}>
             <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
                 {/* Profile Header */}
                 <LinearGradient
@@ -119,42 +156,42 @@ export default function ProfileScreen() {
 
                 {/* Quick Stats */}
                 <View style={styles.statsRow}>
-                    <Card style={styles.statCard}>
+                    <Card style={[styles.statCard, dynamicStyles.card]}>
                         <Text style={styles.statValue}>127</Text>
-                        <Text style={styles.statLabel}>İşlem</Text>
+                        <Text style={[styles.statLabel, dynamicStyles.textSecondary]}>İşlem</Text>
                     </Card>
-                    <Card style={styles.statCard}>
+                    <Card style={[styles.statCard, dynamicStyles.card]}>
                         <Text style={styles.statValue}>3</Text>
-                        <Text style={styles.statLabel}>Hedef</Text>
+                        <Text style={[styles.statLabel, dynamicStyles.textSecondary]}>Hedef</Text>
                     </Card>
-                    <Card style={styles.statCard}>
+                    <Card style={[styles.statCard, dynamicStyles.card]}>
                         <Text style={styles.statValue}>45</Text>
-                        <Text style={styles.statLabel}>Gün</Text>
+                        <Text style={[styles.statLabel, dynamicStyles.textSecondary]}>Gün</Text>
                     </Card>
                 </View>
 
                 {/* Menu Items */}
-                <Card variant="outlined" padding="none">
+                <Card variant="outlined" padding="none" style={dynamicStyles.card}>
                     {menuItems.map((item, index) => (
                         <TouchableOpacity
                             key={index}
                             style={[
                                 styles.menuItem,
-                                index !== menuItems.length - 1 && styles.menuItemBorder,
+                                index !== menuItems.length - 1 && [styles.menuItemBorder, dynamicStyles.border],
                             ]}
                             onPress={item.onPress}
                         >
-                            <View style={[styles.menuIcon, item.color && { backgroundColor: item.color + '20' }]}>
+                            <View style={[styles.menuIcon, { backgroundColor: (item.color || colors.textSecondary) + '20' }]}>
                                 <Ionicons
                                     name={item.icon}
                                     size={22}
-                                    color={item.color || Colors.gray600}
+                                    color={item.color || colors.textSecondary}
                                 />
                             </View>
                             <View style={styles.menuContent}>
-                                <Text style={styles.menuLabel}>{item.label}</Text>
+                                <Text style={[styles.menuLabel, dynamicStyles.text]}>{item.label}</Text>
                                 {item.subtitle && (
-                                    <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
+                                    <Text style={[styles.menuSubtitle, dynamicStyles.textSecondary]}>{item.subtitle}</Text>
                                 )}
                             </View>
                             {item.badge && (
@@ -162,7 +199,7 @@ export default function ProfileScreen() {
                                     <Text style={styles.proBadgeText}>{item.badge}</Text>
                                 </View>
                             )}
-                            <Ionicons name="chevron-forward" size={20} color={Colors.gray400} />
+                            <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
                         </TouchableOpacity>
                     ))}
                 </Card>
@@ -174,7 +211,7 @@ export default function ProfileScreen() {
                 </TouchableOpacity>
 
                 {/* Version */}
-                <Text style={styles.version}>Versiyon 1.0.0</Text>
+                <Text style={[styles.version, dynamicStyles.textSecondary]}>Versiyon 1.0.0</Text>
             </ScrollView>
         </SafeAreaView>
     );

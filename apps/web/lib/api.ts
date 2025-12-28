@@ -1,5 +1,29 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
 
+// Auth token management
+export function setAuthToken(token: string, refreshToken?: string) {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('token', token);
+    if (refreshToken) {
+      localStorage.setItem('refreshToken', refreshToken);
+    }
+  }
+}
+
+export function clearAuthToken() {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+  }
+}
+
+export function getAuthToken(): string | null {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('token');
+  }
+  return null;
+}
+
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
     super(message);
