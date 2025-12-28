@@ -19,6 +19,7 @@ import {
 import { classifyTransaction } from '../../shared/categories';
 import { PrismaService } from '../../prisma.service';
 import { CacheService, CachePrefix, CacheTTL } from '../../shared/cache';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { Prisma } from '@prisma/client';
 
 @Injectable()
@@ -26,6 +27,7 @@ export class TransactionsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cache: CacheService,
+    private readonly realtime: RealtimeGateway,
     @Inject(WINSTON_MODULE_NEST_PROVIDER)
     private readonly logger: LoggerService,
   ) { }
@@ -122,7 +124,18 @@ export class TransactionsService {
       context: 'TransactionsService',
     });
 
-    return this.mapToEntity(transaction);
+    const entity = this.mapToEntity(transaction);
+
+    // Notify via WebSocket
+    this.realtime.notifyNewTransaction(userId, {
+      id: entity.id,
+      description: entity.description,
+      amount: entity.amount,
+      type: entity.type as 'income' | 'expense',
+      categoryLabel: entity.categoryLabel,
+    });
+
+    return entity;
   }
 
   async update(userId: string, id: string, dto: UpdateTransactionDto): Promise<TransactionEntity> {
@@ -150,7 +163,18 @@ export class TransactionsService {
       context: 'TransactionsService',
     });
 
-    return this.mapToEntity(updated);
+    const entity = this.mapToEntity(updated);
+
+    // Notify via WebSocket
+    this.realtime.notifyTransactionUpdated(userId, {
+      id: entity.id,
+      description: entity.description,
+      amount: entity.amount,
+      type: entity.type as 'income' | 'expense',
+      categoryLabel: entity.categoryLabel,
+    });
+
+    return entity;
   }
 
   async delete(userId: string, id: string): Promise<{ success: boolean }> {
@@ -166,6 +190,9 @@ export class TransactionsService {
     this.logger.debug(`Transaction deleted, cache invalidated for user ${userId}`, {
       context: 'TransactionsService',
     });
+
+    // Notify via WebSocket
+    this.realtime.notifyTransactionDeleted(userId, id);
 
     return { success: true };
   }

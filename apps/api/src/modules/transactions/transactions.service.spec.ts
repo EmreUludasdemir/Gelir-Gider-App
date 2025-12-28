@@ -9,6 +9,7 @@ import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { TransactionsService } from './transactions.service';
 import { PrismaService } from '../../prisma.service';
 import { CacheService } from '../../shared/cache';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 import {
   createMockTransaction,
   createMockPrismaService,
@@ -39,10 +40,20 @@ const createMockLogger = () => ({
   verbose: jest.fn(),
 });
 
+// Mock RealtimeGateway
+const createMockRealtimeGateway = () => ({
+  notifyNewTransaction: jest.fn(),
+  notifyTransactionUpdated: jest.fn(),
+  notifyTransactionDeleted: jest.fn(),
+  notifyBudgetAlert: jest.fn(),
+  notifyBudgetUpdated: jest.fn(),
+});
+
 describe('TransactionsService', () => {
   let service: TransactionsService;
   let prisma: ReturnType<typeof createMockPrismaService>;
   let cache: ReturnType<typeof createMockCacheService>;
+  let realtime: ReturnType<typeof createMockRealtimeGateway>;
 
   const userId = 'user-test-123';
   const mockTransaction = createMockTransaction();
@@ -50,12 +61,14 @@ describe('TransactionsService', () => {
   beforeEach(async () => {
     prisma = createMockPrismaService();
     cache = createMockCacheService();
+    realtime = createMockRealtimeGateway();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TransactionsService,
         { provide: PrismaService, useValue: prisma },
         { provide: CacheService, useValue: cache },
+        { provide: RealtimeGateway, useValue: realtime },
         { provide: WINSTON_MODULE_NEST_PROVIDER, useValue: createMockLogger() },
       ],
     }).compile();
