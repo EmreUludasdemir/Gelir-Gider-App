@@ -1,0 +1,142 @@
+{
+  "common": {
+    "loading": "Yükleniyor...",
+    "save": "Kaydet",
+    "cancel": "İptal",
+    "delete": "Sil",
+    "edit": "Düzenle",
+    "add": "Ekle",
+    "search": "Ara",
+    "filter": "Filtrele",
+    "close": "Kapat",
+    "confirm": "Onayla",
+    "back": "Geri",
+    "next": "İleri",
+    "yes": "Evet",
+    "no": "Hayır",
+    "all": "Tümü",
+    "none": "Hiçbiri",
+    "error": "Hata",
+    "success": "Başarılı",
+    "warning": "Uyarı",
+    "info": "Bilgi"
+  },
+  "nav": {
+    "dashboard": "Özet",
+    "transactions": "İşlemler",
+    "budgets": "Bütçeler",
+    "savings": "Tasarruf",
+    "reports": "Raporlar",
+    "settings": "Ayarlar",
+    "profile": "Profil",
+    "logout": "Çıkış"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Hoş geldiniz",
+    "totalIncome": "Toplam Gelir",
+    "totalExpense": "Toplam Gider",
+    "balance": "Bakiye",
+    "recentTransactions": "Son İşlemler",
+    "budgetStatus": "Bütçe Durumu",
+    "savingsGoals": "Tasarruf Hedefleri",
+    "thisMonth": "Bu Ay",
+    "lastMonth": "Geçen Ay",
+    "comparison": "Karşılaştırma"
+  },
+  "transactions": {
+    "title": "İşlemler",
+    "add": "Yeni İşlem",
+    "income": "Gelir",
+    "expense": "Gider",
+    "amount": "Tutar",
+    "description": "Açıklama",
+    "category": "Kategori",
+    "date": "Tarih",
+    "type": "Tür",
+    "noTransactions": "Henüz işlem yok",
+    "addFirst": "İlk işleminizi ekleyin",
+    "deleteConfirm": "Bu işlemi silmek istediğinize emin misiniz?",
+    "filters": {
+      "all": "Tümü",
+      "income": "Gelirler",
+      "expense": "Giderler",
+      "dateRange": "Tarih Aralığı"
+    }
+  },
+  "budgets": {
+    "title": "Bütçeler",
+    "add": "Yeni Bütçe",
+    "limit": "Limit",
+    "spent": "Harcanan",
+    "remaining": "Kalan",
+    "period": "Dönem",
+    "monthly": "Aylık",
+    "weekly": "Haftalık",
+    "yearly": "Yıllık",
+    "status": {
+      "ok": "İyi",
+      "warning": "Dikkat",
+      "danger": "Aşıldı"
+    },
+    "alertThreshold": "Uyarı Eşiği",
+    "noBudgets": "Henüz bütçe yok"
+  },
+  "savings": {
+    "title": "Tasarruf Hedefleri",
+    "add": "Yeni Hedef",
+    "target": "Hedef",
+    "current": "Mevcut",
+    "progress": "İlerleme",
+    "deadline": "Son Tarih",
+    "addAmount": "Para Ekle",
+    "completed": "Tamamlandı"
+  },
+  "settings": {
+    "title": "Ayarlar",
+    "language": "Dil",
+    "theme": "Tema",
+    "currency": "Para Birimi",
+    "notifications": "Bildirimler",
+    "email": "E-posta Bildirimleri",
+    "budgetAlerts": "Bütçe Uyarıları",
+    "weeklyReport": "Haftalık Rapor",
+    "themes": {
+      "light": "Açık",
+      "dark": "Koyu",
+      "system": "Sistem"
+    }
+  },
+  "auth": {
+    "login": "Giriş Yap",
+    "register": "Kayıt Ol",
+    "logout": "Çıkış Yap",
+    "email": "E-posta",
+    "password": "Şifre",
+    "confirmPassword": "Şifre Tekrar",
+    "forgotPassword": "Şifremi Unuttum",
+    "noAccount": "Hesabınız yok mu?",
+    "hasAccount": "Zaten hesabınız var mı?"
+  },
+  "categories": {
+    "food": "Yeme-İçme",
+    "transport": "Ulaşım",
+    "shopping": "Alışveriş",
+    "bills": "Faturalar",
+    "health": "Sağlık",
+    "entertainment": "Eğlence",
+    "education": "Eğitim",
+    "salary": "Maaş",
+    "investment": "Yatırım",
+    "other": "Diğer"
+  },
+  "errors": {
+    "required": "Bu alan zorunludur",
+    "invalidEmail": "Geçersiz e-posta adresi",
+    "minLength": "En az {min} karakter olmalı",
+    "maxLength": "En fazla {max} karakter olabilir",
+    "invalidAmount": "Geçersiz tutar",
+    "networkError": "Bağlantı hatası",
+    "serverError": "Sunucu hatası"
+  }
+}
