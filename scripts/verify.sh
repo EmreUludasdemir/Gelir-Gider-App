@@ -9,9 +9,9 @@ echo "🔎 Web lint"
 cd "$ROOT/apps/web" && npm run lint
 
 [[ "${VERIFY_NO_BUILD:-0}" != "1" ]] && {
-  echo "🏗️ Building API"
+  echo "🔨 Building API"
   cd "$ROOT/apps/api" && npm run build
-  echo "🏗️ Building Web"
+  echo "🔨 Building Web"
   cd "$ROOT/apps/web" && npm run build
 }
 

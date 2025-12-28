@@ -1,19 +1,14 @@
-## Açıklama
-<!-- Bu PR'ın ne yaptığını kısaca açıklayın -->
+## Özet
+<!-- Bu PR ne yapıyor? -->
 
-## Değişiklik Türü
-- [ ] Bug fix
-- [ ] Yeni özellik
-- [ ] Breaking change
-- [ ] Refactoring
-- [ ] Dokümantasyon
+## Değişiklikler
+- 
 
 ## Test
-- [ ] `npm run verify` başarıyla çalıştı
-- [ ] Unit testler yazıldı/güncellendi
+- [ ] `npm run verify` başarılı
 - [ ] Manuel test yapıldı
 
 ## Checklist
-- [ ] Kod stili kurallara uygun
-- [ ] TypeScript hataları yok
-- [ ] Commit mesajları anlamlı
+- [ ] Kod lint'ten geçiyor
+- [ ] Testler yazıldı/güncellendi
+- [ ] CLAUDE.md güncellendi (gerekirse)
