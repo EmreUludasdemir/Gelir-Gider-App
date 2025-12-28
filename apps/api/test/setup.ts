@@ -120,20 +120,24 @@ jest.mock("@prisma/client", () => ({
 
 jest.mock('ioredis', () => {
   const mRedis = {
-    get: jest.fn(),
-    set: jest.fn(),
-    del: jest.fn(),
-    exists: jest.fn(),
-    expire: jest.fn(),
-    ttl: jest.fn(),
-    keys: jest.fn(),
-    flushall: jest.fn(),
-    quit: jest.fn(),
+    get: jest.fn().mockResolvedValue(null),
+    set: jest.fn().mockResolvedValue('OK'),
+    setex: jest.fn().mockResolvedValue('OK'),
+    del: jest.fn().mockResolvedValue(1),
+    exists: jest.fn().mockResolvedValue(0),
+    expire: jest.fn().mockResolvedValue(1),
+    ttl: jest.fn().mockResolvedValue(-1),
+    keys: jest.fn().mockResolvedValue([]),
+    flushall: jest.fn().mockResolvedValue('OK'),
+    quit: jest.fn().mockResolvedValue('OK'),
     on: jest.fn(),
     connect: jest.fn(),
     disconnect: jest.fn(),
   };
-  return jest.fn(() => mRedis);
+  return {
+    Redis: jest.fn(() => mRedis),
+    default: jest.fn(() => mRedis),
+  };
 });
 
 // ============================================

@@ -3,7 +3,8 @@ const config = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   roots: ['<rootDir>/src', '<rootDir>/test'],
-  testMatch: ['**/*.spec.ts', '**/*.test.ts', '**/*.e2e-spec.ts'],
+  testMatch: ['**/*.spec.ts', '**/*.test.ts'],
+  testPathIgnorePatterns: ['/node_modules/', '.*\\.e2e-spec\\.ts$'],
   moduleFileExtensions: ['ts', 'js', 'json'],
   
   // Coverage Configuration
