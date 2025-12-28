@@ -11,7 +11,8 @@
     "dev:parser": "cd services/pdf-parser && uvicorn app.main:app --reload --port 8001",
     "build": "npm run build -w @app/api && npm run build -w @app/web",
     "lint": "npm run lint --workspaces --if-present",
-    "clean": "rm -rf node_modules apps/*/node_modules apps/*/.next apps/*/dist"
+    "clean": "rm -rf node_modules apps/*/node_modules apps/*/.next apps/*/dist",
+    "verify": "bash scripts/verify.sh"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",

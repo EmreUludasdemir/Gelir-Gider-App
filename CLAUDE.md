@@ -446,6 +446,17 @@ GET /performance/health  - Sistem sağlık durumu
 
 ---
 
+## 🛑 Stop Hook
+
+Her görev bitince verify script'ini çalıştır:
+```bash
+npm run verify
+# veya build olmadan:
+VERIFY_NO_BUILD=1 npm run verify
+```
+
+---
+
 ## 🔗 FAYDALI LİNKLER
 
 - [README.md](README.md) - Genel bilgi
