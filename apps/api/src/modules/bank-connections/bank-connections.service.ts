@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from "@nestjs/common";
 import { PrismaService } from "../../prisma.service";
 import { Transaction } from "@prisma/client";
@@ -14,12 +15,17 @@ import {
   IBankAdapter,
   BankTransaction,
 } from "./adapters/bank-adapter.interface";
+import { EncryptionService } from "../../shared/encryption";
 
 @Injectable()
 export class BankConnectionsService {
+  private readonly logger = new Logger(BankConnectionsService.name);
   private adapters: Map<string, IBankAdapter> = new Map();
 
-  constructor(private prisma: PrismaService) {
+  constructor(
+    private prisma: PrismaService,
+    private encryption: EncryptionService,
+  ) {
     // Register available adapters
     this.registerAdapter(new MockBankAdapter());
   }
@@ -50,6 +56,14 @@ export class BankConnectionsService {
       throw new BadRequestException(`Bank connection failed: ${result.error}`);
     }
 
+    // Encrypt tokens before storing (NEVER log tokens)
+    const encryptedAccessToken = dto.accessToken
+      ? this.encryption.encrypt(dto.accessToken)
+      : null;
+    const encryptedRefreshToken = dto.refreshToken
+      ? this.encryption.encrypt(dto.refreshToken)
+      : null;
+
     // Create bank connection record
     const connection = await this.prisma.bankConnection.create({
       data: {
@@ -59,8 +73,8 @@ export class BankConnectionsService {
         accountNumber: dto.accountNumber,
         accountName: dto.accountName,
         accountType: dto.accountType || "checking",
-        accessToken: dto.accessToken,
-        refreshToken: dto.refreshToken,
+        accessToken: encryptedAccessToken,
+        refreshToken: encryptedRefreshToken,
         lastSyncStatus: "pending",
       },
     });
@@ -117,11 +131,18 @@ export class BankConnectionsService {
     const connection = await this.findOne(userId, connectionId);
     const adapter = this.getAdapter(connection.bankCode);
 
-    // Connect if not connected
+    // Decrypt tokens and connect if not connected
     if (!adapter.isConnected()) {
+      const decryptedAccessToken = connection.accessToken
+        ? this.encryption.decrypt(connection.accessToken)
+        : null;
+      const decryptedRefreshToken = connection.refreshToken
+        ? this.encryption.decrypt(connection.refreshToken)
+        : null;
+
       await adapter.connect({
-        accessToken: connection.accessToken,
-        refreshToken: connection.refreshToken,
+        accessToken: decryptedAccessToken,
+        refreshToken: decryptedRefreshToken,
       });
     }
 
