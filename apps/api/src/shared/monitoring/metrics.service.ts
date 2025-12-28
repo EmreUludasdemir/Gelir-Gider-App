@@ -118,6 +118,20 @@ export class MetricsService implements OnModuleInit {
   }
 
   /**
+   * Group requests by method and status code for Prometheus labels
+   */
+  getRequestsByMethodAndStatus(): Map<string, number> {
+    const result = new Map<string, number>();
+    for (const metric of this.httpMetrics) {
+      // Group status codes: 2xx, 3xx, 4xx, 5xx
+      const statusGroup = Math.floor(metric.statusCode / 100) * 100;
+      const key = `${metric.method}:${statusGroup}`;
+      result.set(key, (result.get(key) || 0) + 1);
+    }
+    return result;
+  }
+
+  /**
    * Generate Prometheus-compatible metrics output
    */
   getPrometheusMetrics(): string {
@@ -126,25 +140,23 @@ export class MetricsService implements OnModuleInit {
 
     const lines: string[] = [];
 
-    // HTTP metrics
+    // HTTP requests with method and status labels
     lines.push('# HELP http_requests_total Total number of HTTP requests');
     lines.push('# TYPE http_requests_total counter');
-    lines.push(`http_requests_total ${api.totalRequests}`);
+    const requestsByMethodStatus = this.getRequestsByMethodAndStatus();
+    for (const [key, count] of requestsByMethodStatus) {
+      const [method, status] = key.split(':');
+      lines.push(`http_requests_total{method="${method}",status="${status}"} ${count}`);
+    }
 
-    lines.push('# HELP http_requests_successful_total Total number of successful HTTP requests');
-    lines.push('# TYPE http_requests_successful_total counter');
-    lines.push(`http_requests_successful_total ${api.successfulRequests}`);
-
-    lines.push('# HELP http_requests_failed_total Total number of failed HTTP requests');
-    lines.push('# TYPE http_requests_failed_total counter');
-    lines.push(`http_requests_failed_total ${api.failedRequests}`);
-
-    lines.push('# HELP http_request_duration_ms HTTP request duration in milliseconds');
-    lines.push('# TYPE http_request_duration_ms gauge');
-    lines.push(`http_request_duration_ms_avg ${api.averageResponseTime}`);
-    lines.push(`http_request_duration_ms_p50 ${api.p50ResponseTime}`);
-    lines.push(`http_request_duration_ms_p95 ${api.p95ResponseTime}`);
-    lines.push(`http_request_duration_ms_p99 ${api.p99ResponseTime}`);
+    // HTTP request duration in seconds (Prometheus convention)
+    lines.push('# HELP http_request_duration_seconds HTTP request duration in seconds');
+    lines.push('# TYPE http_request_duration_seconds summary');
+    lines.push(`http_request_duration_seconds{quantile="0.5"} ${(api.p50ResponseTime / 1000).toFixed(6)}`);
+    lines.push(`http_request_duration_seconds{quantile="0.95"} ${(api.p95ResponseTime / 1000).toFixed(6)}`);
+    lines.push(`http_request_duration_seconds{quantile="0.99"} ${(api.p99ResponseTime / 1000).toFixed(6)}`);
+    lines.push(`http_request_duration_seconds_sum ${(api.averageResponseTime * api.totalRequests / 1000).toFixed(6)}`);
+    lines.push(`http_request_duration_seconds_count ${api.totalRequests}`);
 
     lines.push('# HELP http_errors_last_5m HTTP errors in the last 5 minutes');
     lines.push('# TYPE http_errors_last_5m gauge');
