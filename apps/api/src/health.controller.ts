@@ -1,12 +1,16 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Header } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
 import { CacheService } from './shared/cache';
+import { MetricsService } from './shared/monitoring';
 
 @Controller()
 export class HealthController {
+  private readonly startTime = Date.now();
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly cache: CacheService,
+    private readonly metrics: MetricsService,
   ) {}
 
   @Get('health')
@@ -17,15 +21,17 @@ export class HealthController {
     ]);
 
     const status = dbHealthy && cacheHealthy ? 'ok' : 'degraded';
+    const uptimeSeconds = Math.floor((Date.now() - this.startTime) / 1000);
 
     return {
       status,
       service: 'gelir-gider-api',
       timestamp: new Date().toISOString(),
       version: '2.0.0',
+      uptime: uptimeSeconds,
       components: {
         database: dbHealthy ? 'healthy' : 'unhealthy',
-        cache: cacheHealthy ? 'healthy' : 'unhealthy',
+        redis: cacheHealthy ? 'healthy' : 'unhealthy',
       },
     };
   }
@@ -43,8 +49,14 @@ export class HealthController {
   liveness() {
     return {
       live: true,
-      uptime: process.uptime(),
+      uptime: Math.floor((Date.now() - this.startTime) / 1000),
     };
+  }
+
+  @Get('metrics')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  getMetrics(): string {
+    return this.metrics.getPrometheusMetrics();
   }
 
   private async checkCacheHealth(): Promise<boolean> {
