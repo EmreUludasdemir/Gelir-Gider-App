@@ -28,6 +28,8 @@ import { TelegramModule } from "./modules/telegram/telegram.module";
 import { RealtimeModule } from "./modules/realtime/realtime.module";
 import { AiAnalyticsModule } from "./modules/ai-analytics/ai-analytics.module";
 import { AiModule } from "./modules/ai/ai.module";
+import { HouseholdsModule } from "./modules/households/households.module";
+import { CurrencyModule } from "./modules/currency/currency.module";
 import { CacheModule } from "./shared/cache";
 import { PerformanceModule } from "./shared/performance";
 import { MonitoringModule } from "./shared/monitoring";
@@ -81,6 +83,8 @@ import {
     RealtimeModule,
     AiAnalyticsModule,
     AiModule,
+    HouseholdsModule,
+    CurrencyModule,
     MonitoringModule,
   ],
   controllers: [HealthController],

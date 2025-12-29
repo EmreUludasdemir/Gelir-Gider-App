@@ -48,6 +48,7 @@ model User {
   subscriptions     Subscription[]
   telegramLinks     TelegramLink[]
   telegramLinkCodes TelegramLinkCode[]
+  householdMembers  HouseholdMember[]
 }
 
 // Bank Connection for API Integration
@@ -331,5 +332,74 @@ model TelegramLinkCode {
   createdAt DateTime @default(now())
 
   @@index([userId])
+  @@index([expiresAt])
+}
+
+// Household / Aile Hesabı
+model Household {
+  id     String @id @default(uuid())
+  name   String
+  ownerId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members       HouseholdMember[]
+  sharedBudgets HouseholdBudget[]
+  invites       HouseholdInvite[]
+
+  @@index([ownerId])
+}
+
+model HouseholdMember {
+  id          String @id @default(uuid())
+  householdId String
+  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        String @default("member") // 'owner' | 'admin' | 'member'
+
+  joinedAt  DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([householdId, userId])
+  @@index([userId])
+  @@index([householdId])
+}
+
+model HouseholdBudget {
+  id          String @id @default(uuid())
+  householdId String
+  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  categoryId     String
+  categoryLabel  String
+  limitAmount    Float
+  period         String  @default("monthly")
+  alertThreshold Float   @default(80)
+  isActive       Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([householdId, categoryId])
+  @@index([householdId])
+}
+
+model HouseholdInvite {
+  id          String @id @default(uuid())
+  householdId String
+  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  code      String   @unique
+  email     String?
+  expiresAt DateTime
+  usedAt    DateTime?
+  usedBy    String?
+
+  createdAt DateTime @default(now())
+
+  @@index([householdId])
+  @@index([code])
   @@index([expiresAt])
 }

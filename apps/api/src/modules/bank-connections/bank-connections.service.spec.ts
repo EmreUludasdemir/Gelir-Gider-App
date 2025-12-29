@@ -7,6 +7,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { BankConnectionsService } from './bank-connections.service';
 import { PrismaService } from '../../prisma.service';
+import { EncryptionService } from '../../shared/encryption';
 import {
   createMockBankConnection,
   createMockTransaction,
@@ -16,6 +17,7 @@ import {
 describe('BankConnectionsService', () => {
   let service: BankConnectionsService;
   let prisma: ReturnType<typeof createMockPrismaService>;
+  let encryption: jest.Mocked<EncryptionService>;
 
   const userId = 'user-test-123';
   const mockConnection = createMockBankConnection();
@@ -23,14 +25,22 @@ describe('BankConnectionsService', () => {
   beforeEach(async () => {
     prisma = createMockPrismaService();
 
+    const mockEncryption = {
+      encrypt: jest.fn((val) => val ? `encrypted:${val}` : ''),
+      decrypt: jest.fn((val) => val ? val.replace('encrypted:', '') : ''),
+      isEncrypted: jest.fn((val) => val?.startsWith('encrypted:')),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BankConnectionsService,
         { provide: PrismaService, useValue: prisma },
+        { provide: EncryptionService, useValue: mockEncryption },
       ],
     }).compile();
 
     service = module.get<BankConnectionsService>(BankConnectionsService);
+    encryption = module.get(EncryptionService);
     jest.clearAllMocks();
   });
 
@@ -429,7 +439,7 @@ describe('BankConnectionsService', () => {
   // TOKEN HANDLING TESTS
   // ============================================
   describe('Token Handling', () => {
-    it('should store access token securely', async () => {
+    it('should store access token securely (encrypted)', async () => {
       const createDto = {
         bankCode: 'mock',
         bankName: 'Demo Banka',
@@ -439,19 +449,20 @@ describe('BankConnectionsService', () => {
       };
       prisma.bankConnection.create.mockResolvedValue({
         ...mockConnection,
-        accessToken: createDto.accessToken,
+        accessToken: 'encrypted:secure-token',
       });
 
       await service.create(userId, createDto);
 
+      // Token should be encrypted before storage
       expect(prisma.bankConnection.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
-          accessToken: createDto.accessToken,
+          accessToken: 'encrypted:secure-token',
         }),
       });
     });
 
-    it('should store refresh token', async () => {
+    it('should store refresh token (encrypted)', async () => {
       const createDto = {
         bankCode: 'mock',
         bankName: 'Demo Banka',
@@ -461,14 +472,15 @@ describe('BankConnectionsService', () => {
       };
       prisma.bankConnection.create.mockResolvedValue({
         ...mockConnection,
-        refreshToken: createDto.refreshToken,
+        refreshToken: 'encrypted:refresh-token',
       });
 
       await service.create(userId, createDto);
 
+      // Token should be encrypted before storage
       expect(prisma.bankConnection.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
-          refreshToken: createDto.refreshToken,
+          refreshToken: 'encrypted:refresh-token',
         }),
       });
     });
