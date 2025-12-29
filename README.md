@@ -3,7 +3,7 @@
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/node-20+-brightgreen.svg" alt="Node.js">
   <img src="https://img.shields.io/badge/typescript-5.0-blue.svg" alt="TypeScript">
-  <img src="https://img.shields.io/badge/tests-141%20passing-success.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-444%20passing-success.svg" alt="Tests">
   <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome">
 </p>
 
@@ -104,45 +104,57 @@
 ### Docker ile Kurulum (Önerilen)
 
 ```bash
-# Repository'yi klonla
-git clone https://github.com/EmreUludasdemir/Gelir-Gider-Uygulamas--Claude.git
-cd Gelir-Gider-Uygulamas--Claude
+# 1. Repository'yi klonla
+git clone https://github.com/EmreUludasdemir/Gelir-Gider-App.git
+cd Gelir-Gider-App
 
-# Environment dosyasını oluştur
+# 2. Environment dosyasını oluştur
 cp apps/api/.env.example apps/api/.env
-# .env dosyasını düzenleyip API key'leri girin
 
-# Tüm servisleri başlat
+# 3. .env dosyasını düzenle - GEMINI_API_KEY zorunlu!
+# Gemini API Key al: https://aistudio.google.com/app/apikey
+nano apps/api/.env
+
+# 4. Tüm servisleri başlat
 docker-compose up -d
 
-# Migration'ları çalıştır
-cd apps/api && npx prisma migrate dev
+# 5. Migration'ları çalıştır (container içinde)
+docker exec -it finance-api npx prisma migrate deploy
+
+# 6. Uygulamayı aç
+# Frontend: http://localhost:3000
+# Backend:  http://localhost:3001
 ```
 
-### Manuel Kurulum
+### Sadece DB + Redis ile Kurulum (Geliştirme)
 
 ```bash
-# Root dependencies
+# 1. Sadece veritabanlarını başlat
+docker-compose up -d postgres redis
+
+# 2. Bağımlılıkları yükle
 npm install
 
-# Backend
-cd apps/api && npm install
+# 3. Backend kurulumu
+cd apps/api
+cp .env.example .env
+# .env dosyasını düzenle: GEMINI_API_KEY ekle
 npx prisma generate
-npx prisma migrate dev
+npx prisma migrate dev  # Development için
 cd ../..
 
-# Frontend
-cd apps/web && npm install
-cd ../..
+# 4. Frontend kurulumu
+cd apps/web && npm install && cd ../..
 
-# PDF Parser
+# 5. PDF Parser kurulumu
 cd services/pdf-parser
 python -m venv .venv
-.venv\Scripts\activate  # Windows
+source .venv/bin/activate  # Linux/Mac
+# veya: .venv\Scripts\activate  # Windows
 pip install -r requirements.txt
 cd ../..
 
-# Development
+# 6. Tüm servisleri başlat
 npm run dev
 ```
 
@@ -214,7 +226,7 @@ npm run test:cov
 npm run test:e2e
 ```
 
-**Test Durumu:** 141 test ✅ | 10 test suite | ~11s
+**Test Durumu:** 444 test ✅ | 25 test suite | ~27s
 
 ---
 

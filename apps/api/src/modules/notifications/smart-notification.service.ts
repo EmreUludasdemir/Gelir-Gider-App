@@ -260,24 +260,23 @@ export class SmartNotificationService {
   async getBillReminders(userId: string): Promise<SmartNotification[]> {
     const notifications: SmartNotification[] = [];
     const now = new Date();
-    const threeDaysLater = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
     const sevenDaysLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
     // Get upcoming bills
     const bills = await this.prisma.bill.findMany({
       where: {
         userId,
-        nextDueDate: {
+        dueDate: {
           gte: now,
           lte: sevenDaysLater,
         },
         isPaid: false,
       },
-      orderBy: { nextDueDate: "asc" },
+      orderBy: { dueDate: "asc" },
     });
 
     for (const bill of bills) {
-      const dueDate = new Date(bill.nextDueDate);
+      const dueDate = new Date(bill.dueDate);
       const daysUntilDue = Math.ceil((dueDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
 
       let priority: "low" | "medium" | "high" | "urgent" = "low";
