@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Body, Res, UseGuards } from "@nestjs/common";
+import { Controller, Get, Post, Body, Query, Res, UseGuards } from "@nestjs/common";
 import { Response } from "express";
 import { CalendarService } from "./calendar.service";
 import { TelegramService } from "./telegram.service";
+import { SmartNotificationService, NotificationPreferences } from "./smart-notification.service";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { User } from "../auth/user.decorator";
 import { TelegramWebhookDto } from "./dto/notification.dto";
@@ -10,7 +11,8 @@ import { TelegramWebhookDto } from "./dto/notification.dto";
 export class NotificationsController {
   constructor(
     private readonly calendarService: CalendarService,
-    private readonly telegramService: TelegramService
+    private readonly telegramService: TelegramService,
+    private readonly smartNotificationService: SmartNotificationService,
   ) {}
 
   @Get("calendar/bills")
@@ -113,5 +115,85 @@ export class NotificationsController {
           ]
         : null,
     };
+  }
+
+  // Smart Notification Endpoints
+
+  /**
+   * Get all smart notifications for the user
+   */
+  @Get("smart")
+  @UseGuards(JwtAuthGuard)
+  async getSmartNotifications(@User("id") userId: string) {
+    return this.smartNotificationService.getSmartNotifications(userId);
+  }
+
+  /**
+   * Get unusual spending alerts
+   */
+  @Get("smart/anomalies")
+  @UseGuards(JwtAuthGuard)
+  async getAnomalies(@User("id") userId: string) {
+    return this.smartNotificationService.detectAnomalies(userId);
+  }
+
+  /**
+   * Get bill reminders
+   */
+  @Get("smart/bills")
+  @UseGuards(JwtAuthGuard)
+  async getBillReminders(@User("id") userId: string) {
+    return this.smartNotificationService.getBillReminders(userId);
+  }
+
+  /**
+   * Get budget alerts
+   */
+  @Get("smart/budgets")
+  @UseGuards(JwtAuthGuard)
+  async getBudgetAlerts(@User("id") userId: string) {
+    return this.smartNotificationService.getBudgetAlerts(userId);
+  }
+
+  /**
+   * Get weekly digest preview
+   */
+  @Get("smart/digest/weekly")
+  @UseGuards(JwtAuthGuard)
+  async getWeeklyDigest(@User("id") userId: string) {
+    return this.smartNotificationService.generateWeeklyDigest(userId);
+  }
+
+  /**
+   * Get monthly digest preview
+   */
+  @Get("smart/digest/monthly")
+  @UseGuards(JwtAuthGuard)
+  async getMonthlyDigest(@User("id") userId: string) {
+    return this.smartNotificationService.generateMonthlyDigest(userId);
+  }
+
+  /**
+   * Get notification preferences
+   */
+  @Get("preferences")
+  @UseGuards(JwtAuthGuard)
+  async getPreferences(@User("id") userId: string) {
+    return this.smartNotificationService.getPreferences(userId);
+  }
+
+  /**
+   * Update notification preferences
+   */
+  @Post("preferences")
+  @UseGuards(JwtAuthGuard)
+  async setPreferences(
+    @User("id") userId: string,
+    @Body() body: Omit<NotificationPreferences, "userId">
+  ) {
+    return this.smartNotificationService.setPreferences({
+      ...body,
+      userId,
+    });
   }
 }
