@@ -11,6 +11,9 @@ import {
   UpdateBankConnectionDto,
 } from "./dto/bank-connection.dto";
 import { MockBankAdapter } from "./adapters/mock-bank.adapter";
+import { AkbankAdapter } from "./adapters/akbank.adapter";
+import { GarantiAdapter } from "./adapters/garanti.adapter";
+import { IsbankAdapter } from "./adapters/isbank.adapter";
 import {
   IBankAdapter,
   BankTransaction,
@@ -24,10 +27,15 @@ export class BankConnectionsService {
 
   constructor(
     private prisma: PrismaService,
-    private encryption: EncryptionService,
+    private encryption: EncryptionService
   ) {
     // Register available adapters
     this.registerAdapter(new MockBankAdapter());
+    this.registerAdapter(new AkbankAdapter());
+    this.registerAdapter(new GarantiAdapter());
+    this.registerAdapter(new IsbankAdapter());
+
+    this.logger.log(`Registered ${this.adapters.size} bank adapters`);
   }
 
   private registerAdapter(adapter: IBankAdapter) {

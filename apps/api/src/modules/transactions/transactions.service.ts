@@ -1,6 +1,11 @@
-import { Injectable, NotFoundException, Inject, LoggerService } from '@nestjs/common';
-import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
-import { v4 as uuidv4 } from 'uuid';
+import {
+  Injectable,
+  NotFoundException,
+  Inject,
+  LoggerService,
+} from "@nestjs/common";
+import { WINSTON_MODULE_NEST_PROVIDER } from "nest-winston";
+import { v4 as uuidv4 } from "uuid";
 import {
   TransactionEntity,
   CreateTransactionDto,
@@ -15,12 +20,12 @@ import {
   TransactionSource,
   TransactionType,
   PrismaTransaction,
-} from '../../shared/types';
-import { classifyTransaction } from '../../shared/categories';
-import { PrismaService } from '../../prisma.service';
-import { CacheService, CachePrefix, CacheTTL } from '../../shared/cache';
-import { RealtimeGateway } from '../realtime/realtime.gateway';
-import { Prisma } from '@prisma/client';
+} from "../../shared/types";
+import { classifyTransaction } from "../../shared/categories";
+import { PrismaService } from "../../prisma.service";
+import { CacheService, CachePrefix, CacheTTL } from "../../shared/cache";
+import { RealtimeGateway } from "../realtime/realtime.gateway";
+import { Prisma } from "@prisma/client";
 
 @Injectable()
 export class TransactionsService {
@@ -29,13 +34,20 @@ export class TransactionsService {
     private readonly cache: CacheService,
     private readonly realtime: RealtimeGateway,
     @Inject(WINSTON_MODULE_NEST_PROVIDER)
-    private readonly logger: LoggerService,
-  ) { }
+    private readonly logger: LoggerService
+  ) {}
 
-  async findAll(userId: string, query?: TransactionQuery): Promise<TransactionEntity[]> {
+  async findAll(
+    userId: string,
+    query?: TransactionQuery
+  ): Promise<TransactionEntity[]> {
     // Generate cache key based on query
-    const queryHash = query ? this.cache.hashQuery(query) : 'all';
-    const cacheKey = this.cache.buildKey(CachePrefix.TRANSACTION_LIST, userId, queryHash);
+    const queryHash = query ? this.cache.hashQuery(query) : "all";
+    const cacheKey = this.cache.buildKey(
+      CachePrefix.TRANSACTION_LIST,
+      userId,
+      queryHash
+    );
 
     // Try cache first
     return this.cache.getOrSet(
@@ -64,14 +76,16 @@ export class TransactionsService {
 
         const transactions = await this.prisma.transaction.findMany({
           where,
-          orderBy: query?.sortBy ? { [query.sortBy]: query.sortOrder || 'desc' } : { date: 'desc' },
+          orderBy: query?.sortBy
+            ? { [query.sortBy]: query.sortOrder || "desc" }
+            : { date: "desc" },
           take: query?.limit,
           skip: query?.offset,
         });
 
         return transactions.map(this.mapToEntity);
       },
-      CacheTTL.MEDIUM,
+      CacheTTL.MEDIUM
     );
   }
 
@@ -87,7 +101,10 @@ export class TransactionsService {
     return this.mapToEntity(transaction);
   }
 
-  async create(userId: string, dto: CreateTransactionDto): Promise<TransactionEntity> {
+  async create(
+    userId: string,
+    dto: CreateTransactionDto
+  ): Promise<TransactionEntity> {
     // Auto-classify if category not provided
     let categoryId = dto.categoryId;
     let categoryLabel = dto.categoryLabel;
@@ -103,12 +120,12 @@ export class TransactionsService {
     const transaction = await this.prisma.transaction.create({
       data: {
         userId,
-        accountId: 'default', // TODO: Add account support
+        accountId: "default", // TODO: Add account support
         date: new Date(dto.date),
         description: dto.description,
         amount: dto.amount,
-        currency: dto.currency || 'TRY',
-        source: 'manual',
+        currency: dto.currency || "TRY",
+        source: "manual",
         type: dto.type,
         categoryId: categoryId!,
         categoryLabel: categoryLabel!,
@@ -120,9 +137,12 @@ export class TransactionsService {
 
     // Invalidate transaction caches
     await this.cache.invalidateTransactions(userId);
-    this.logger.debug(`Transaction created, cache invalidated for user ${userId}`, {
-      context: 'TransactionsService',
-    });
+    this.logger.debug(
+      `Transaction created, cache invalidated for user ${userId}`,
+      {
+        context: "TransactionsService",
+      }
+    );
 
     const entity = this.mapToEntity(transaction);
 
@@ -131,15 +151,21 @@ export class TransactionsService {
       id: entity.id,
       description: entity.description,
       amount: entity.amount,
-      type: entity.type as 'income' | 'expense',
+      type: entity.type as "income" | "expense",
       categoryLabel: entity.categoryLabel,
     });
 
     return entity;
   }
 
-  async update(userId: string, id: string, dto: UpdateTransactionDto): Promise<TransactionEntity> {
-    const existing = await this.prisma.transaction.findFirst({ where: { id, userId } });
+  async update(
+    userId: string,
+    id: string,
+    dto: UpdateTransactionDto
+  ): Promise<TransactionEntity> {
+    const existing = await this.prisma.transaction.findFirst({
+      where: { id, userId },
+    });
     if (!existing) {
       throw new NotFoundException(`Transaction with ID ${id} not found`);
     }
@@ -159,9 +185,12 @@ export class TransactionsService {
 
     // Invalidate transaction caches
     await this.cache.invalidateTransactions(userId);
-    this.logger.debug(`Transaction updated, cache invalidated for user ${userId}`, {
-      context: 'TransactionsService',
-    });
+    this.logger.debug(
+      `Transaction updated, cache invalidated for user ${userId}`,
+      {
+        context: "TransactionsService",
+      }
+    );
 
     const entity = this.mapToEntity(updated);
 
@@ -170,7 +199,7 @@ export class TransactionsService {
       id: entity.id,
       description: entity.description,
       amount: entity.amount,
-      type: entity.type as 'income' | 'expense',
+      type: entity.type as "income" | "expense",
       categoryLabel: entity.categoryLabel,
     });
 
@@ -178,7 +207,9 @@ export class TransactionsService {
   }
 
   async delete(userId: string, id: string): Promise<{ success: boolean }> {
-    const existing = await this.prisma.transaction.findFirst({ where: { id, userId } });
+    const existing = await this.prisma.transaction.findFirst({
+      where: { id, userId },
+    });
     if (!existing) {
       throw new NotFoundException(`Transaction with ID ${id} not found`);
     }
@@ -187,9 +218,12 @@ export class TransactionsService {
 
     // Invalidate transaction caches
     await this.cache.invalidateTransactions(userId);
-    this.logger.debug(`Transaction deleted, cache invalidated for user ${userId}`, {
-      context: 'TransactionsService',
-    });
+    this.logger.debug(
+      `Transaction deleted, cache invalidated for user ${userId}`,
+      {
+        context: "TransactionsService",
+      }
+    );
 
     // Notify via WebSocket
     this.realtime.notifyTransactionDeleted(userId, id);
@@ -197,10 +231,17 @@ export class TransactionsService {
     return { success: true };
   }
 
-  async getSummary(userId: string, query?: TransactionQuery): Promise<DashboardSummary> {
+  async getSummary(
+    userId: string,
+    query?: TransactionQuery
+  ): Promise<DashboardSummary> {
     // Build cache key based on query parameters
-    const queryHash = query ? this.cache.hashQuery(query) : 'default';
-    const cacheKey = this.cache.buildKey(CachePrefix.TRANSACTION_SUMMARY, userId, queryHash);
+    const queryHash = query ? this.cache.hashQuery(query) : "default";
+    const cacheKey = this.cache.buildKey(
+      CachePrefix.TRANSACTION_SUMMARY,
+      userId,
+      queryHash
+    );
 
     return this.cache.getOrSet(
       cacheKey,
@@ -217,7 +258,14 @@ export class TransactionsService {
         }
 
         const startOfMonth = new Date(currentYear, currentMonth, 1);
-        const endOfMonth = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59);
+        const endOfMonth = new Date(
+          currentYear,
+          currentMonth + 1,
+          0,
+          23,
+          59,
+          59
+        );
 
         const prevMonthStart = new Date(currentYear, currentMonth - 1, 1);
         const prevMonthEnd = new Date(currentYear, currentMonth, 0, 23, 59, 59);
@@ -240,8 +288,8 @@ export class TransactionsService {
           transactionCount: currentTransactions.length,
         };
 
-        currentTransactions.forEach(tx => {
-          if (tx.type === 'income') totals.income += Math.abs(tx.amount);
+        currentTransactions.forEach((tx) => {
+          if (tx.type === "income") totals.income += Math.abs(tx.amount);
           else totals.expense += Math.abs(tx.amount);
         });
 
@@ -249,8 +297,8 @@ export class TransactionsService {
 
         // Previous month totals
         const prevTotals = { income: 0, expense: 0 };
-        prevTransactions.forEach(tx => {
-          if (tx.type === 'income') prevTotals.income += Math.abs(tx.amount);
+        prevTransactions.forEach((tx) => {
+          if (tx.type === "income") prevTotals.income += Math.abs(tx.amount);
           else prevTotals.expense += Math.abs(tx.amount);
         });
 
@@ -258,30 +306,48 @@ export class TransactionsService {
         const comparison = {
           previousMonth: prevTotals,
           changePercentage: {
-            income: prevTotals.income > 0 ? ((totals.income - prevTotals.income) / prevTotals.income) * 100 : 0,
-            expense: prevTotals.expense > 0 ? ((totals.expense - prevTotals.expense) / prevTotals.expense) * 100 : 0,
+            income:
+              prevTotals.income > 0
+                ? ((totals.income - prevTotals.income) / prevTotals.income) *
+                  100
+                : 0,
+            expense:
+              prevTotals.expense > 0
+                ? ((totals.expense - prevTotals.expense) / prevTotals.expense) *
+                  100
+                : 0,
           },
         };
 
         // Top categories (Expense)
-        const categoryMap = new Map<string, { total: number; count: number; label: string }>();
+        const categoryMap = new Map<
+          string,
+          { total: number; count: number; label: string }
+        >();
         currentTransactions
-          .filter(tx => tx.type === 'expense')
-          .forEach(tx => {
-            const existing = categoryMap.get(tx.categoryId) || { total: 0, count: 0, label: tx.categoryLabel };
+          .filter((tx) => tx.type === "expense")
+          .forEach((tx) => {
+            const existing = categoryMap.get(tx.categoryId) || {
+              total: 0,
+              count: 0,
+              label: tx.categoryLabel,
+            };
             existing.total += Math.abs(tx.amount);
             existing.count += 1;
             categoryMap.set(tx.categoryId, existing);
           });
 
-        const topCategories: CategorySummary[] = Array.from(categoryMap.entries())
+        const topCategories: CategorySummary[] = Array.from(
+          categoryMap.entries()
+        )
           .map(([categoryId, data]) => ({
             categoryId,
             categoryLabel: data.label,
             total: data.total,
-            percentage: totals.expense > 0 ? (data.total / totals.expense) * 100 : 0,
+            percentage:
+              totals.expense > 0 ? (data.total / totals.expense) * 100 : 0,
             transactionCount: data.count,
-            trend: 'stable' as const,
+            trend: "stable" as const,
           }))
           .sort((a, b) => b.total - a.total)
           .slice(0, 5);
@@ -298,9 +364,10 @@ export class TransactionsService {
             where: { userId, date: { gte: weekStart, lte: weekEnd } },
           });
 
-          let weekIncome = 0, weekExpense = 0;
-          weekTransactions.forEach(tx => {
-            if (tx.type === 'income') weekIncome += Math.abs(tx.amount);
+          let weekIncome = 0,
+            weekExpense = 0;
+          weekTransactions.forEach((tx) => {
+            if (tx.type === "income") weekIncome += Math.abs(tx.amount);
             else weekExpense += Math.abs(tx.amount);
           });
 
@@ -313,7 +380,7 @@ export class TransactionsService {
 
         return {
           period: {
-            month: now.toLocaleString('tr-TR', { month: 'long' }),
+            month: now.toLocaleString("tr-TR", { month: "long" }),
             year: currentYear,
             startDate: startOfMonth.toISOString(),
             endDate: endOfMonth.toISOString(),
@@ -325,7 +392,7 @@ export class TransactionsService {
           recurringPayments: await this.getRecurringPayments(userId),
         };
       },
-      CacheTTL.SHORT, // 1 minute TTL for dashboard - data changes frequently
+      CacheTTL.SHORT // 1 minute TTL for dashboard - data changes frequently
     );
   }
 
@@ -335,14 +402,16 @@ export class TransactionsService {
       take: 10,
     });
 
-    return transactions.map(tx => ({
+    return transactions.map((tx) => ({
       id: uuidv4(),
       transactionId: tx.id,
       description: tx.description,
       amount: tx.amount,
       currency: tx.currency as Currency,
       currentCategory: tx.categoryLabel,
-      suggestedCategories: [{ categoryId: 'other', categoryLabel: 'Diğer', confidence: 30 }],
+      suggestedCategories: [
+        { categoryId: "other", categoryLabel: "Diğer", confidence: 30 },
+      ],
       createdAt: new Date().toISOString(),
     }));
   }
@@ -351,11 +420,15 @@ export class TransactionsService {
     // Simplified logic: fetch all, group by description in memory
     // Proper DB way: groupBy description, having count > 1 (Prisma supports basic groupBy)
 
-    type PrismaTransactionResult = Awaited<ReturnType<typeof this.prisma.transaction.findMany>>[number];
-    const transactions = await this.prisma.transaction.findMany({ where: { userId } });
+    type PrismaTransactionResult = Awaited<
+      ReturnType<typeof this.prisma.transaction.findMany>
+    >[number];
+    const transactions = await this.prisma.transaction.findMany({
+      where: { userId },
+    });
     const recurringMap = new Map<string, PrismaTransactionResult[]>();
 
-    transactions.forEach(tx => {
+    transactions.forEach((tx) => {
       const key = tx.description.toLowerCase().trim();
       const existing = recurringMap.get(key) || [];
       existing.push(tx);
@@ -365,7 +438,9 @@ export class TransactionsService {
     const recurring: RecurringPayment[] = [];
     recurringMap.forEach((txs) => {
       if (txs.length >= 2) {
-        const latest = txs.sort((a, b) => b.date.getTime() - a.date.getTime())[0];
+        const latest = txs.sort(
+          (a, b) => b.date.getTime() - a.date.getTime()
+        )[0];
         const nextDate = new Date(latest.date);
         nextDate.setMonth(nextDate.getMonth() + 1);
 
@@ -374,7 +449,7 @@ export class TransactionsService {
           description: latest.description,
           amount: Math.abs(latest.amount),
           currency: latest.currency as Currency,
-          frequency: 'monthly',
+          frequency: "monthly",
           categoryLabel: latest.categoryLabel,
           lastDate: latest.date.toISOString(),
           nextDate: nextDate.toISOString(),
@@ -384,6 +459,118 @@ export class TransactionsService {
     });
 
     return recurring.slice(0, 5);
+  }
+
+  // ============ EXPORT METHODS ============
+
+  async exportToCSV(
+    userId: string,
+    startDate?: Date,
+    endDate?: Date
+  ): Promise<string> {
+    const query: TransactionQuery = {};
+    if (startDate) query.dateFrom = startDate.toISOString();
+    if (endDate) query.dateTo = endDate.toISOString();
+
+    const transactions = await this.findAll(userId, query);
+
+    // CSV headers
+    const headers = [
+      "Tarih",
+      "Açıklama",
+      "Tutar",
+      "Tür",
+      "Kategori",
+      "Para Birimi",
+    ];
+    const rows = transactions.map((tx) => [
+      new Date(tx.date).toLocaleDateString("tr-TR"),
+      `"${tx.description.replace(/"/g, '""')}"`,
+      tx.type === "expense" ? -Math.abs(tx.amount) : Math.abs(tx.amount),
+      tx.type === "income" ? "Gelir" : "Gider",
+      tx.categoryLabel,
+      tx.currency,
+    ]);
+
+    return [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
+  }
+
+  async exportToExcel(
+    userId: string,
+    startDate?: Date,
+    endDate?: Date
+  ): Promise<Buffer> {
+    const ExcelJS = await import("exceljs");
+    const query: TransactionQuery = {};
+    if (startDate) query.dateFrom = startDate.toISOString();
+    if (endDate) query.dateTo = endDate.toISOString();
+
+    const transactions = await this.findAll(userId, query);
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("İşlemler");
+
+    // Headers with styling
+    worksheet.columns = [
+      { header: "Tarih", key: "date", width: 15 },
+      { header: "Açıklama", key: "description", width: 40 },
+      { header: "Tutar", key: "amount", width: 15 },
+      { header: "Tür", key: "type", width: 10 },
+      { header: "Kategori", key: "category", width: 20 },
+      { header: "Para Birimi", key: "currency", width: 12 },
+    ];
+
+    // Style header row
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FF4F81BD" },
+    };
+
+    // Add data rows
+    transactions.forEach((tx) => {
+      const row = worksheet.addRow({
+        date: new Date(tx.date).toLocaleDateString("tr-TR"),
+        description: tx.description,
+        amount:
+          tx.type === "expense" ? -Math.abs(tx.amount) : Math.abs(tx.amount),
+        type: tx.type === "income" ? "Gelir" : "Gider",
+        category: tx.categoryLabel,
+        currency: tx.currency,
+      });
+
+      // Color code income/expense
+      const amountCell = row.getCell("amount");
+      amountCell.numFmt = "#,##0.00";
+      if (tx.type === "expense") {
+        amountCell.font = { color: { argb: "FFFF0000" } };
+      } else {
+        amountCell.font = { color: { argb: "FF008000" } };
+      }
+    });
+
+    // Add summary row
+    const incomeTotal = transactions
+      .filter((t) => t.type === "income")
+      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    const expenseTotal = transactions
+      .filter((t) => t.type === "expense")
+      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+    worksheet.addRow([]);
+    worksheet.addRow(["", "Toplam Gelir:", incomeTotal, "", "", ""]);
+    worksheet.addRow(["", "Toplam Gider:", -expenseTotal, "", "", ""]);
+    worksheet.addRow([
+      "",
+      "Net Bakiye:",
+      incomeTotal - expenseTotal,
+      "",
+      "",
+      "",
+    ]);
+
+    return Buffer.from(await workbook.xlsx.writeBuffer());
   }
 
   private mapToEntity(prismaTx: PrismaTransaction): TransactionEntity {
@@ -400,7 +587,7 @@ export class TransactionsService {
       categoryId: prismaTx.categoryId,
       categoryLabel: prismaTx.categoryLabel,
       confidence: prismaTx.confidence,
-      tags: JSON.parse(prismaTx.tags || '[]'),
+      tags: JSON.parse(prismaTx.tags || "[]"),
       notes: prismaTx.notes ?? undefined,
       createdAt: prismaTx.createdAt.toISOString(),
       updatedAt: prismaTx.updatedAt.toISOString(),

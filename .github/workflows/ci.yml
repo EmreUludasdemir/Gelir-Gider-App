@@ -92,6 +92,23 @@ jobs:
           path: apps/api/coverage/
           retention-days: 7
 
+      - name: Check coverage threshold
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
+        run: |
+          cd apps/api
+          # Check coverage meets minimum thresholds
+          npm run test:cov -- --coverageThreshold='{"global":{"lines":80,"functions":75,"branches":70}}'
+
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: apps/api/coverage/lcov.info
+          flags: backend
+          name: backend-coverage
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
       - name: Build
         run: |
           cd apps/api
