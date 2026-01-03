@@ -539,6 +539,182 @@ class QNBParser(BankParser):
         }
 
 
+class DenizbankParser(BankParser):
+    """Parser for Denizbank statements"""
+
+    def parse_line(self, line: str) -> Optional[Dict[str, Any]]:
+        """Parse Denizbank statement line"""
+        # Denizbank format: DD.MM.YYYY Description Amount
+        pattern = r'^(\d{2}[/\.]\d{2}[/\.]\d{4})\s+(.+?)\s+(-?[\d\.,]+)\s*(?:TL|₺)?(?:\s*(\+|-))?$'
+        match = re.match(pattern, line.strip())
+
+        if match:
+            date = self.parse_date(match.group(1))
+            description = match.group(2).strip()
+            amount = self.parse_amount(match.group(3))
+            sign = match.group(4) if len(match.groups()) > 3 else None
+
+            if date and description and amount != 0:
+                tx_type = 'expense'
+                if sign == '+' or amount < 0:
+                    tx_type = 'income'
+
+                return {
+                    'date': date,
+                    'description': description,
+                    'amount': abs(amount),
+                    'type': tx_type,
+                    'currency': 'TRY',
+                    'bank': 'denizbank'
+                }
+        return None
+
+    def parse_table_row(self, row: List[str]) -> Optional[Dict[str, Any]]:
+        cells = [str(c).strip() if c else '' for c in row]
+        if len(cells) < 3:
+            return None
+
+        date = self.parse_date(cells[0])
+        if not date:
+            return None
+
+        amount = 0.0
+        tx_type = 'expense'
+
+        # Denizbank often has separate columns for debit/credit
+        for i, cell in enumerate(cells):
+            amt = self.parse_amount(cell)
+            if amt != 0:
+                amount = amt
+                # Last column typically credit
+                if i == len(cells) - 1:
+                    tx_type = 'income'
+
+        if amount == 0:
+            return None
+
+        description = ' '.join(cells[1:-2]).strip() if len(cells) > 3 else cells[1]
+
+        return {
+            'date': date,
+            'description': description,
+            'amount': abs(amount),
+            'type': tx_type,
+            'currency': 'TRY',
+            'bank': 'denizbank'
+        }
+
+
+class TEBParser(BankParser):
+    """Parser for TEB (Türk Ekonomi Bankası) statements"""
+
+    def parse_line(self, line: str) -> Optional[Dict[str, Any]]:
+        """Parse TEB statement line"""
+        # TEB format: DD/MM/YYYY Description Amount TL
+        pattern = r'^(\d{2}[/\.]\d{2}[/\.]\d{4})\s+(.+?)\s+(-?[\d\.,]+)\s*(?:TL|TRY|₺)?$'
+        match = re.match(pattern, line.strip())
+
+        if match:
+            date = self.parse_date(match.group(1))
+            description = match.group(2).strip()
+            amount = self.parse_amount(match.group(3))
+
+            if date and description and amount != 0:
+                return {
+                    'date': date,
+                    'description': description,
+                    'amount': abs(amount),
+                    'type': 'expense' if amount > 0 else 'income',
+                    'currency': 'TRY',
+                    'bank': 'teb'
+                }
+        return None
+
+    def parse_table_row(self, row: List[str]) -> Optional[Dict[str, Any]]:
+        cells = [str(c).strip() if c else '' for c in row]
+        if len(cells) < 3:
+            return None
+
+        date = self.parse_date(cells[0])
+        if not date:
+            return None
+
+        amount = 0.0
+        for cell in reversed(cells):
+            amount = self.parse_amount(cell)
+            if amount != 0:
+                break
+
+        if amount == 0:
+            return None
+
+        description = ' '.join(cells[1:-1]).strip()
+
+        return {
+            'date': date,
+            'description': description,
+            'amount': abs(amount),
+            'type': 'expense',
+            'currency': 'TRY',
+            'bank': 'teb'
+        }
+
+
+class FibabankaParser(BankParser):
+    """Parser for Fibabanka statements"""
+
+    def parse_line(self, line: str) -> Optional[Dict[str, Any]]:
+        """Parse Fibabanka statement line"""
+        # Fibabanka format similar to others
+        pattern = r'^(\d{2}[/\.]\d{2}[/\.]\d{4})\s+(.+?)\s+(-?[\d\.,]+)\s*(?:TL|₺)?$'
+        match = re.match(pattern, line.strip())
+
+        if match:
+            date = self.parse_date(match.group(1))
+            description = match.group(2).strip()
+            amount = self.parse_amount(match.group(3))
+
+            if date and description and amount != 0:
+                return {
+                    'date': date,
+                    'description': description,
+                    'amount': abs(amount),
+                    'type': 'expense' if amount > 0 else 'income',
+                    'currency': 'TRY',
+                    'bank': 'fibabanka'
+                }
+        return None
+
+    def parse_table_row(self, row: List[str]) -> Optional[Dict[str, Any]]:
+        cells = [str(c).strip() if c else '' for c in row]
+        if len(cells) < 3:
+            return None
+
+        date = self.parse_date(cells[0])
+        if not date:
+            return None
+
+        amount = 0.0
+        for cell in reversed(cells):
+            amount = self.parse_amount(cell)
+            if amount != 0:
+                break
+
+        if amount == 0:
+            return None
+
+        description = ' '.join(cells[1:-1]).strip()
+
+        return {
+            'date': date,
+            'description': description,
+            'amount': abs(amount),
+            'type': 'expense',
+            'currency': 'TRY',
+            'bank': 'fibabanka'
+        }
+
+
 class GenericParser(BankParser):
     """Generic parser for unknown bank formats"""
 
@@ -638,6 +814,9 @@ class BankParserFactory:
         'enpara': EnparaParser,
         'papara': PaparaParser,
         'qnb': QNBParser,
+        'denizbank': DenizbankParser,
+        'teb': TEBParser,
+        'fibabanka': FibabankaParser,
     }
 
     @classmethod
@@ -653,3 +832,22 @@ class BankParserFactory:
         parsers = [parser() for parser in cls.PARSERS.values()]
         parsers.append(GenericParser())
         return parsers
+
+    @classmethod
+    def get_supported_banks(cls) -> List[Dict[str, str]]:
+        """Get list of supported banks with their names"""
+        bank_names = {
+            'garanti': 'Garanti BBVA',
+            'isbank': 'Türkiye İş Bankası',
+            'yapikredi': 'Yapı Kredi',
+            'ziraat': 'Ziraat Bankası',
+            'akbank': 'Akbank',
+            'enpara': 'Enpara',
+            'papara': 'Papara',
+            'qnb': 'QNB Finansbank',
+            'denizbank': 'Denizbank',
+            'teb': 'TEB',
+            'fibabanka': 'Fibabanka',
+        }
+        return [{'id': k, 'name': bank_names.get(k, k)} for k in cls.PARSERS.keys()]
+
