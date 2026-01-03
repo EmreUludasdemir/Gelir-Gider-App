@@ -437,6 +437,31 @@ GET /performance/health  - Sistem sağlık durumu
 - Aylık özet (Ayın 1'i 10:00)
 - Bildirim tercihleri yönetimi
 
+### FAZ 13: Bildirim Zamanlayıcı ✅ (2026-01-03)
+- NotificationSchedulerService - koordineli bildirim gönderimi
+- PushNotificationService - web-push (VAPID) desteği
+- Cron job'ları gerçek email ve push gönderecek şekilde bağlandı
+- Push notification endpoint'leri (subscribe/unsubscribe)
+- SMTP ve VAPID environment variable'ları
+
+### FAZ 14: PDF Parser - Gelişmiş Banka Desteği ✅ (2026-01-03)
+- 10 yeni Türk bankası eklendi (ING, HSBC, Odeabank, Albaraka, Şekerbank, vb.)
+- BankParserFactory - akıllı parser seçimi
+- Banka-özgü parser'lar (Garanti, İşbank, Yapıkredi, Ziraat, Akbank, Enpara, Papara, QNB)
+- /banks endpoint'i - desteklenen bankaları listeler
+- tx_type bug düzeltildi
+
+### FAZ 15: Dashboard Real-time Updates ✅ (2026-01-03)
+- RealtimeContext - uygulama genelinde real-time state yönetimi
+- RealtimeProvider - app layout'a eklendi
+- ConnectionStatus bileşeni - bağlantı durumu göstergesi
+- useRealtime hook entegrasyonu (transaction/budget olayları)
+- Real-time olaylarda dashboard otomatik yenileme
+
+### FAZ 16: Lint Uyarıları Düzeltildi ✅ (2026-01-03)
+- bank-connections useEffect: loadData useCallback ile sarıldı
+- auth-provider useEffect: router dependency eklendi
+
 ---
 
 ## 🔧 ERROR HANDLING & LOGGING (v2.1)
