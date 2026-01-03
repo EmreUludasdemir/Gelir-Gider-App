@@ -557,6 +557,158 @@ VERIFY_NO_BUILD=1 npm run verify
 
 ---
 
+## 🧠 HAFIZA YÖNETİMİ (Memory Patterns)
+
+> claude-mem projesinden öğrenilen patterns
+
+### Progressive Disclosure Pattern
+Bağlam enjeksiyonu için 3 katmanlı yaklaşım:
+1. **Search Index** → Kompakt özet (düşük token)
+2. **Timeline Context** → Zaman bazlı bağlam
+3. **Full Details** → Tam detay (yüksek token)
+
+### Context Retrieval Stratejisi
+```
+┌─────────────────────────────────────────┐
+│ 1. Önce ilgili ID'leri ara (düşük maliyet) │
+│ 2. Sadece gerekli detayları getir         │
+│ 3. AI ile özetle ve sıkıştır              │
+└─────────────────────────────────────────┘
+```
+
+### Lifecycle Hooks
+| Hook | Tetiklenme Zamanı | Kullanım |
+|------|-------------------|----------|
+| `SessionStart` | Oturum başlangıcı | Bağlam yükleme |
+| `UserPromptSubmit` | Kullanıcı mesajı | Input analizi |
+| `PostToolUse` | Araç kullanımı sonrası | Gözlem kaydetme |
+| `Stop` | Görev bitişi | Özet oluşturma |
+| `SessionEnd` | Oturum sonu | Kalıcı kayıt |
+
+### Token Optimizasyonu
+- Filtreleme önce, detay sonra (~10x tasarruf)
+- Hybrid search: Full-text + Semantic
+- Kompresyon: AI destekli özetleme
+
+---
+
+## 🤖 AI AGENT EN İYİ PRATİKLERİ
+
+> 30+ AI aracından öğrenilen patterns
+
+### Güvenlik Öncelikleri
+1. **Hassas veri maskeleme** - PII, API anahtarları
+2. **Rate limiting** - Abuse prevention
+3. **Input validation** - Injection koruması
+4. **Audit logging** - İşlem takibi
+
+### Bağlam Yönetimi
+```typescript
+// Etkili bağlam yapısı
+interface Context {
+  project: ProjectInfo;      // Proje meta verisi
+  recentActions: Action[];   // Son 5-10 işlem
+  relevantFiles: string[];   // İlgili dosyalar
+  userPreferences: Prefs;    // Kullanıcı tercihleri
+}
+```
+
+### Çıktı Formatları
+- **Kod**: Syntax highlighting ile
+- **Tablolar**: Markdown table formatı
+- **Listeler**: Bullet points
+- **Hatalar**: Kod + açıklama + çözüm
+
+### Anti-Patterns (Kaçınılması Gerekenler)
+- ❌ Gereksiz dosya oluşturma
+- ❌ Okunmamış dosyayı düzenleme
+- ❌ Aşırı mühendislik
+- ❌ Kullanıcıya sormadan büyük değişiklik
+- ❌ Hassas verileri commit etme
+
+---
+
+## 📋 GÖREV ORKESTRASYONİ (Task Patterns)
+
+> vibe-kanban projesinden öğrenilen patterns
+
+### Paralel Görev Yönetimi
+```
+┌─────────────┐  ┌─────────────┐  ┌─────────────┐
+│  Task A     │  │  Task B     │  │  Task C     │
+│  (bağımsız) │  │  (bağımsız) │  │  (bağımsız) │
+└──────┬──────┘  └──────┬──────┘  └──────┬──────┘
+       │                │                │
+       └────────────────┼────────────────┘
+                        ▼
+              ┌─────────────────┐
+              │  Sonuç Birleşim │
+              └─────────────────┘
+```
+
+### Sıralı Bağımlılıklar
+```
+Task A (önkoşul) → Task B (bağımlı) → Task C (bağımlı)
+```
+
+### Görev Durumları
+| Durum | Anlamı | Sonraki Adım |
+|-------|--------|--------------|
+| `pending` | Bekliyor | Başlat |
+| `in_progress` | Çalışıyor | İzle |
+| `blocked` | Engellendi | Sorunu çöz |
+| `completed` | Tamamlandı | Sonraki göreve geç |
+
+### MCP Konfigürasyonu
+- Merkezi araç yönetimi
+- Modüler servis entegrasyonu
+- Uzaktan erişim desteği (SSH/tunnel)
+
+---
+
+## 🔄 OTURUM YÖNETİMİ
+
+### Oturum Başlangıcı Kontrol Listesi
+- [ ] CLAUDE.md oku ve bağlamı yükle
+- [ ] Son commit'leri incele
+- [ ] Açık issue/PR'ları kontrol et
+- [ ] Mevcut branch'i doğrula
+
+### Oturum Sonu Kontrol Listesi
+- [ ] Tüm değişiklikleri commit et
+- [ ] CLAUDE.md'yi güncelle
+- [ ] `npm run verify` çalıştır
+- [ ] Özet rapor hazırla
+
+### Kritik Dosyalar (Her Zaman Oku)
+1. `CLAUDE.md` - Bu dosya
+2. `package.json` - Bağımlılıklar
+3. `apps/api/prisma/schema.prisma` - DB şeması
+4. `.env.example` - Konfigürasyon
+
+---
+
+## 📊 METRIKLER VE İZLEME
+
+### Proje Metrikleri
+| Metrik | Değer | Hedef |
+|--------|-------|-------|
+| Test Sayısı | 444 | 500+ |
+| Test Coverage | ~70% | 80%+ |
+| Lint Uyarıları | 2 | 0 |
+| TypeScript Strict | ✅ | ✅ |
+| Build Süresi | ~30s | <30s |
+
+### API Performans Hedefleri
+| Endpoint | Hedef Yanıt Süresi |
+|----------|-------------------|
+| Auth | <100ms |
+| Transactions | <200ms |
+| Reports | <500ms |
+| PDF Parse | <5s |
+
+---
+
 ## 🔗 FAYDALI LİNKLER
 
 - [README.md](README.md) - Genel bilgi
@@ -564,6 +716,11 @@ VERIFY_NO_BUILD=1 npm run verify
 - [IMPROVEMENTS.md](IMPROVEMENTS.md) - İyileştirmeler
 - [QUICK_START.md](QUICK_START.md) - Hızlı başlangıç
 
+### Öğrenme Kaynakları
+- [claude-mem](https://github.com/thedotmack/claude-mem) - Memory patterns
+- [vibe-kanban](https://github.com/BloopAI/vibe-kanban) - Task orchestration
+
 ---
 
 *Bu dosya her önemli değişiklikte güncellenmelidir.*
+*Son güncelleme: 2026-01-03 - Memory patterns ve AI best practices eklendi.*
