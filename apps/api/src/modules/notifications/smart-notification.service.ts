@@ -1,5 +1,4 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { Cron, CronExpression } from "@nestjs/schedule";
 import { PrismaService } from "../../prisma.service";
 
 export interface SmartNotification {
@@ -525,53 +524,6 @@ export class SmartNotificationService {
     });
   }
 
-  // Weekly digest cron job (every Sunday at 9 AM)
-  @Cron("0 9 * * 0")
-  async sendWeeklyDigests(): Promise<void> {
-    this.logger.log("Running weekly digest job");
-    // In production, iterate through users with weeklyDigest enabled
-    // For now, just log
-    for (const [userId, prefs] of this.preferences) {
-      if (prefs.weeklyDigest) {
-        try {
-          const digest = await this.generateWeeklyDigest(userId);
-          this.logger.log(`Weekly digest for ${userId}: ${digest.message}`);
-          // TODO: Send via email/push notification
-        } catch (error) {
-          this.logger.error(`Failed to generate weekly digest for ${userId}`, error);
-        }
-      }
-    }
-  }
-
-  // Monthly digest cron job (1st of every month at 10 AM)
-  @Cron("0 10 1 * *")
-  async sendMonthlyDigests(): Promise<void> {
-    this.logger.log("Running monthly digest job");
-    for (const [userId, prefs] of this.preferences) {
-      if (prefs.monthlyDigest) {
-        try {
-          const digest = await this.generateMonthlyDigest(userId);
-          this.logger.log(`Monthly digest for ${userId}: ${digest.message}`);
-          // TODO: Send via email/push notification
-        } catch (error) {
-          this.logger.error(`Failed to generate monthly digest for ${userId}`, error);
-        }
-      }
-    }
-  }
-
-  // Daily bill reminder check (every day at 8 AM)
-  @Cron(CronExpression.EVERY_DAY_AT_8AM)
-  async checkDailyBillReminders(): Promise<void> {
-    this.logger.log("Running daily bill reminder check");
-    // In production, this would send push notifications to users with upcoming bills
-  }
-
-  // Budget alert check (twice daily)
-  @Cron("0 12,18 * * *")
-  async checkBudgetAlerts(): Promise<void> {
-    this.logger.log("Running budget alert check");
-    // In production, this would check all users' budgets and send alerts
-  }
+  // NOTE: Cron jobs are now managed by NotificationSchedulerService
+  // which coordinates email and push notifications
 }

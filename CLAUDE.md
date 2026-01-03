@@ -1,17 +1,17 @@
 # 🧠 CLAUDE.md - Proje Hafıza Dosyası
 
 > Bu dosya Claude'un projeyi hatırlaması ve tutarlı çalışması için oluşturulmuştur.
-> Son güncelleme: 2025-01-15
+> Son güncelleme: 2026-01-03
 
 ---
 
 ## 📋 PROJE ÖZETİ
 
-**Proje Adı:** Gelir-Gider Takip Uygulaması  
-**Versiyon:** v2.5  
-**Sahibi:** Emre Uludeşdemir (@EmreUludasdemir)  
-**Repo:** https://github.com/EmreUludasdemir/Gelir-Gider-Uygulamas--Claude  
-**Branch:** claude/finance-tracker-app-01CwGjpwSVn1dh1sqZnkDXvU
+**Proje Adı:** Gelir-Gider Takip Uygulaması
+**Versiyon:** v3.0
+**Sahibi:** Emre Uludeşdemir (@EmreUludasdemir)
+**Repo:** https://github.com/EmreUludasdemir/Gelir-Gider-App
+**Branch:** claude/optimize-app-v3-j1ZMP
 
 ### Amaç
 Modern, full-stack finans yönetim uygulaması. PDF banka ekstrelerini otomatik parse eder, akıllı kategorilendirme yapar ve Gemini AI ile finansal tavsiyeler sunar.
@@ -166,6 +166,39 @@ GET  /budgets/alerts    - Uyarılar
 ### Reports
 ```
 GET /reports/generate?format=pdf|excel&startDate=X&endDate=Y
+GET /reports/yearly-comparison?year=2026
+GET /reports/category-trends?months=6&type=expense
+GET /reports/schedule           - Planlanmış rapor ayarları
+POST /reports/schedule          - Rapor planla
+GET /reports/digest-preview?type=weekly|monthly
+```
+
+### Smart Notifications
+```
+GET  /notifications/smart           - Tüm akıllı bildirimler
+GET  /notifications/smart/anomalies - Olağandışı harcamalar
+GET  /notifications/smart/bills     - Fatura hatırlatıcıları
+GET  /notifications/smart/budgets   - Bütçe uyarıları
+GET  /notifications/smart/digest/weekly  - Haftalık özet
+GET  /notifications/smart/digest/monthly - Aylık özet
+GET  /notifications/preferences     - Bildirim tercihleri
+POST /notifications/preferences     - Tercihleri güncelle
+```
+
+### Households (Aile Hesapları)
+```
+POST /households              - Yeni aile hesabı
+GET  /households              - Kullanıcının aile hesapları
+POST /households/:id/invite   - Davet kodu oluştur
+POST /households/join         - Davet koduyla katıl
+DELETE /households/:id/leave  - Aileden ayrıl
+```
+
+### Currency
+```
+GET  /currency/rates          - Güncel döviz kurları
+GET  /currency/convert?amount=X&from=TRY&to=USD
+GET  /currency/supported      - Desteklenen para birimleri
 ```
 
 ---
@@ -267,14 +300,25 @@ NEXT_PUBLIC_GEMINI_API_KEY="your-gemini-key"
 
 ### Docker ile Çalıştırma
 ```bash
-# PostgreSQL + Redis + API + Web
+# 1. Tüm servisleri başlat (PostgreSQL + Redis + API + Web + PDF Parser)
 docker-compose up -d
 
-# Sadece PostgreSQL ve Redis
+# 2. Migration çalıştır (container içinde)
+docker exec -it finance-api npx prisma migrate deploy
+
+# 3. Uygulamaya eriş
+# Frontend: http://localhost:3000
+# Backend:  http://localhost:3001
+# PDF Parser: http://localhost:8001
+
+# Sadece veritabanlarını başlat (development)
 docker-compose up -d postgres redis
 
-# Migration çalıştır
-cd apps/api && npx prisma migrate dev
+# Logları izle
+docker-compose logs -f api
+
+# Durdur
+docker-compose down
 ```
 
 ---
@@ -323,11 +367,12 @@ GET /performance/health  - Sistem sağlık durumu
 - Audit logging
 
 ### FAZ 3: Test Infrastructure ✅
-- 141 test (10 test suite)
+- 444 test (25 test suite)
 - Unit testler (services, controllers)
 - Integration testler
 - E2E testler
 - Test utilities ve mocks
+- jest-dom TypeScript types
 
 ### FAZ 4: Performance & Cache ✅
 - Redis Cache Service (ioredis)
@@ -344,6 +389,78 @@ GET /performance/health  - Sistem sağlık durumu
 - Health check endpoints (database, cache)
 - Transaction retry logic
 - .env.example güncellendi
+
+### FAZ 6: Open Banking & Encryption ✅ (2026-01-03)
+- AES-256-GCM token şifreleme (EncryptionService)
+- BankSyncService - günlük otomatik senkronizasyon
+- Bank connection token encryption
+- BANK_ENCRYPTION_KEY environment variable
+
+### FAZ 7: Desktop App ✅ (2026-01-03)
+- Electron desktop uygulaması (apps/desktop/)
+- System tray minimize
+- Global shortcut (Ctrl+Shift+G)
+- Secure IPC bridge (contextIsolation)
+
+### FAZ 8: i18n (Çoklu Dil) ✅ (2026-01-03)
+- Türkçe ve İngilizce dil desteği
+- locales/tr.json, locales/en.json
+- I18nProvider context
+- LanguageSwitcher bileşeni
+- localStorage ile tercih kaydetme
+
+### FAZ 9: Aile Hesapları ✅ (2026-01-03)
+- Household, HouseholdMember, HouseholdBudget modelleri
+- Davet sistemi (5 dakika geçerli kod)
+- Rol bazlı erişim (owner, admin, member)
+- Paylaşımlı bütçeler
+
+### FAZ 10: Multi-Currency ✅ (2026-01-03)
+- 8 para birimi desteği (TRY, USD, EUR, GBP, CHF, JPY, AUD, CAD)
+- Exchange rate API entegrasyonu
+- Fallback rates (offline)
+- Günlük rate refresh (cron job)
+- Para birimi dönüştürme endpoint'leri
+
+### FAZ 11: Gelişmiş Raporlama ✅ (2026-01-03)
+- Yıllık karşılaştırma raporu (bu yıl vs geçen yıl)
+- Kategori trend analizi (6-12 ay)
+- Linear regression ile trend algılama
+- Tasarruf oranı hesaplama
+- Scheduled email reports
+
+### FAZ 12: Akıllı Bildirimler ✅ (2026-01-03)
+- Olağandışı harcama uyarıları (anomaly detection)
+- Fatura hatırlatıcıları (urgent/high/medium/low)
+- Bütçe uyarıları (%75, %90, %100)
+- Haftalık özet (Pazar 09:00)
+- Aylık özet (Ayın 1'i 10:00)
+- Bildirim tercihleri yönetimi
+
+### FAZ 13: Bildirim Zamanlayıcı ✅ (2026-01-03)
+- NotificationSchedulerService - koordineli bildirim gönderimi
+- PushNotificationService - web-push (VAPID) desteği
+- Cron job'ları gerçek email ve push gönderecek şekilde bağlandı
+- Push notification endpoint'leri (subscribe/unsubscribe)
+- SMTP ve VAPID environment variable'ları
+
+### FAZ 14: PDF Parser - Gelişmiş Banka Desteği ✅ (2026-01-03)
+- 10 yeni Türk bankası eklendi (ING, HSBC, Odeabank, Albaraka, Şekerbank, vb.)
+- BankParserFactory - akıllı parser seçimi
+- Banka-özgü parser'lar (Garanti, İşbank, Yapıkredi, Ziraat, Akbank, Enpara, Papara, QNB)
+- /banks endpoint'i - desteklenen bankaları listeler
+- tx_type bug düzeltildi
+
+### FAZ 15: Dashboard Real-time Updates ✅ (2026-01-03)
+- RealtimeContext - uygulama genelinde real-time state yönetimi
+- RealtimeProvider - app layout'a eklendi
+- ConnectionStatus bileşeni - bağlantı durumu göstergesi
+- useRealtime hook entegrasyonu (transaction/budget olayları)
+- Real-time olaylarda dashboard otomatik yenileme
+
+### FAZ 16: Lint Uyarıları Düzeltildi ✅ (2026-01-03)
+- bank-connections useEffect: loadData useCallback ile sarıldı
+- auth-provider useEffect: router dependency eklendi
 
 ---
 
@@ -425,7 +542,15 @@ GET /performance/health  - Sistem sağlık durumu
 - [x] Performance monitoring
 - [x] Error handling & logging
 - [x] Security layer (rate limiting, CORS)
-- [x] Test infrastructure (141 test)
+- [x] Test infrastructure (444 test)
+- [x] Open Banking encryption
+- [x] Electron desktop app
+- [x] i18n (Türkçe/İngilizce)
+- [x] Aile hesapları (Household)
+- [x] Multi-currency desteği
+- [x] Gelişmiş raporlama
+- [x] Akıllı bildirimler
+- [x] CI/CD fixes
 
 ---
 
@@ -457,6 +582,158 @@ VERIFY_NO_BUILD=1 npm run verify
 
 ---
 
+## 🧠 HAFIZA YÖNETİMİ (Memory Patterns)
+
+> claude-mem projesinden öğrenilen patterns
+
+### Progressive Disclosure Pattern
+Bağlam enjeksiyonu için 3 katmanlı yaklaşım:
+1. **Search Index** → Kompakt özet (düşük token)
+2. **Timeline Context** → Zaman bazlı bağlam
+3. **Full Details** → Tam detay (yüksek token)
+
+### Context Retrieval Stratejisi
+```
+┌─────────────────────────────────────────┐
+│ 1. Önce ilgili ID'leri ara (düşük maliyet) │
+│ 2. Sadece gerekli detayları getir         │
+│ 3. AI ile özetle ve sıkıştır              │
+└─────────────────────────────────────────┘
+```
+
+### Lifecycle Hooks
+| Hook | Tetiklenme Zamanı | Kullanım |
+|------|-------------------|----------|
+| `SessionStart` | Oturum başlangıcı | Bağlam yükleme |
+| `UserPromptSubmit` | Kullanıcı mesajı | Input analizi |
+| `PostToolUse` | Araç kullanımı sonrası | Gözlem kaydetme |
+| `Stop` | Görev bitişi | Özet oluşturma |
+| `SessionEnd` | Oturum sonu | Kalıcı kayıt |
+
+### Token Optimizasyonu
+- Filtreleme önce, detay sonra (~10x tasarruf)
+- Hybrid search: Full-text + Semantic
+- Kompresyon: AI destekli özetleme
+
+---
+
+## 🤖 AI AGENT EN İYİ PRATİKLERİ
+
+> 30+ AI aracından öğrenilen patterns
+
+### Güvenlik Öncelikleri
+1. **Hassas veri maskeleme** - PII, API anahtarları
+2. **Rate limiting** - Abuse prevention
+3. **Input validation** - Injection koruması
+4. **Audit logging** - İşlem takibi
+
+### Bağlam Yönetimi
+```typescript
+// Etkili bağlam yapısı
+interface Context {
+  project: ProjectInfo;      // Proje meta verisi
+  recentActions: Action[];   // Son 5-10 işlem
+  relevantFiles: string[];   // İlgili dosyalar
+  userPreferences: Prefs;    // Kullanıcı tercihleri
+}
+```
+
+### Çıktı Formatları
+- **Kod**: Syntax highlighting ile
+- **Tablolar**: Markdown table formatı
+- **Listeler**: Bullet points
+- **Hatalar**: Kod + açıklama + çözüm
+
+### Anti-Patterns (Kaçınılması Gerekenler)
+- ❌ Gereksiz dosya oluşturma
+- ❌ Okunmamış dosyayı düzenleme
+- ❌ Aşırı mühendislik
+- ❌ Kullanıcıya sormadan büyük değişiklik
+- ❌ Hassas verileri commit etme
+
+---
+
+## 📋 GÖREV ORKESTRASYONİ (Task Patterns)
+
+> vibe-kanban projesinden öğrenilen patterns
+
+### Paralel Görev Yönetimi
+```
+┌─────────────┐  ┌─────────────┐  ┌─────────────┐
+│  Task A     │  │  Task B     │  │  Task C     │
+│  (bağımsız) │  │  (bağımsız) │  │  (bağımsız) │
+└──────┬──────┘  └──────┬──────┘  └──────┬──────┘
+       │                │                │
+       └────────────────┼────────────────┘
+                        ▼
+              ┌─────────────────┐
+              │  Sonuç Birleşim │
+              └─────────────────┘
+```
+
+### Sıralı Bağımlılıklar
+```
+Task A (önkoşul) → Task B (bağımlı) → Task C (bağımlı)
+```
+
+### Görev Durumları
+| Durum | Anlamı | Sonraki Adım |
+|-------|--------|--------------|
+| `pending` | Bekliyor | Başlat |
+| `in_progress` | Çalışıyor | İzle |
+| `blocked` | Engellendi | Sorunu çöz |
+| `completed` | Tamamlandı | Sonraki göreve geç |
+
+### MCP Konfigürasyonu
+- Merkezi araç yönetimi
+- Modüler servis entegrasyonu
+- Uzaktan erişim desteği (SSH/tunnel)
+
+---
+
+## 🔄 OTURUM YÖNETİMİ
+
+### Oturum Başlangıcı Kontrol Listesi
+- [ ] CLAUDE.md oku ve bağlamı yükle
+- [ ] Son commit'leri incele
+- [ ] Açık issue/PR'ları kontrol et
+- [ ] Mevcut branch'i doğrula
+
+### Oturum Sonu Kontrol Listesi
+- [ ] Tüm değişiklikleri commit et
+- [ ] CLAUDE.md'yi güncelle
+- [ ] `npm run verify` çalıştır
+- [ ] Özet rapor hazırla
+
+### Kritik Dosyalar (Her Zaman Oku)
+1. `CLAUDE.md` - Bu dosya
+2. `package.json` - Bağımlılıklar
+3. `apps/api/prisma/schema.prisma` - DB şeması
+4. `.env.example` - Konfigürasyon
+
+---
+
+## 📊 METRIKLER VE İZLEME
+
+### Proje Metrikleri
+| Metrik | Değer | Hedef |
+|--------|-------|-------|
+| Test Sayısı | 444 | 500+ |
+| Test Coverage | ~70% | 80%+ |
+| Lint Uyarıları | 2 | 0 |
+| TypeScript Strict | ✅ | ✅ |
+| Build Süresi | ~30s | <30s |
+
+### API Performans Hedefleri
+| Endpoint | Hedef Yanıt Süresi |
+|----------|-------------------|
+| Auth | <100ms |
+| Transactions | <200ms |
+| Reports | <500ms |
+| PDF Parse | <5s |
+
+---
+
 ## 🔗 FAYDALI LİNKLER
 
 - [README.md](README.md) - Genel bilgi
@@ -464,6 +741,11 @@ VERIFY_NO_BUILD=1 npm run verify
 - [IMPROVEMENTS.md](IMPROVEMENTS.md) - İyileştirmeler
 - [QUICK_START.md](QUICK_START.md) - Hızlı başlangıç
 
+### Öğrenme Kaynakları
+- [claude-mem](https://github.com/thedotmack/claude-mem) - Memory patterns
+- [vibe-kanban](https://github.com/BloopAI/vibe-kanban) - Task orchestration
+
 ---
 
 *Bu dosya her önemli değişiklikte güncellenmelidir.*
+*Son güncelleme: 2026-01-03 - Memory patterns ve AI best practices eklendi.*

@@ -79,6 +79,51 @@ class EnhancedBankDetector:
             'keywords': ['TEB', 'TÜRK EKONOMİ BANKASI', 'teb.com.tr', 'TEB BANK'],
             'name': 'TEB',
             'patterns': [r'\bTEB\b', r'T[ÜU]RK\s*EKONOM[İI]']
+        },
+        'ing': {
+            'keywords': ['ING BANK', 'ING TURKEY', 'ing.com.tr', 'ING'],
+            'name': 'ING Bank',
+            'patterns': [r'\bING\s*BANK', r'ing\.com\.tr']
+        },
+        'hsbc': {
+            'keywords': ['HSBC', 'hsbc.com.tr', 'HSBC BANK'],
+            'name': 'HSBC',
+            'patterns': [r'\bHSBC\b', r'hsbc\.com']
+        },
+        'odeabank': {
+            'keywords': ['ODEABANK', 'ODEA BANK', 'odeabank.com.tr'],
+            'name': 'Odeabank',
+            'patterns': [r'ODEA\s*BANK', r'odeabank\.com']
+        },
+        'albaraka': {
+            'keywords': ['ALBARAKA', 'ALBARAKA TÜRK', 'albaraka.com.tr'],
+            'name': 'Albaraka Türk',
+            'patterns': [r'ALBARAKA', r'albaraka\.com']
+        },
+        'sekerbank': {
+            'keywords': ['ŞEKERBANK', 'SEKERBANK', 'sekerbank.com.tr'],
+            'name': 'Şekerbank',
+            'patterns': [r'[SŞ]EKERBANK', r'sekerbank\.com']
+        },
+        'turkishbank': {
+            'keywords': ['TURKISH BANK', 'TURKISHBANK'],
+            'name': 'Turkish Bank',
+            'patterns': [r'TURKISH\s*BANK']
+        },
+        'anadolubank': {
+            'keywords': ['ANADOLUBANK', 'ANADOLU BANK', 'anadolubank.com.tr'],
+            'name': 'Anadolubank',
+            'patterns': [r'ANADOLU\s*BANK']
+        },
+        'fibabanka': {
+            'keywords': ['FIBABANKA', 'FIBA BANK', 'fibabanka.com.tr'],
+            'name': 'Fibabanka',
+            'patterns': [r'FIBA\s*BANK']
+        },
+        'alternatifbank': {
+            'keywords': ['ALTERNATİF BANK', 'ALTERNATIFBANK', 'ABANK'],
+            'name': 'Alternatif Bank',
+            'patterns': [r'ALTERNAT[İI]F\s*BANK', r'\bABANK\b']
         }
     }
 
@@ -366,6 +411,8 @@ class EnhancedPDFParser:
             
             if not description or len(description) < 3:
                 return None
+
+            tx_type = 'expense' if is_expense else 'income'
 
             return {
                 'date': date,

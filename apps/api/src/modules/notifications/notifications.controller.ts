@@ -1,8 +1,10 @@
-import { Controller, Get, Post, Body, Query, Res, UseGuards } from "@nestjs/common";
+import { Controller, Get, Post, Delete, Body, Query, Res, UseGuards } from "@nestjs/common";
 import { Response } from "express";
 import { CalendarService } from "./calendar.service";
 import { TelegramService } from "./telegram.service";
 import { SmartNotificationService, NotificationPreferences } from "./smart-notification.service";
+import { PushNotificationService } from "./push-notification.service";
+import { NotificationSchedulerService } from "./notification-scheduler.service";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { User } from "../auth/user.decorator";
 import { TelegramWebhookDto } from "./dto/notification.dto";
@@ -13,6 +15,8 @@ export class NotificationsController {
     private readonly calendarService: CalendarService,
     private readonly telegramService: TelegramService,
     private readonly smartNotificationService: SmartNotificationService,
+    private readonly pushNotificationService: PushNotificationService,
+    private readonly notificationSchedulerService: NotificationSchedulerService,
   ) {}
 
   @Get("calendar/bills")
@@ -195,5 +199,51 @@ export class NotificationsController {
       ...body,
       userId,
     });
+  }
+
+  // Push Notification Endpoints
+
+  /**
+   * Get VAPID public key for push subscription
+   */
+  @Get("push/vapid-public-key")
+  async getVapidPublicKey() {
+    return {
+      publicKey: this.pushNotificationService.getPublicKey(),
+      enabled: this.pushNotificationService.isEnabled(),
+    };
+  }
+
+  /**
+   * Subscribe to push notifications
+   */
+  @Post("push/subscribe")
+  @UseGuards(JwtAuthGuard)
+  async subscribeToPush(
+    @User("id") userId: string,
+    @Body() subscription: { endpoint: string; keys: { p256dh: string; auth: string } }
+  ) {
+    return this.pushNotificationService.subscribe(userId, subscription);
+  }
+
+  /**
+   * Unsubscribe from push notifications
+   */
+  @Delete("push/subscribe")
+  @UseGuards(JwtAuthGuard)
+  async unsubscribeFromPush(
+    @User("id") userId: string,
+    @Body() body: { endpoint: string }
+  ) {
+    return this.pushNotificationService.unsubscribe(userId, body.endpoint);
+  }
+
+  /**
+   * Test notifications (triggers all checks for user)
+   */
+  @Post("test")
+  @UseGuards(JwtAuthGuard)
+  async testNotifications(@User("id") userId: string) {
+    return this.notificationSchedulerService.triggerAllChecks(userId);
   }
 }
