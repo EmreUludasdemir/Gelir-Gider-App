@@ -1,17 +1,17 @@
 # 🧠 CLAUDE.md - Proje Hafıza Dosyası
 
 > Bu dosya Claude'un projeyi hatırlaması ve tutarlı çalışması için oluşturulmuştur.
-> Son güncelleme: 2025-01-15
+> Son güncelleme: 2026-01-03
 
 ---
 
 ## 📋 PROJE ÖZETİ
 
-**Proje Adı:** Gelir-Gider Takip Uygulaması  
-**Versiyon:** v2.5  
-**Sahibi:** Emre Uludeşdemir (@EmreUludasdemir)  
-**Repo:** https://github.com/EmreUludasdemir/Gelir-Gider-Uygulamas--Claude  
-**Branch:** claude/finance-tracker-app-01CwGjpwSVn1dh1sqZnkDXvU
+**Proje Adı:** Gelir-Gider Takip Uygulaması
+**Versiyon:** v3.0
+**Sahibi:** Emre Uludeşdemir (@EmreUludasdemir)
+**Repo:** https://github.com/EmreUludasdemir/Gelir-Gider-App
+**Branch:** claude/optimize-app-v3-j1ZMP
 
 ### Amaç
 Modern, full-stack finans yönetim uygulaması. PDF banka ekstrelerini otomatik parse eder, akıllı kategorilendirme yapar ve Gemini AI ile finansal tavsiyeler sunar.
@@ -166,6 +166,39 @@ GET  /budgets/alerts    - Uyarılar
 ### Reports
 ```
 GET /reports/generate?format=pdf|excel&startDate=X&endDate=Y
+GET /reports/yearly-comparison?year=2026
+GET /reports/category-trends?months=6&type=expense
+GET /reports/schedule           - Planlanmış rapor ayarları
+POST /reports/schedule          - Rapor planla
+GET /reports/digest-preview?type=weekly|monthly
+```
+
+### Smart Notifications
+```
+GET  /notifications/smart           - Tüm akıllı bildirimler
+GET  /notifications/smart/anomalies - Olağandışı harcamalar
+GET  /notifications/smart/bills     - Fatura hatırlatıcıları
+GET  /notifications/smart/budgets   - Bütçe uyarıları
+GET  /notifications/smart/digest/weekly  - Haftalık özet
+GET  /notifications/smart/digest/monthly - Aylık özet
+GET  /notifications/preferences     - Bildirim tercihleri
+POST /notifications/preferences     - Tercihleri güncelle
+```
+
+### Households (Aile Hesapları)
+```
+POST /households              - Yeni aile hesabı
+GET  /households              - Kullanıcının aile hesapları
+POST /households/:id/invite   - Davet kodu oluştur
+POST /households/join         - Davet koduyla katıl
+DELETE /households/:id/leave  - Aileden ayrıl
+```
+
+### Currency
+```
+GET  /currency/rates          - Güncel döviz kurları
+GET  /currency/convert?amount=X&from=TRY&to=USD
+GET  /currency/supported      - Desteklenen para birimleri
 ```
 
 ---
@@ -267,14 +300,25 @@ NEXT_PUBLIC_GEMINI_API_KEY="your-gemini-key"
 
 ### Docker ile Çalıştırma
 ```bash
-# PostgreSQL + Redis + API + Web
+# 1. Tüm servisleri başlat (PostgreSQL + Redis + API + Web + PDF Parser)
 docker-compose up -d
 
-# Sadece PostgreSQL ve Redis
+# 2. Migration çalıştır (container içinde)
+docker exec -it finance-api npx prisma migrate deploy
+
+# 3. Uygulamaya eriş
+# Frontend: http://localhost:3000
+# Backend:  http://localhost:3001
+# PDF Parser: http://localhost:8001
+
+# Sadece veritabanlarını başlat (development)
 docker-compose up -d postgres redis
 
-# Migration çalıştır
-cd apps/api && npx prisma migrate dev
+# Logları izle
+docker-compose logs -f api
+
+# Durdur
+docker-compose down
 ```
 
 ---
@@ -323,11 +367,12 @@ GET /performance/health  - Sistem sağlık durumu
 - Audit logging
 
 ### FAZ 3: Test Infrastructure ✅
-- 141 test (10 test suite)
+- 444 test (25 test suite)
 - Unit testler (services, controllers)
 - Integration testler
 - E2E testler
 - Test utilities ve mocks
+- jest-dom TypeScript types
 
 ### FAZ 4: Performance & Cache ✅
 - Redis Cache Service (ioredis)
@@ -344,6 +389,53 @@ GET /performance/health  - Sistem sağlık durumu
 - Health check endpoints (database, cache)
 - Transaction retry logic
 - .env.example güncellendi
+
+### FAZ 6: Open Banking & Encryption ✅ (2026-01-03)
+- AES-256-GCM token şifreleme (EncryptionService)
+- BankSyncService - günlük otomatik senkronizasyon
+- Bank connection token encryption
+- BANK_ENCRYPTION_KEY environment variable
+
+### FAZ 7: Desktop App ✅ (2026-01-03)
+- Electron desktop uygulaması (apps/desktop/)
+- System tray minimize
+- Global shortcut (Ctrl+Shift+G)
+- Secure IPC bridge (contextIsolation)
+
+### FAZ 8: i18n (Çoklu Dil) ✅ (2026-01-03)
+- Türkçe ve İngilizce dil desteği
+- locales/tr.json, locales/en.json
+- I18nProvider context
+- LanguageSwitcher bileşeni
+- localStorage ile tercih kaydetme
+
+### FAZ 9: Aile Hesapları ✅ (2026-01-03)
+- Household, HouseholdMember, HouseholdBudget modelleri
+- Davet sistemi (5 dakika geçerli kod)
+- Rol bazlı erişim (owner, admin, member)
+- Paylaşımlı bütçeler
+
+### FAZ 10: Multi-Currency ✅ (2026-01-03)
+- 8 para birimi desteği (TRY, USD, EUR, GBP, CHF, JPY, AUD, CAD)
+- Exchange rate API entegrasyonu
+- Fallback rates (offline)
+- Günlük rate refresh (cron job)
+- Para birimi dönüştürme endpoint'leri
+
+### FAZ 11: Gelişmiş Raporlama ✅ (2026-01-03)
+- Yıllık karşılaştırma raporu (bu yıl vs geçen yıl)
+- Kategori trend analizi (6-12 ay)
+- Linear regression ile trend algılama
+- Tasarruf oranı hesaplama
+- Scheduled email reports
+
+### FAZ 12: Akıllı Bildirimler ✅ (2026-01-03)
+- Olağandışı harcama uyarıları (anomaly detection)
+- Fatura hatırlatıcıları (urgent/high/medium/low)
+- Bütçe uyarıları (%75, %90, %100)
+- Haftalık özet (Pazar 09:00)
+- Aylık özet (Ayın 1'i 10:00)
+- Bildirim tercihleri yönetimi
 
 ---
 
@@ -425,7 +517,15 @@ GET /performance/health  - Sistem sağlık durumu
 - [x] Performance monitoring
 - [x] Error handling & logging
 - [x] Security layer (rate limiting, CORS)
-- [x] Test infrastructure (141 test)
+- [x] Test infrastructure (444 test)
+- [x] Open Banking encryption
+- [x] Electron desktop app
+- [x] i18n (Türkçe/İngilizce)
+- [x] Aile hesapları (Household)
+- [x] Multi-currency desteği
+- [x] Gelişmiş raporlama
+- [x] Akıllı bildirimler
+- [x] CI/CD fixes
 
 ---
 
