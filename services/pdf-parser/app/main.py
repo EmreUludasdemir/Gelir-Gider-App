@@ -8,8 +8,9 @@ import logging
 
 from .parser import PDFParser
 from .classifier import TransactionClassifier
-from .enhanced_parser import EnhancedPDFParser
+from .enhanced_parser import EnhancedPDFParser, EnhancedBankDetector
 from .enhanced_classifier import EnhancedTransactionClassifier
+from .bank_parsers import BankParserFactory
 
 # Setup logging
 logging.basicConfig(
@@ -50,13 +51,33 @@ async def health_check():
         "status": "healthy",
         "service": "pdf-parser",
         "timestamp": datetime.now().isoformat(),
-        "version": "2.0.0",
+        "version": "2.1.0",
         "features": {
             "enhanced_parser": True,
             "enhanced_classifier": True,
             "multi_bank_support": True,
+            "supported_banks": len(EnhancedBankDetector.BANK_SIGNATURES),
             "categories_count": len(classifier.get_categories())
         }
+    }
+
+
+@app.get("/banks")
+async def get_supported_banks():
+    """Get all supported banks and their detection signatures"""
+    banks = []
+    for bank_id, info in EnhancedBankDetector.BANK_SIGNATURES.items():
+        banks.append({
+            "id": bank_id,
+            "name": info["name"],
+            "keywords": info["keywords"][:3],  # First 3 keywords as examples
+            "has_dedicated_parser": bank_id in BankParserFactory.PARSERS
+        })
+
+    return {
+        "banks": banks,
+        "total": len(banks),
+        "with_dedicated_parsers": len(BankParserFactory.PARSERS)
     }
 
 
