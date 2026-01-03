@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import BankConnectionCard from '../../components/bank/BankConnectionCard';
 import { useAuth } from '../../components/auth-provider';
 
@@ -36,11 +36,7 @@ export default function BankConnectionsPage() {
         accountName: '',
     });
 
-    useEffect(() => {
-        loadData();
-    }, []);
-
-    const loadData = async () => {
+    const loadData = useCallback(async () => {
         try {
             const [connectionsRes, banksRes] = await Promise.all([
                 fetchWithAuth('/bank-connections'),
@@ -55,7 +51,11 @@ export default function BankConnectionsPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [fetchWithAuth]);
+
+    useEffect(() => {
+        loadData();
+    }, [loadData]);
 
     const handleAddConnection = async (e: React.FormEvent) => {
         e.preventDefault();

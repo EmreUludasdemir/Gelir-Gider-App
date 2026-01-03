@@ -50,7 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 router.push('/dashboard');
             }
         }
-    }, [user, loading, pathname]);
+    }, [user, loading, pathname, router]);
 
     const checkUser = () => {
         try {
