@@ -56,7 +56,7 @@ test.describe('Dashboard', () => {
 
     // Verify success - wait for toast or list update
     await expect(page.locator('text=/başarıyla/i').or(
-      page.locator('text=/E2E Test - Market/)
+      page.locator('text=/E2E Test - Market/')
     )).toBeVisible({ timeout: 5000 });
   });
 
