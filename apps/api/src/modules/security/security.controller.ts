@@ -17,6 +17,8 @@ import { AuditLogService } from "./audit-log.service";
 import { JwtService } from "@nestjs/jwt";
 import { PrismaService } from "../../prisma.service";
 
+const frontendUrl = process.env.FRONTEND_URL || process.env.APP_URL || "http://localhost:3000";
+
 @Controller("security")
 export class SecurityController {
   constructor(
@@ -134,11 +136,7 @@ export class SecurityController {
     const token = this.jwtService.sign({ sub: user.id, email: user.email });
 
     // Redirect to frontend with token
-    res.redirect(
-      `${
-        process.env.FRONTEND_URL || "http://localhost:3000"
-      }/auth/callback?token=${token}`
-    );
+    res.redirect(`${frontendUrl}/auth/callback?token=${token}`);
   }
 
   @Get("oauth/github")
@@ -171,11 +169,7 @@ export class SecurityController {
     // Generate JWT
     const token = this.jwtService.sign({ sub: user.id, email: user.email });
 
-    res.redirect(
-      `${
-        process.env.FRONTEND_URL || "http://localhost:3000"
-      }/auth/callback?token=${token}`
-    );
+    res.redirect(`${frontendUrl}/auth/callback?token=${token}`);
   }
 
   // Audit Log Endpoints

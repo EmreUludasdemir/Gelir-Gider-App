@@ -20,6 +20,7 @@ import { usePreferences } from '@/lib/PreferencesContext';
 import { useTranslation } from '@/lib/translations';
 import { useTransactions } from '@/lib/hooks';
 import { FinancialInsight } from '@/lib/types';
+import { getApiBaseUrl } from '@/lib/api-base';
 
 type Color = 'green' | 'yellow' | 'red' | 'blue';
 
@@ -95,7 +96,7 @@ export function AIInsights() {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const apiUrl = getApiBaseUrl();
 
       const [insightsRes, anomaliesRes] = await Promise.all([
         fetch(`${apiUrl}/ai/insights`, {

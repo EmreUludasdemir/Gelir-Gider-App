@@ -7,6 +7,12 @@ export interface ExchangeRate {
   rates: Record<string, number>;
 }
 
+interface ExchangeRateApiResponse {
+  success?: boolean;
+  date?: string;
+  rates?: Record<string, number>;
+}
+
 // Supported currencies
 export const SUPPORTED_CURRENCIES = ['TRY', 'USD', 'EUR', 'GBP', 'CHF', 'JPY', 'AUD', 'CAD'] as const;
 export type SupportedCurrency = typeof SUPPORTED_CURRENCIES[number];
@@ -70,7 +76,7 @@ export class CurrencyService {
       throw new Error('Exchange rate API returned ' + response.status);
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as ExchangeRateApiResponse;
     
     if (!data.success && !data.rates) {
       throw new Error('Invalid API response');

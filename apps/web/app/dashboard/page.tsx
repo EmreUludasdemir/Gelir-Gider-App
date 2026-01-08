@@ -33,6 +33,11 @@ const WeeklyTrendChart = dynamic(
   { loading: () => <ChartSkeleton /> }
 )
 
+const MonthlyTrendChart = dynamic(
+  () => import('@/components/dashboard/TrendChart').then(mod => ({ default: mod.TrendChart })),
+  { loading: () => <ChartSkeleton /> }
+)
+
 const CategoryPieChart = dynamic(
   () => import('@/components/dashboard/CategoryPieChart').then(mod => ({ default: mod.CategoryPieChart })),
   { loading: () => <ChartSkeleton /> }
@@ -113,6 +118,8 @@ export default function DashboardPage() {
     return null
   }
 
+  const latestTransactionDate = transactions.length > 0 ? new Date(transactions[0].date) : undefined
+
   return (
     <div className="space-y-6">
       <div>
@@ -154,6 +161,12 @@ export default function DashboardPage() {
       </Suspense>
 
       {/* Charts - Lazy loaded */}
+      <div className="grid grid-cols-1 gap-6">
+        <Suspense fallback={<ChartSkeleton />}>
+          <MonthlyTrendChart transactions={transactions} months={12} baseDate={latestTransactionDate} />
+        </Suspense>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Suspense fallback={<ChartSkeleton />}>
           <WeeklyTrendChart data={summary.weeklyTrend} />

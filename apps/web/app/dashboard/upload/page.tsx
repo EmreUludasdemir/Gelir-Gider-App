@@ -1,20 +1,23 @@
 'use client'
 
-import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { PdfUpload } from '@/components/forms/PdfUpload'
 import { UploadResult } from '@/lib/api'
 import { TransactionTable } from '@/components/dashboard/TransactionTable'
-import { useRefreshAll } from '@/lib/hooks'
+import { useRefreshAll, useTransactions } from '@/lib/hooks'
 
 export default function UploadPage() {
   const router = useRouter()
-  const [result, setResult] = useState<UploadResult | null>(null)
   const refreshAll = useRefreshAll()
+  const { data: pdfTransactions, mutate: refreshPdfTransactions } = useTransactions({
+    source: 'pdf',
+  })
 
   const handleSuccess = async (uploadResult: UploadResult) => {
-    setResult(uploadResult)
-    await refreshAll()
+    await Promise.all([
+      refreshAll(),
+      refreshPdfTransactions(),
+    ])
   }
 
   return (
@@ -30,11 +33,11 @@ export default function UploadPage() {
         <PdfUpload onSuccess={handleSuccess} />
       </div>
 
-      {result && result.transactions.length > 0 && (
+      {pdfTransactions && pdfTransactions.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-              Parse Edilen İşlemler ({result.transactions.length})
+              PDF Islemleri ({pdfTransactions.length})
             </h2>
             <button
               onClick={() => router.push('/dashboard')}
@@ -44,8 +47,9 @@ export default function UploadPage() {
             </button>
           </div>
           <TransactionTable
-            transactions={result.transactions}
-            title="Yeni Eklenen İşlemler"
+            transactions={pdfTransactions}
+            title="PDF Islemleri"
+            onRefresh={refreshPdfTransactions}
           />
         </div>
       )}

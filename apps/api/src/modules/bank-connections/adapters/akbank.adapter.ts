@@ -25,6 +25,19 @@ interface AkbankCredentials {
   clientSecret?: string;
 }
 
+interface AkbankTokenResponse {
+  access_token: string;
+  refresh_token?: string;
+}
+
+interface AkbankAccountsResponse {
+  accounts?: any[];
+}
+
+interface AkbankTransactionsResponse {
+  transactions?: any[];
+}
+
 export class AkbankAdapter implements IBankAdapter {
   private readonly API_BASE = "https://api.akbank.com/v1"; // Production
   private readonly SANDBOX_API_BASE = "https://sandbox.akbank.com/api/v1"; // Sandbox
@@ -102,7 +115,7 @@ export class AkbankAdapter implements IBankAdapter {
         return false;
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as AkbankTokenResponse;
       this.accessToken = data.access_token;
       if (data.refresh_token) {
         this.refreshToken = data.refresh_token;
@@ -138,7 +151,7 @@ export class AkbankAdapter implements IBankAdapter {
       throw new Error(`Hesap bilgileri alınamadı: ${response.statusText}`);
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as AkbankAccountsResponse;
 
     // Map Akbank response to our interface
     return (data.accounts || []).map((acc: any) => ({
@@ -193,7 +206,7 @@ export class AkbankAdapter implements IBankAdapter {
         };
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as AkbankTransactionsResponse;
 
       const transactions: BankTransaction[] = (data.transactions || []).map(
         (tx: any) => ({

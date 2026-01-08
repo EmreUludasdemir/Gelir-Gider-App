@@ -54,6 +54,8 @@ services:
       - SESSION_SECRET=${SESSION_SECRET:-your-super-secret-session-key-for-production-2024-very-long}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY:-your-super-secret-encryption-key-for-production-2024-very-long}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000}
     depends_on:
       postgres:
         condition: service_healthy

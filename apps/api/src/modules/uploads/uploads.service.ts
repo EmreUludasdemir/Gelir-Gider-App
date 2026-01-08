@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
-import FormData from 'form-data';
+import { Blob } from 'buffer';
 import {
   TransactionEntity,
   UploadResult,
@@ -9,8 +9,9 @@ import {
   TransactionType,
   PrismaTransaction,
 } from '../../shared/types';
-import { classifyTransaction } from '../../shared/categories';
+import { CATEGORIES, classifyTransaction } from '../../shared/categories';
 import { PrismaService } from '../../prisma.service';
+import { CacheService } from '../../shared/cache';
 import { Prisma } from '@prisma/client';
 
 interface ParsedTransaction {
@@ -18,13 +19,31 @@ interface ParsedTransaction {
   description: string;
   amount: number;
   currency: string;
+  type?: 'income' | 'expense';
 }
 
 @Injectable()
 export class UploadsService {
   private readonly logger = new Logger(UploadsService.name);
+  private static readonly EXPENSE_OVERRIDE_KEYWORDS = [
+    'bsmv',
+    'kkdf',
+    'komisyon',
+    'ucret',
+    'masraf',
+    'nakit avans',
+    'gecikme',
+    'gecikme faizi',
+    'hesap isletim',
+    'kredi karti aidat',
+    'aidat',
+    'provizyon',
+  ];
 
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
+  ) { }
 
   async processPdf(userId: string, file: Express.Multer.File): Promise<UploadResult> {
     // Validate file
@@ -51,18 +70,14 @@ export class UploadsService {
       // Call PDF parser service
       const pdfParserUrl = process.env.PDF_PARSER_URL || 'http://localhost:8001';
 
-      // Use form-data for proper multipart/form-data handling in Node.js
+      // Use the native FormData/Blob so fetch can set the correct boundary.
       const formData = new FormData();
-      formData.append('file', file.buffer, {
-        filename: file.originalname,
-        contentType: 'application/pdf',
-      });
+      const pdfBlob = new Blob([file.buffer], { type: 'application/pdf' });
+      formData.append('file', pdfBlob, file.originalname);
 
-      // Node 18+ fetch
       const response = await fetch(`${pdfParserUrl}/parse`, {
         method: 'POST',
-        body: formData as any,
-        headers: formData.getHeaders(),
+        body: formData,
       });
 
       if (!response.ok) {
@@ -86,10 +101,9 @@ export class UploadsService {
         try {
           // Classify transaction
           // TODO: Use userId for personalized classification if needed
-          const classification = classifyTransaction(parsed.description);
-
-          // Determine transaction type
-          const type: 'income' | 'expense' = parsed.amount >= 0 ? 'income' : 'expense';
+          const type = this.inferTransactionType(parsed);
+          const classification = classifyTransaction(parsed.description, type);
+          const normalizedAmount = Math.abs(parsed.amount);
 
           // Save to database
           const transaction = await this.prisma.transaction.create({
@@ -98,7 +112,7 @@ export class UploadsService {
               accountId: 'pdf-upload',
               date: new Date(parsed.date),
               description: parsed.description,
-              amount: parsed.amount,
+              amount: normalizedAmount,
               currency: (parsed.currency || 'TRY'),
               source: 'pdf',
               type,
@@ -117,6 +131,10 @@ export class UploadsService {
       }
 
       const lowConfidenceCount = transactions.filter(tx => tx.confidence < 60).length;
+
+      if (transactions.length > 0) {
+        await this.cache.invalidateTransactions(userId);
+      }
 
       return {
         success: true,
@@ -172,5 +190,54 @@ export class UploadsService {
       createdAt: prismaTx.createdAt.toISOString(),
       updatedAt: prismaTx.updatedAt.toISOString(),
     };
+  }
+
+  private inferTransactionType(parsed: ParsedTransaction): TransactionType {
+    if (parsed.type === 'income' || parsed.type === 'expense') {
+      return parsed.type;
+    }
+
+    const desc = this.normalizeText(parsed.description || '');
+
+    if (this.hasKeywordMatch(desc, UploadsService.EXPENSE_OVERRIDE_KEYWORDS)) {
+      return 'expense';
+    }
+
+    const matchesExpense = this.matchesCategoryKeywords(desc, 'expense');
+    const matchesIncome = this.matchesCategoryKeywords(desc, 'income');
+
+    if (matchesExpense && !matchesIncome) {
+      return 'expense';
+    }
+
+    if (matchesIncome && !matchesExpense) {
+      return 'income';
+    }
+
+    return parsed.amount < 0 ? 'expense' : 'income';
+  }
+
+  private matchesCategoryKeywords(description: string, type: TransactionType): boolean {
+    const normalized = this.normalizeText(description);
+    return CATEGORIES.some((category) =>
+      category.type === type &&
+      category.keywords.some((keyword) => normalized.includes(this.normalizeText(keyword)))
+    );
+  }
+
+  private hasKeywordMatch(description: string, keywords: string[]): boolean {
+    const normalized = this.normalizeText(description);
+    return keywords.some((keyword) => normalized.includes(this.normalizeText(keyword)));
+  }
+
+  private normalizeText(input: string): string {
+    return input
+      .toLowerCase()
+      .replace(/ç/g, 'c')
+      .replace(/ğ/g, 'g')
+      .replace(/ı/g, 'i')
+      .replace(/ö/g, 'o')
+      .replace(/ş/g, 's')
+      .replace(/ü/g, 'u');
   }
 }

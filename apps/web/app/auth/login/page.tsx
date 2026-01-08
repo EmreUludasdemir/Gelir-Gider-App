@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/components/auth-provider';
 import { Eye, EyeOff, Mail, Lock, ArrowRight } from 'lucide-react';
+import { getApiBaseUrl } from '@/lib/api-base';
 
 export default function LoginPage() {
     const { login } = useAuth();
@@ -19,7 +20,8 @@ export default function LoginPage() {
         setError('');
 
         try {
-            const res = await fetch('http://localhost:3001/auth/login', {
+            const apiBase = getApiBaseUrl();
+            const res = await fetch(`${apiBase}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password }),
@@ -30,7 +32,11 @@ export default function LoginPage() {
             }
 
             const data = await res.json();
-            login(data.access_token, data.user);
+            const token = data.accessToken || data.access_token;
+            if (!token) {
+                throw new Error('Missing access token');
+            }
+            login(token, data.user);
         } catch (err) {
             setError('E-posta veya şifre hatalı');
         } finally {

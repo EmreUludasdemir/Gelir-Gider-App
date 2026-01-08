@@ -1,4 +1,6 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
+import { getApiBaseUrl } from './api-base';
+
+const API_BASE = getApiBaseUrl();
 
 // Token storage keys
 const ACCESS_TOKEN_KEY = 'accessToken';

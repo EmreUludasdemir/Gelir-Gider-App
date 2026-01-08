@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { Button } from '../ui/button';
-import { useAuthContext } from '../auth-provider';
+import { Button } from '../ui/Button';
+import { getAuthToken } from '@/lib/api';
+import { getApiBaseUrl } from '@/lib/api-base';
 
 interface ExportButtonProps {
     startDate?: Date;
@@ -15,19 +16,23 @@ type ExportFormat = 'csv' | 'excel';
 export function ExportButton({ startDate, endDate, className }: ExportButtonProps) {
     const [isExporting, setIsExporting] = useState(false);
     const [showDropdown, setShowDropdown] = useState(false);
-    const { token } = useAuthContext();
 
     const handleExport = async (format: ExportFormat) => {
         setIsExporting(true);
         setShowDropdown(false);
 
         try {
+            const apiBase = getApiBaseUrl();
+            const token = getAuthToken();
+            if (!token) {
+                throw new Error('Missing auth token');
+            }
             const params = new URLSearchParams({ format });
             if (startDate) params.append('startDate', startDate.toISOString());
             if (endDate) params.append('endDate', endDate.toISOString());
 
             const response = await fetch(
-                `${process.env.NEXT_PUBLIC_API_URL}/transactions/export?${params}`,
+                `${apiBase}/transactions/export?${params}`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,

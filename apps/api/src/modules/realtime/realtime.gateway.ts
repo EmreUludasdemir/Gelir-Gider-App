@@ -10,6 +10,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { getAllowedOrigins } from '../../shared';
 
 interface JwtPayload {
   userId: string;
@@ -50,7 +51,7 @@ interface SavingsMilestone {
 
 @WebSocketGateway({
   cors: {
-    origin: process.env.CORS_ORIGINS?.split(',') || ['http://localhost:3000'],
+    origin: getAllowedOrigins(),
     credentials: true,
   },
   namespace: '/realtime',

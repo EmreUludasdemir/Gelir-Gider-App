@@ -1,4 +1,6 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
+import { getApiBaseUrl } from './api-base';
+
+const API_BASE = getApiBaseUrl();
 
 // Auth token management
 export function setAuthToken(token: string, refreshToken?: string) {

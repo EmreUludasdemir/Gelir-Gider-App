@@ -3,6 +3,7 @@ export const getCategoryColor = (categoryId: string): string => {
     salary: 'bg-green-100 text-green-800',
     freelance: 'bg-blue-100 text-blue-800',
     investment: 'bg-purple-100 text-purple-800',
+    bank_fees: 'bg-stone-100 text-stone-800',
     market: 'bg-orange-100 text-orange-800',
     restaurant: 'bg-red-100 text-red-800',
     transport: 'bg-indigo-100 text-indigo-800',

@@ -27,6 +27,12 @@ interface TelegramUpdate {
   };
 }
 
+interface TelegramApiResponse<T> {
+  ok: boolean;
+  result: T;
+  description?: string;
+}
+
 interface ParsedTransaction {
   description: string;
   amount: number;
@@ -547,7 +553,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       body: JSON.stringify(params),
     });
 
-    const data = await response.json();
+    const data = (await response.json()) as TelegramApiResponse<T>;
     if (!data.ok) {
       throw new Error(data.description || 'Telegram API error');
     }

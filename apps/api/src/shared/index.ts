@@ -17,7 +17,7 @@ export {
 export { GlobalExceptionFilter } from './errors/global-exception.filter';
 
 // Security exports
-export { setupHelmet, corsConfig, securityHeaders } from './security/helmet.config';
+export { setupHelmet, corsConfig, securityHeaders, getAllowedOrigins } from './security/helmet.config';
 export { SanitizationMiddleware, Sanitize, Validate } from './security/sanitization.middleware';
 export { 
   SecurityMiddleware, 

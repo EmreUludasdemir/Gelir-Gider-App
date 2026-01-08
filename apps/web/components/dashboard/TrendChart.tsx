@@ -9,12 +9,14 @@ import { formatCurrency } from '@/lib/utils'
 interface TrendChartProps {
   transactions: Transaction[]
   months?: number
+  baseDate?: Date | string
 }
 
-export function TrendChart({ transactions, months = 6 }: TrendChartProps) {
+export function TrendChart({ transactions, months = 6, baseDate }: TrendChartProps) {
   const chartData = useMemo(() => {
     // Son N ay için veri hazırla
-    const now = new Date()
+    const anchor = baseDate ? new Date(baseDate) : new Date()
+    const now = new Date(anchor.getFullYear(), anchor.getMonth(), 1)
     const data: Array<{
       month: string
       income: number
@@ -51,7 +53,7 @@ export function TrendChart({ transactions, months = 6 }: TrendChartProps) {
     }
 
     return data
-  }, [transactions, months])
+  }, [transactions, months, baseDate])
 
   const formatTooltipValue = (value: number | string | Array<number | string>) => {
     const numValue = typeof value === 'number' ? value : Number(value) || 0

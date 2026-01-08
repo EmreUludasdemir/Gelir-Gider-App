@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { toast } from 'sonner';
+import { getRealtimeBaseUrl } from '@/lib/api-base';
 
 interface RealtimeConfig {
   token: string | null;
@@ -86,7 +87,7 @@ export function useRealtime(config: RealtimeConfig) {
       return;
     }
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const apiUrl = getRealtimeBaseUrl();
     const socket = io(`${apiUrl}/realtime`, {
       auth: { token: config.token },
       transports: ['websocket', 'polling'],
@@ -232,7 +233,7 @@ export function useRealtimeStatus(token: string | null) {
   useEffect(() => {
     if (!token) return;
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const apiUrl = getRealtimeBaseUrl();
     const socket = io(`${apiUrl}/realtime`, {
       auth: { token },
       transports: ['websocket', 'polling'],

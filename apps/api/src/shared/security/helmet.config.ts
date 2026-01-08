@@ -1,6 +1,31 @@
 import helmet from 'helmet';
 import { INestApplication } from '@nestjs/common';
 
+const defaultAllowedOrigins = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+];
+
+export const getAllowedOrigins = () => {
+  const envOrigins = [
+    process.env.FRONTEND_URL,
+    process.env.APP_URL,
+    process.env.CORS_ORIGIN,
+  ];
+
+  const extraOrigins = process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(',')
+    : [];
+
+  return Array.from(
+    new Set(
+      [...defaultAllowedOrigins, ...envOrigins, ...extraOrigins]
+        .map((origin) => origin?.trim())
+        .filter(Boolean)
+    )
+  ) as string[];
+};
+
 /**
  * Helmet Security Headers Configuration
  * OWASP önerilerine uygun güvenlik başlıkları
@@ -75,11 +100,7 @@ export function setupHelmet(app: INestApplication): void {
 export const corsConfig = {
   // Allowed origins
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'http://127.0.0.1:3000',
-      process.env.FRONTEND_URL,
-    ].filter(Boolean);
+    const allowedOrigins = getAllowedOrigins();
 
     // Allow requests with no origin (mobile apps, Postman, etc.)
     if (!origin) {

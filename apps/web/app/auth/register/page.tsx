@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/components/auth-provider';
+import { getApiBaseUrl } from '@/lib/api-base';
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -20,8 +21,9 @@ export default function RegisterPage() {
         setError('');
 
         try {
+            const apiBase = getApiBaseUrl();
             // Register
-            const registerRes = await fetch('http://localhost:3001/auth/register', {
+            const registerRes = await fetch(`${apiBase}/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password, name }),
@@ -33,7 +35,7 @@ export default function RegisterPage() {
             }
 
             // Auto login after successful registration
-            const loginRes = await fetch('http://localhost:3001/auth/login', {
+            const loginRes = await fetch(`${apiBase}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password }),
@@ -46,7 +48,11 @@ export default function RegisterPage() {
             }
 
             const loginData = await loginRes.json();
-            login(loginData.access_token, loginData.user);
+            const token = loginData.accessToken || loginData.access_token;
+            if (!token) {
+                throw new Error('Missing access token');
+            }
+            login(token, loginData.user);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Registration failed. Try again.');
         } finally {

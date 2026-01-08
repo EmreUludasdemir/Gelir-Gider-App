@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { useNotifications } from './NotificationContext';
+import { getApiBaseUrl } from './api-base';
 
 /**
  * API Error Response (Backend ile uyumlu)
@@ -251,7 +252,7 @@ export async function apiFetch<T>(
   url: string,
   options?: RequestInit
 ): Promise<T> {
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
+  const API_BASE = getApiBaseUrl();
   const fullUrl = url.startsWith('http') ? url : `${API_BASE}${url}`;
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;

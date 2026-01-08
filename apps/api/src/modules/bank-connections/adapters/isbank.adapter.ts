@@ -20,6 +20,21 @@ interface IsbankCredentials {
   refreshToken: string | null;
 }
 
+interface IsbankTokenResponse {
+  access_token: string;
+  refresh_token?: string;
+}
+
+interface IsbankAccountsResponse {
+  hesaplar?: any[];
+  accounts?: any[];
+}
+
+interface IsbankTransactionsResponse {
+  hareketler?: any[];
+  transactions?: any[];
+}
+
 export class IsbankAdapter implements IBankAdapter {
   private readonly API_BASE = "https://api.isbank.com.tr/v1";
   private readonly SANDBOX_API_BASE = "https://sandbox.isbank.com.tr/api/v1";
@@ -85,7 +100,7 @@ export class IsbankAdapter implements IBankAdapter {
 
       if (!response.ok) return false;
 
-      const data = await response.json();
+      const data = (await response.json()) as IsbankTokenResponse;
       this.accessToken = data.access_token;
       if (data.refresh_token) this.refreshToken = data.refresh_token;
 
@@ -114,7 +129,7 @@ export class IsbankAdapter implements IBankAdapter {
       throw new Error(`Hesap bilgileri alınamadı: ${response.statusText}`);
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as IsbankAccountsResponse;
 
     return (data.hesaplar || data.accounts || []).map((acc: any) => ({
       id: acc.hesapNo || acc.accountId,
@@ -164,7 +179,7 @@ export class IsbankAdapter implements IBankAdapter {
         };
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as IsbankTransactionsResponse;
 
       const transactions: BankTransaction[] = (
         data.hareketler ||

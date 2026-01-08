@@ -29,6 +29,31 @@ export const CATEGORIES: Category[] = [
     type: 'income'
   },
   {
+    id: 'bank_fees',
+    label: 'Banka Ücretleri',
+    icon: '🏦',
+    keywords: [
+      'bsmv',
+      'kkdf',
+      'komisyon',
+      'ücret',
+      'ucret',
+      'masraf',
+      'nakit avans',
+      'gecikme',
+      'gecikme faizi',
+      'hesap işletim',
+      'hesap isletim',
+      'kredi kartı aidat',
+      'kredi karti aidat',
+      'aidat',
+      'provizyon',
+      'ekstre ücreti',
+      'ekstre ucreti'
+    ],
+    type: 'expense'
+  },
+  {
     id: 'market',
     label: 'Market',
     icon: '🛒',
@@ -39,7 +64,7 @@ export const CATEGORIES: Category[] = [
     id: 'restaurant',
     label: 'Yemek',
     icon: '🍽️',
-    keywords: ['restaurant', 'restoran', 'cafe', 'kahve', 'yemeksepeti', 'getir', 'trendyol yemek'],
+    keywords: ['restaurant', 'restoran', 'cafe', 'kahve', 'yemeksepeti', 'getir', 'trendyol yemek', 'tikla gelsin', 'tıkla gelsin'],
     type: 'expense'
   },
   {
@@ -114,12 +139,30 @@ export const CATEGORIES: Category[] = [
   }
 ];
 
-export function classifyTransaction(description: string): { categoryId: string; categoryLabel: string; confidence: number } {
-  const desc = description.toLowerCase();
+function normalizeText(input: string): string {
+  return input
+    .toLowerCase()
+    .replace(/ç/g, 'c')
+    .replace(/ğ/g, 'g')
+    .replace(/ı/g, 'i')
+    .replace(/ö/g, 'o')
+    .replace(/ş/g, 's')
+    .replace(/ü/g, 'u');
+}
 
-  for (const category of CATEGORIES) {
+export function classifyTransaction(
+  description: string,
+  transactionType?: 'income' | 'expense'
+): { categoryId: string; categoryLabel: string; confidence: number } {
+  const desc = normalizeText(description);
+
+  const eligibleCategories = transactionType
+    ? CATEGORIES.filter((category) => category.type === transactionType || category.type === 'both')
+    : CATEGORIES;
+
+  for (const category of eligibleCategories) {
     for (const keyword of category.keywords) {
-      if (desc.includes(keyword.toLowerCase())) {
+      if (desc.includes(normalizeText(keyword))) {
         return {
           categoryId: category.id,
           categoryLabel: category.label,

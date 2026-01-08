@@ -51,6 +51,8 @@ services:
       - REDIS_URL=redis://redis:6379
       - PDF_PARSER_URL=http://pdf-parser:8001
       - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000}
     depends_on:
       postgres:
         condition: service_healthy

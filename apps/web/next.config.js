@@ -7,11 +7,13 @@ const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
   async rewrites() {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://api:3001'
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL
+    const destination =
+      apiUrl && /^https?:\/\//i.test(apiUrl) ? apiUrl : 'http://api:3001'
     return [
       {
         source: '/api/:path*',
-        destination: `${apiUrl}/:path*`,
+        destination: `${destination}/:path*`,
       },
     ]
   },

@@ -2,6 +2,7 @@ export const CATEGORIES = [
   { id: 'salary', label: 'Maaş', emoji: '💰', type: 'income' },
   { id: 'freelance', label: 'Freelance', emoji: '💼', type: 'income' },
   { id: 'investment', label: 'Yatırım Geliri', emoji: '📈', type: 'income' },
+  { id: 'bank_fees', label: 'Banka Ücretleri', emoji: '🏦', type: 'expense' },
   { id: 'market', label: 'Market', emoji: '🛒', type: 'expense' },
   { id: 'restaurant', label: 'Yemek', emoji: '🍽️', type: 'expense' },
   { id: 'transport', label: 'Ulaşım', emoji: '🚗', type: 'expense' },

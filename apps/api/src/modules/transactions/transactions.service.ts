@@ -111,7 +111,7 @@ export class TransactionsService {
     let confidence = 100;
 
     if (!categoryId || !categoryLabel) {
-      const classification = classifyTransaction(dto.description);
+      const classification = classifyTransaction(dto.description, dto.type);
       categoryId = classification.categoryId;
       categoryLabel = classification.categoryLabel;
       confidence = classification.confidence;
@@ -246,16 +246,9 @@ export class TransactionsService {
     return this.cache.getOrSet(
       cacheKey,
       async () => {
-        const now = new Date();
-        let currentMonth = now.getMonth();
-        let currentYear = now.getFullYear();
-
-        // Allow month/year selection from query
-        if (query?.dateFrom) {
-          const queryDate = new Date(query.dateFrom);
-          currentMonth = queryDate.getMonth();
-          currentYear = queryDate.getFullYear();
-        }
+        const anchorDate = await this.resolveSummaryAnchorDate(userId, query);
+        let currentMonth = anchorDate.getMonth();
+        let currentYear = anchorDate.getFullYear();
 
         const startOfMonth = new Date(currentYear, currentMonth, 1);
         const endOfMonth = new Date(
@@ -355,8 +348,8 @@ export class TransactionsService {
         // Weekly trend
         const weeklyTrend: WeeklyData[] = [];
         for (let i = 3; i >= 0; i--) {
-          const weekStart = new Date(now);
-          weekStart.setDate(now.getDate() - (i + 1) * 7);
+          const weekStart = new Date(anchorDate);
+          weekStart.setDate(anchorDate.getDate() - (i + 1) * 7);
           const weekEnd = new Date(weekStart);
           weekEnd.setDate(weekStart.getDate() + 7);
 
@@ -380,7 +373,7 @@ export class TransactionsService {
 
         return {
           period: {
-            month: now.toLocaleString("tr-TR", { month: "long" }),
+            month: startOfMonth.toLocaleString("tr-TR", { month: "long" }),
             year: currentYear,
             startDate: startOfMonth.toISOString(),
             endDate: endOfMonth.toISOString(),
@@ -571,6 +564,29 @@ export class TransactionsService {
     ]);
 
     return Buffer.from(await workbook.xlsx.writeBuffer());
+  }
+
+  private async resolveSummaryAnchorDate(
+    userId: string,
+    query?: TransactionQuery
+  ): Promise<Date> {
+    const queryDate = query?.dateFrom
+      ? new Date(query.dateFrom)
+      : query?.dateTo
+        ? new Date(query.dateTo)
+        : null;
+
+    if (queryDate && !Number.isNaN(queryDate.getTime())) {
+      return queryDate;
+    }
+
+    const latest = await this.prisma.transaction.findFirst({
+      where: { userId },
+      orderBy: { date: "desc" },
+      select: { date: true },
+    });
+
+    return latest?.date ?? new Date();
   }
 
   private mapToEntity(prismaTx: PrismaTransaction): TransactionEntity {

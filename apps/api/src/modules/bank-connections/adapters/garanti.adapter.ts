@@ -20,6 +20,23 @@ interface GarantiCredentials {
   refreshToken: string | null;
 }
 
+interface GarantiTokenResponse {
+  access_token: string;
+  refresh_token?: string;
+}
+
+interface GarantiAccountsResponse {
+  Data?: {
+    Account?: any[];
+  };
+}
+
+interface GarantiTransactionsResponse {
+  Data?: {
+    Transaction?: any[];
+  };
+}
+
 export class GarantiAdapter implements IBankAdapter {
   private readonly API_BASE = "https://api.garantibbva.com.tr/v1";
   private readonly SANDBOX_API_BASE =
@@ -86,7 +103,7 @@ export class GarantiAdapter implements IBankAdapter {
 
       if (!response.ok) return false;
 
-      const data = await response.json();
+      const data = (await response.json()) as GarantiTokenResponse;
       this.accessToken = data.access_token;
       if (data.refresh_token) this.refreshToken = data.refresh_token;
 
@@ -115,7 +132,7 @@ export class GarantiAdapter implements IBankAdapter {
       throw new Error(`Hesap bilgileri alınamadı: ${response.statusText}`);
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as GarantiAccountsResponse;
 
     return (data.Data?.Account || []).map((acc: any) => ({
       id: acc.AccountId,
@@ -165,7 +182,7 @@ export class GarantiAdapter implements IBankAdapter {
         };
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as GarantiTransactionsResponse;
 
       const transactions: BankTransaction[] = (
         data.Data?.Transaction || []
