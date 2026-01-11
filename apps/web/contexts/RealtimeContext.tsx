@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { useRealtime } from '@/hooks/useRealtime';
@@ -160,3 +160,4 @@ export function useRealtimeRefresh(callback: () => void, deps: unknown[] = []) {
     }
   }, [refreshTrigger, ...deps]);
 }
+

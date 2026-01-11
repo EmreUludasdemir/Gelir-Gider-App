@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect } from 'react';
 import { Calendar, Clock, Repeat, ChevronRight } from 'lucide-react';
@@ -7,10 +7,10 @@ import { usePreferences } from '@/lib/PreferencesContext';
 import { detectRecurringPayments, RecurringPattern } from '@/lib/utilities';
 
 const frequencyLabels = {
-    weekly: { tr: 'Haftalık', en: 'Weekly' },
-    biweekly: { tr: 'İki Haftalık', en: 'Bi-weekly' },
-    monthly: { tr: 'Aylık', en: 'Monthly' },
-    yearly: { tr: 'Yıllık', en: 'Yearly' },
+    weekly: { tr: 'HaftalÄ±k', en: 'Weekly' },
+    biweekly: { tr: 'Ä°ki HaftalÄ±k', en: 'Bi-weekly' },
+    monthly: { tr: 'AylÄ±k', en: 'Monthly' },
+    yearly: { tr: 'YÄ±llÄ±k', en: 'Yearly' },
 };
 
 export function RecurringDetector() {
@@ -28,23 +28,23 @@ export function RecurringDetector() {
     }
 
     return (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
-                <Repeat className="w-5 h-5 text-purple-500" />
-                <h3 className="font-semibold text-gray-900 dark:text-white">
-                    {language === 'tr' ? 'Tespit Edilen Tekrarlayan Ödemeler' : 'Detected Recurring Payments'}
+        <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+            <div className="p-4 border-b border-border dark:border-gray-700 flex items-center gap-2">
+                <Repeat className="w-5 h-5 text-primary-500" />
+                <h3 className="font-semibold text-foreground">
+                    {language === 'tr' ? 'Tespit Edilen Tekrarlayan Ã–demeler' : 'Detected Recurring Payments'}
                 </h3>
             </div>
 
             <div className="divide-y divide-gray-200 dark:divide-gray-700">
                 {patterns.slice(0, 5).map((pattern, index) => (
-                    <div key={index} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <div key={index} className="p-4 hover:bg-muted/40 dark:hover:bg-gray-700/50 transition-colors">
                         <div className="flex items-center justify-between">
                             <div className="flex-1 min-w-0">
-                                <p className="font-medium text-gray-900 dark:text-white truncate">
+                                <p className="font-medium text-foreground truncate">
                                     {pattern.description}
                                 </p>
-                                <div className="flex items-center gap-4 mt-1 text-sm text-gray-500 dark:text-gray-400">
+                                <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
                                     <span className="flex items-center gap-1">
                                         <Clock className="w-3 h-3" />
                                         {frequencyLabels[pattern.frequency][language]}
@@ -73,8 +73,8 @@ export function RecurringDetector() {
             </div>
 
             {patterns.length > 5 && (
-                <div className="p-3 bg-gray-50 dark:bg-gray-700/50 text-center">
-                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                <div className="p-3 bg-muted/40/50 text-center">
+                    <span className="text-sm text-muted-foreground">
                         +{patterns.length - 5} {language === 'tr' ? 'daha fazla' : 'more'}
                     </span>
                 </div>
@@ -82,3 +82,5 @@ export function RecurringDetector() {
         </div>
     );
 }
+
+

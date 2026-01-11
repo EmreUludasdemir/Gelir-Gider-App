@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
@@ -40,7 +40,7 @@ export function BudgetManager() {
     {
       id: '3',
       categoryId: 'transport',
-      categoryLabel: 'Ulaşım',
+      categoryLabel: 'UlaÅŸÄ±m',
       amount: 1500,
       spent: 950,
       period: 'monthly',
@@ -72,8 +72,8 @@ export function BudgetManager() {
   }
 
   const getStatusText = (percentage: number, threshold: number) => {
-    if (percentage >= 100) return 'Bütçe Aşıldı!'
-    if (percentage >= threshold) return 'Limite Yaklaşıldı'
+    if (percentage >= 100) return 'BÃ¼tÃ§e AÅŸÄ±ldÄ±!'
+    if (percentage >= threshold) return 'Limite YaklaÅŸÄ±ldÄ±'
     return 'Normal'
   }
 
@@ -113,11 +113,11 @@ export function BudgetManager() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Bütçe Yönetimi</h2>
-          <p className="text-gray-600 mt-1">Harcama limitlerini takip edin</p>
+          <h2 className="text-2xl font-bold text-foreground">BÃ¼tÃ§e YÃ¶netimi</h2>
+          <p className="text-muted-foreground mt-1">Harcama limitlerini takip edin</p>
         </div>
         <Button onClick={() => setShowAddForm(true)}>
-          + Yeni Bütçe
+          + Yeni BÃ¼tÃ§e
         </Button>
       </div>
 
@@ -125,7 +125,7 @@ export function BudgetManager() {
       {showAddForm && (
         <Card>
           <CardHeader>
-            <CardTitle>Yeni Bütçe Ekle</CardTitle>
+            <CardTitle>Yeni BÃ¼tÃ§e Ekle</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -161,9 +161,9 @@ export function BudgetManager() {
                       })
                     }
                   >
-                    <option value="weekly">Haftalık</option>
-                    <option value="monthly">Aylık</option>
-                    <option value="yearly">Yıllık</option>
+                    <option value="weekly">HaftalÄ±k</option>
+                    <option value="monthly">AylÄ±k</option>
+                    <option value="yearly">YÄ±llÄ±k</option>
                   </Select>
                 </div>
               </div>
@@ -171,7 +171,7 @@ export function BudgetManager() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Bütçe Tutarı (₺)
+                    BÃ¼tÃ§e TutarÄ± (â‚º)
                   </label>
                   <Input
                     type="number"
@@ -186,7 +186,7 @@ export function BudgetManager() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Uyarı Eşiği (%)
+                    UyarÄ± EÅŸiÄŸi (%)
                   </label>
                   <Input
                     type="number"
@@ -212,7 +212,7 @@ export function BudgetManager() {
                   variant="outline"
                   className="flex-1"
                 >
-                  İptal
+                  Ä°ptal
                 </Button>
               </div>
             </div>
@@ -250,12 +250,12 @@ export function BudgetManager() {
                       <CardTitle className="text-lg">
                         {budget.categoryLabel}
                       </CardTitle>
-                      <p className="text-xs text-gray-500 capitalize">
+                      <p className="text-xs text-muted-foreground capitalize">
                         {budget.period === 'monthly'
-                          ? 'Aylık'
+                          ? 'AylÄ±k'
                           : budget.period === 'weekly'
-                          ? 'Haftalık'
-                          : 'Yıllık'}
+                          ? 'HaftalÄ±k'
+                          : 'YÄ±llÄ±k'}
                       </p>
                     </div>
                   </div>
@@ -263,7 +263,7 @@ export function BudgetManager() {
                     onClick={() => handleDeleteBudget(budget.id)}
                     className="text-gray-400 hover:text-red-600"
                   >
-                    ✕
+                    âœ•
                   </button>
                 </div>
               </CardHeader>
@@ -274,10 +274,10 @@ export function BudgetManager() {
                   <div>
                     <div className="flex justify-between text-sm mb-1">
                       <span className="font-medium text-gray-700">
-                        {budget.spent.toLocaleString('tr-TR')} ₺
+                        {budget.spent.toLocaleString('tr-TR')} â‚º
                       </span>
-                      <span className="text-gray-500">
-                        / {budget.amount.toLocaleString('tr-TR')} ₺
+                      <span className="text-muted-foreground">
+                        / {budget.amount.toLocaleString('tr-TR')} â‚º
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
@@ -291,14 +291,14 @@ export function BudgetManager() {
                   {/* Stats */}
                   <div className="grid grid-cols-2 gap-2 pt-2 border-t">
                     <div>
-                      <p className="text-xs text-gray-500">Kalan</p>
+                      <p className="text-xs text-muted-foreground">Kalan</p>
                       <p className={`font-bold ${remaining < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                        {remaining.toLocaleString('tr-TR')} ₺
+                        {remaining.toLocaleString('tr-TR')} â‚º
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">Kullanım</p>
-                      <p className="font-bold text-gray-900">
+                      <p className="text-xs text-muted-foreground">KullanÄ±m</p>
+                      <p className="font-bold text-foreground">
                         %{percentage.toFixed(0)}
                       </p>
                     </div>
@@ -326,29 +326,29 @@ export function BudgetManager() {
       {/* Summary Card */}
       <Card>
         <CardHeader>
-          <CardTitle>Bütçe Özeti</CardTitle>
+          <CardTitle>BÃ¼tÃ§e Ã–zeti</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center p-4 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-600 mb-1">Toplam Bütçe</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {budgets.reduce((sum, b) => sum + b.amount, 0).toLocaleString('tr-TR')} ₺
+            <div className="text-center p-4 bg-muted/40 rounded-lg">
+              <p className="text-sm text-muted-foreground mb-1">Toplam BÃ¼tÃ§e</p>
+              <p className="text-2xl font-bold text-foreground">
+                {budgets.reduce((sum, b) => sum + b.amount, 0).toLocaleString('tr-TR')} â‚º
               </p>
             </div>
-            <div className="text-center p-4 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-600 mb-1">Toplam Harcama</p>
+            <div className="text-center p-4 bg-muted/40 rounded-lg">
+              <p className="text-sm text-muted-foreground mb-1">Toplam Harcama</p>
               <p className="text-2xl font-bold text-blue-600">
-                {budgets.reduce((sum, b) => sum + b.spent, 0).toLocaleString('tr-TR')} ₺
+                {budgets.reduce((sum, b) => sum + b.spent, 0).toLocaleString('tr-TR')} â‚º
               </p>
             </div>
-            <div className="text-center p-4 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-600 mb-1">Kalan</p>
+            <div className="text-center p-4 bg-muted/40 rounded-lg">
+              <p className="text-sm text-muted-foreground mb-1">Kalan</p>
               <p className="text-2xl font-bold text-green-600">
                 {budgets
                   .reduce((sum, b) => sum + (b.amount - b.spent), 0)
                   .toLocaleString('tr-TR')}{' '}
-                ₺
+                â‚º
               </p>
             </div>
           </div>
@@ -357,3 +357,4 @@ export function BudgetManager() {
     </div>
   )
 }
+

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useRef } from 'react';
 import { Download, Loader2, FileText } from 'lucide-react';
@@ -52,10 +52,10 @@ export function ReportGenerator() {
         </style>
       </head>
       <body>
-        <h1>📊 Finansal Rapor</h1>
+        <h1>ğŸ“Š Finansal Rapor</h1>
         <p style="color: #666;">${monthName}</p>
         
-        <h2>Özet</h2>
+        <h2>Ã–zet</h2>
         <div class="summary">
           <div class="summary-card income">
             <h3>${language === 'tr' ? 'Toplam Gelir' : 'Total Income'}</h3>
@@ -71,12 +71,12 @@ export function ReportGenerator() {
           </div>
         </div>
         
-        <h2>${language === 'tr' ? 'İşlem Listesi' : 'Transaction List'}</h2>
+        <h2>${language === 'tr' ? 'Ä°ÅŸlem Listesi' : 'Transaction List'}</h2>
         <table>
           <thead>
             <tr>
               <th>${language === 'tr' ? 'Tarih' : 'Date'}</th>
-              <th>${language === 'tr' ? 'Açıklama' : 'Description'}</th>
+              <th>${language === 'tr' ? 'AÃ§Ä±klama' : 'Description'}</th>
               <th>${language === 'tr' ? 'Kategori' : 'Category'}</th>
               <th>${language === 'tr' ? 'Tutar' : 'Amount'}</th>
             </tr>
@@ -93,11 +93,11 @@ export function ReportGenerator() {
           </tbody>
         </table>
         
-        ${transactions.length > 50 ? `<p style="color: #666; font-style: italic;">... ve ${transactions.length - 50} işlem daha</p>` : ''}
+        ${transactions.length > 50 ? `<p style="color: #666; font-style: italic;">... ve ${transactions.length - 50} iÅŸlem daha</p>` : ''}
         
         <div class="footer">
-          <p>Bu rapor otomatik olarak oluşturulmuştur.</p>
-          <p>Gelir-Gider Takip Uygulaması - ${now.toLocaleDateString()}</p>
+          <p>Bu rapor otomatik olarak oluÅŸturulmuÅŸtur.</p>
+          <p>Gelir-Gider Takip UygulamasÄ± - ${now.toLocaleDateString()}</p>
         </div>
       </body>
       </html>
@@ -119,10 +119,12 @@ export function ReportGenerator() {
     return (
         <button
             onClick={generatePDF}
-            className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors"
+            className="px-4 py-2 bg-card border border-border text-foreground rounded-lg hover:bg-muted/40 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors"
         >
             <FileText className="w-4 h-4" />
             {language === 'tr' ? 'PDF Rapor' : 'PDF Report'}
         </button>
     );
 }
+
+

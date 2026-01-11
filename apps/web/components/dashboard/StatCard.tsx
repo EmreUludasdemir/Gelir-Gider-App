@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { memo, useMemo } from 'react'
 import { formatCurrency, getChangeIcon, getChangeColor } from '@/lib/utils'
@@ -28,7 +28,7 @@ const iconMap: Record<string, React.ReactNode> = {
     </div>
   ),
   wallet: (
-    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-400 to-violet-600 flex items-center justify-center shadow-lg shadow-violet-500/30">
+    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center shadow-lg shadow-primary-500/30">
       <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
       </svg>
@@ -81,7 +81,7 @@ export const StatCard = memo(function StatCard({
               <span>
                 {change > 0 ? '+' : ''}{change.toFixed(1)}%
               </span>
-              <span className="text-muted-foreground text-xs ml-1">vs önceki ay</span>
+              <span className="text-muted-foreground text-xs ml-1">vs Ã¶nceki ay</span>
             </div>
           )}
         </div>
@@ -97,9 +97,11 @@ export const StatCard = memo(function StatCard({
             ? 'radial-gradient(circle, #10b981 0%, transparent 70%)'
             : icon === 'down'
               ? 'radial-gradient(circle, #f43f5e 0%, transparent 70%)'
-              : 'radial-gradient(circle, #8b5cf6 0%, transparent 70%)'
+              : 'radial-gradient(circle, #0f4c5c 0%, transparent 70%)'
         }}
       />
     </div>
   )
 })
+
+

@@ -4,57 +4,57 @@
 
 export const CATEGORY_COLORS: Record<string, string> = {
   // Income categories (Green shades)
-  salary: '#10b981',         // green-500
-  freelance: '#059669',      // green-600
-  investment: '#047857',     // green-700
+  salary: '#1b9c63',
+  freelance: '#2dba7f',
+  investment: '#0f4c5c',
   
   // Shopping & Food (Orange/Red shades)
-  market: '#f97316',         // orange-500
-  restaurant: '#ef4444',     // red-500
-  shopping: '#f59e0b',       // amber-500
+  market: '#e0912d',
+  restaurant: '#e15454',
+  shopping: '#f2b36b',
   
   // Transport (Blue shades)
-  transport: '#3b82f6',      // blue-500
+  transport: '#2f6f8a',
   
   // Subscriptions & Entertainment (Purple/Pink)
-  subscription: '#8b5cf6',   // violet-500
-  entertainment: '#ec4899',  // pink-500
+  subscription: '#8b6b3e',
+  entertainment: '#d97706',
   
   // Utilities & Bills (Yellow/Amber)
-  utilities: '#eab308',      // yellow-500
-  rent: '#d97706',           // amber-600
-  insurance: '#ca8a04',      // yellow-600
+  utilities: '#c27c2c',
+  rent: '#b56a2b',
+  insurance: '#9c6b30',
   
   // Health & Personal (Teal/Cyan)
-  health: '#14b8a6',         // teal-500
-  personal_care: '#06b6d4',  // cyan-500
+  health: '#2a9d8f',
+  personal_care: '#4a8c8a',
   
   // Education & Work (Indigo)
-  education: '#6366f1',      // indigo-500
+  education: '#3a7ca5',
   
   // Charity & Others (Gray/Neutral)
-  charity: '#8b5cf6',        // violet-500
-  pet: '#a855f7',            // purple-500
+  charity: '#5e8d7c',
+  pet: '#b07d62',
   
   // Transfer & ATM (Gray)
-  transfer: '#6b7280',       // gray-500
-  atm: '#9ca3af',            // gray-400
+  transfer: '#6b7280',
+  atm: '#9ca3af',
   
   // Other
-  other: '#9ca3af',          // gray-400
+  other: '#9ca3af',
 }
 
 export const CHART_COLORS = [
-  '#3b82f6', // blue-500
-  '#8b5cf6', // violet-500
-  '#ec4899', // pink-500
-  '#f97316', // orange-500
-  '#10b981', // green-500
-  '#06b6d4', // cyan-500
-  '#6366f1', // indigo-500
-  '#f59e0b', // amber-500
-  '#14b8a6', // teal-500
-  '#ef4444', // red-500
+  '#0f4c5c',
+  '#f2b36b',
+  '#1b9c63',
+  '#e15454',
+  '#2a9d8f',
+  '#3a7ca5',
+  '#e0912d',
+  '#6b7280',
+  '#b56a2b',
+  '#4a8c8a',
 ]
 
 export function getCategoryColor(categoryId: string): string {

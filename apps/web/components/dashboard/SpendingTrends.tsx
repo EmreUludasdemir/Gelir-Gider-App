@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { TrendingUp, TrendingDown, Minus, ArrowRight, Loader2, BarChart3 } from 'lucide-react';
 import { useTrends, SpendingTrend } from '@/hooks/useAiAnalytics';
@@ -14,13 +14,13 @@ const trendIcons: Record<TrendType, typeof TrendingUp> = {
 const trendColors: Record<TrendType, string> = {
   increasing: 'text-red-500',
   decreasing: 'text-green-500',
-  stable: 'text-gray-500',
+  stable: 'text-muted-foreground',
 };
 
 const trendBgColors: Record<TrendType, string> = {
   increasing: 'bg-red-50 dark:bg-red-900/20',
   decreasing: 'bg-green-50 dark:bg-green-900/20',
-  stable: 'bg-gray-50 dark:bg-gray-700/50',
+  stable: 'bg-muted/40/50',
 };
 
 export function SpendingTrends() {
@@ -28,9 +28,9 @@ export function SpendingTrends() {
 
   if (isLoading) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+      <div className="bg-card rounded-xl shadow-sm border border-border p-6">
         <div className="flex items-center justify-center h-40">
-          <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+          <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
         </div>
       </div>
     );
@@ -38,13 +38,13 @@ export function SpendingTrends() {
 
   if (!trends || trends.length === 0) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+      <div className="bg-card rounded-xl shadow-sm border border-border p-6">
         <div className="flex items-center gap-2 mb-4">
           <BarChart3 className="w-5 h-5 text-blue-600" />
-          <h3 className="font-semibold text-gray-900 dark:text-white">Harcama Trendleri</h3>
+          <h3 className="font-semibold text-foreground">Harcama Trendleri</h3>
         </div>
-        <p className="text-gray-500 dark:text-gray-400 text-center py-4">
-          Trend analizi için yeterli veri yok.
+        <p className="text-muted-foreground text-center py-4">
+          Trend analizi iÃ§in yeterli veri yok.
         </p>
       </div>
     );
@@ -53,11 +53,11 @@ export function SpendingTrends() {
   const topTrends = trends.slice(0, 5);
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+    <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+      <div className="p-4 border-b border-border dark:border-gray-700">
         <div className="flex items-center gap-2">
           <BarChart3 className="w-5 h-5 text-blue-600" />
-          <h3 className="font-semibold text-gray-900 dark:text-white">Harcama Trendleri</h3>
+          <h3 className="font-semibold text-foreground">Harcama Trendleri</h3>
         </div>
       </div>
 
@@ -70,7 +70,7 @@ export function SpendingTrends() {
               className={`p-3 rounded-lg ${trendBgColors[trend.trend as TrendType]}`}
             >
               <div className="flex items-center justify-between mb-2">
-                <span className="font-medium text-gray-900 dark:text-white">
+                <span className="font-medium text-foreground">
                   {trend.categoryLabel}
                 </span>
                 <div className={`flex items-center gap-1 ${trendColors[trend.trend as TrendType]}`}>
@@ -82,15 +82,15 @@ export function SpendingTrends() {
               </div>
 
               <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                  <span>{trend.previousMonthSpending.toLocaleString('tr-TR')} ₺</span>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <span>{trend.previousMonthSpending.toLocaleString('tr-TR')} â‚º</span>
                   <ArrowRight className="w-4 h-4" />
-                  <span className="font-medium text-gray-900 dark:text-white">
-                    {trend.currentMonthSpending.toLocaleString('tr-TR')} ₺
+                  <span className="font-medium text-foreground">
+                    {trend.currentMonthSpending.toLocaleString('tr-TR')} â‚º
                   </span>
                 </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">
-                  Tahmini: {trend.prediction.toLocaleString('tr-TR')} ₺
+                <div className="text-xs text-muted-foreground">
+                  Tahmini: {trend.prediction.toLocaleString('tr-TR')} â‚º
                 </div>
               </div>
 
@@ -113,7 +113,7 @@ export function SpendingTrends() {
 
       {trends.length > 5 && (
         <div className="px-4 pb-4">
-          <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+          <p className="text-sm text-muted-foreground text-center">
             + {trends.length - 5} kategoride daha trend mevcut
           </p>
         </div>
@@ -121,3 +121,5 @@ export function SpendingTrends() {
     </div>
   );
 }
+
+

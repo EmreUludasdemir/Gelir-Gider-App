@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { Locale, defaultLocale, translate, formatCurrency, formatDate, formatRelativeTime, localeNames } from '../lib/i18n';
@@ -99,3 +99,4 @@ export function useTranslation() {
   const { t, locale } = useI18n();
   return { t, locale };
 }
+

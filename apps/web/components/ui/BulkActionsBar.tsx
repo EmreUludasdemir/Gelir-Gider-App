@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { X, Trash2, Tag, Download, MoreHorizontal } from 'lucide-react'
@@ -32,20 +32,20 @@ export function BulkActionsBar({
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50 animate-slide-up">
+    <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-lg z-50 animate-slide-up">
       <div className="max-w-7xl mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
           {/* Selected Count */}
           <div className="flex items-center gap-3">
             <button
               onClick={onDeselect}
-              className="p-1 hover:bg-gray-100 rounded transition-colors"
-              aria-label="Seçimi kaldır"
+              className="p-1 hover:bg-muted rounded transition-colors"
+              aria-label="SeÃ§imi kaldÄ±r"
             >
-              <X className="w-5 h-5 text-gray-600" />
+              <X className="w-5 h-5 text-muted-foreground" />
             </button>
-            <span className="text-sm font-medium text-gray-900">
-              {selectedCount} öğe seçildi
+            <span className="text-sm font-medium text-foreground">
+              {selectedCount} Ã¶ÄŸe seÃ§ildi
             </span>
           </div>
 
@@ -59,7 +59,7 @@ export function BulkActionsBar({
                     setShowCategoryMenu(!showCategoryMenu)
                     setShowMoreMenu(false)
                   }}
-                  className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 bg-card border border-border rounded-md hover:bg-muted/40 transition-colors"
                 >
                   <Tag className="w-4 h-4" />
                   Kategorize Et
@@ -74,16 +74,16 @@ export function BulkActionsBar({
                     />
 
                     {/* Dropdown Menu */}
-                    <div className="absolute bottom-full right-0 mb-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-20 max-h-80 overflow-y-auto">
+                    <div className="absolute bottom-full right-0 mb-2 w-64 bg-card border border-border rounded-lg shadow-lg z-20 max-h-80 overflow-y-auto">
                       <div className="p-2">
-                        <p className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase">
-                          Kategori Seç
+                        <p className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase">
+                          Kategori SeÃ§
                         </p>
                         {CATEGORIES.map((category) => (
                           <button
                             key={category.id}
                             onClick={() => handleCategorySelect(category.id, category.label)}
-                            className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded transition-colors"
+                            className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-muted rounded transition-colors"
                           >
                             <span className="text-lg">{category.emoji}</span>
                             <span>{category.label}</span>
@@ -100,10 +100,10 @@ export function BulkActionsBar({
             {onExport && (
               <button
                 onClick={onExport}
-                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 bg-card border border-border rounded-md hover:bg-muted/40 transition-colors"
               >
                 <Download className="w-4 h-4" />
-                Dışa Aktar
+                DÄ±ÅŸa Aktar
               </button>
             )}
 
@@ -126,8 +126,8 @@ export function BulkActionsBar({
                   setShowMoreMenu(!showMoreMenu)
                   setShowCategoryMenu(false)
                 }}
-                className="p-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                aria-label="Daha fazla işlem"
+                className="p-2 text-gray-700 hover:bg-muted rounded-md transition-colors"
+                aria-label="Daha fazla iÅŸlem"
               >
                 <MoreHorizontal className="w-5 h-5" />
               </button>
@@ -141,23 +141,23 @@ export function BulkActionsBar({
                   />
 
                   {/* Dropdown Menu */}
-                  <div className="absolute bottom-full right-0 mb-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
+                  <div className="absolute bottom-full right-0 mb-2 w-48 bg-card border border-border rounded-lg shadow-lg z-20">
                     <div className="p-1">
                       <button
                         onClick={() => {
                           // Add future bulk actions here
                           setShowMoreMenu(false)
                         }}
-                        className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded transition-colors"
+                        className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-muted rounded transition-colors"
                       >
-                        Toplu Düzenle
+                        Toplu DÃ¼zenle
                       </button>
                       <button
                         onClick={() => {
                           // Add future bulk actions here
                           setShowMoreMenu(false)
                         }}
-                        className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded transition-colors"
+                        className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-muted rounded transition-colors"
                       >
                         Etiket Ekle
                       </button>
@@ -190,3 +190,5 @@ export function BulkActionsBar({
   animation: slide-up 0.3s ease-out;
 }
 */
+
+

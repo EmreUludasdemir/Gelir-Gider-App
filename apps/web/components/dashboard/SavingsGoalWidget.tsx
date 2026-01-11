@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { Target, Plus, TrendingUp, Calendar } from 'lucide-react'
 
@@ -44,7 +44,7 @@ export function SavingsGoalWidget({ goals, onAddGoal, onGoalClick }: SavingsGoal
   const completedGoals = goals.filter(g => g.isCompleted)
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className="bg-card rounded-lg shadow p-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold flex items-center gap-2">
           <Target className="w-5 h-5 text-blue-600" />
@@ -62,15 +62,15 @@ export function SavingsGoalWidget({ goals, onAddGoal, onGoalClick }: SavingsGoal
       </div>
 
       {activeGoals.length === 0 && completedGoals.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
+        <div className="text-center py-8 text-muted-foreground">
           <Target className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p className="text-sm">Henüz tasarruf hedefiniz yok</p>
+          <p className="text-sm">HenÃ¼z tasarruf hedefiniz yok</p>
           {onAddGoal && (
             <button
               onClick={onAddGoal}
               className="mt-3 text-blue-600 hover:text-blue-700 text-sm font-medium"
             >
-              İlk hedefinizi oluşturun
+              Ä°lk hedefinizi oluÅŸturun
             </button>
           )}
         </div>
@@ -86,12 +86,12 @@ export function SavingsGoalWidget({ goals, onAddGoal, onGoalClick }: SavingsGoal
               <div
                 key={goal.id}
                 onClick={() => onGoalClick?.(goal)}
-                className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors cursor-pointer"
+                className="border border-border rounded-lg p-4 hover:border-blue-300 transition-colors cursor-pointer"
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex-1">
-                    <h4 className="font-medium text-gray-900">{goal.name}</h4>
-                    <div className="flex items-center gap-4 mt-1 text-sm text-gray-600">
+                    <h4 className="font-medium text-foreground">{goal.name}</h4>
+                    <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <TrendingUp className="w-3.5 h-3.5" />
                         {formatCurrency(goal.currentAmount, goal.currency)} / {formatCurrency(goal.targetAmount, goal.currency)}
@@ -99,7 +99,7 @@ export function SavingsGoalWidget({ goals, onAddGoal, onGoalClick }: SavingsGoal
                       {daysRemaining !== null && (
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3.5 h-3.5" />
-                          {daysRemaining > 0 ? `${daysRemaining} gün kaldı` : 'Süre doldu'}
+                          {daysRemaining > 0 ? `${daysRemaining} gÃ¼n kaldÄ±` : 'SÃ¼re doldu'}
                         </span>
                       )}
                     </div>
@@ -118,10 +118,10 @@ export function SavingsGoalWidget({ goals, onAddGoal, onGoalClick }: SavingsGoal
                 </div>
 
                 {/* Remaining Amount */}
-                <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
+                <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
                   <span>Kalan: {formatCurrency(remaining, goal.currency)}</span>
                   {daysRemaining !== null && daysRemaining > 0 && (
-                    <span>Günlük: {formatCurrency(remaining / daysRemaining, goal.currency)}</span>
+                    <span>GÃ¼nlÃ¼k: {formatCurrency(remaining / daysRemaining, goal.currency)}</span>
                   )}
                 </div>
               </div>
@@ -130,12 +130,12 @@ export function SavingsGoalWidget({ goals, onAddGoal, onGoalClick }: SavingsGoal
 
           {/* Completed Goals Summary */}
           {completedGoals.length > 0 && (
-            <div className="pt-4 border-t border-gray-200">
-              <p className="text-sm text-gray-600 flex items-center gap-2">
+            <div className="pt-4 border-t border-border">
+              <p className="text-sm text-muted-foreground flex items-center gap-2">
                 <span className="flex items-center justify-center w-6 h-6 bg-green-100 text-green-600 rounded-full text-xs font-semibold">
-                  ✓
+                  âœ“
                 </span>
-                {completedGoals.length} hedef tamamlandı
+                {completedGoals.length} hedef tamamlandÄ±
               </p>
             </div>
           )}
@@ -144,11 +144,11 @@ export function SavingsGoalWidget({ goals, onAddGoal, onGoalClick }: SavingsGoal
 
       {/* Summary Stats */}
       {activeGoals.length > 0 && (
-        <div className="mt-4 pt-4 border-t border-gray-200">
+        <div className="mt-4 pt-4 border-t border-border">
           <div className="grid grid-cols-2 gap-4 text-center">
             <div>
-              <p className="text-xs text-gray-600">Toplam Hedef</p>
-              <p className="text-lg font-semibold text-gray-900">
+              <p className="text-xs text-muted-foreground">Toplam Hedef</p>
+              <p className="text-lg font-semibold text-foreground">
                 {formatCurrency(
                   activeGoals.reduce((sum, g) => sum + g.targetAmount, 0),
                   activeGoals[0]?.currency
@@ -156,7 +156,7 @@ export function SavingsGoalWidget({ goals, onAddGoal, onGoalClick }: SavingsGoal
               </p>
             </div>
             <div>
-              <p className="text-xs text-gray-600">Toplam Birikim</p>
+              <p className="text-xs text-muted-foreground">Toplam Birikim</p>
               <p className="text-lg font-semibold text-blue-600">
                 {formatCurrency(
                   activeGoals.reduce((sum, g) => sum + g.currentAmount, 0),
@@ -170,3 +170,5 @@ export function SavingsGoalWidget({ goals, onAddGoal, onGoalClick }: SavingsGoal
     </div>
   )
 }
+
+

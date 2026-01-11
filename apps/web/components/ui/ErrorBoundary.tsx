@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import React, { Component, ErrorInfo, ReactNode } from 'react'
 import { AlertTriangle, RefreshCw, Home, ChevronDown, ChevronUp } from 'lucide-react'
@@ -73,19 +73,19 @@ export class ErrorBoundary extends Component<Props, State> {
 
       // Default error UI
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-          <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-6">
+        <div className="min-h-screen flex items-center justify-center bg-muted/40 p-4">
+          <div className="max-w-md w-full bg-card rounded-lg shadow-lg p-6">
             {/* Icon & Title */}
             <div className="flex items-center justify-center w-16 h-16 mx-auto bg-red-100 rounded-full mb-4">
               <AlertTriangle className="w-8 h-8 text-red-600" />
             </div>
 
-            <h1 className="text-2xl font-bold text-gray-900 text-center mb-2">
-              Bir Hata Oluştu
+            <h1 className="text-2xl font-bold text-foreground text-center mb-2">
+              Bir Hata OluÅŸtu
             </h1>
 
-            <p className="text-gray-600 text-center mb-6">
-              Üzgünüz, bir şeyler ters gitti. Lütfen sayfayı yenilemeyi deneyin.
+            <p className="text-muted-foreground text-center mb-6">
+              ÃœzgÃ¼nÃ¼z, bir ÅŸeyler ters gitti. LÃ¼tfen sayfayÄ± yenilemeyi deneyin.
             </p>
 
             {/* Error Message */}
@@ -121,9 +121,9 @@ export class ErrorBoundary extends Component<Props, State> {
               <div className="border-t pt-4">
                 <button
                   onClick={this.toggleDetails}
-                  className="w-full flex items-center justify-between text-sm text-gray-600 hover:text-gray-900 transition-colors"
+                  className="w-full flex items-center justify-between text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  <span>Hata Detayları</span>
+                  <span>Hata DetaylarÄ±</span>
                   {this.state.showDetails ? (
                     <ChevronUp className="w-4 h-4" />
                   ) : (
@@ -132,7 +132,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 </button>
 
                 {this.state.showDetails && (
-                  <div className="mt-3 p-3 bg-gray-50 rounded border border-gray-200 overflow-auto max-h-64">
+                  <div className="mt-3 p-3 bg-muted/40 rounded border border-border overflow-auto max-h-64">
                     <div className="text-xs font-mono text-gray-700 whitespace-pre-wrap break-words">
                       <div className="mb-2">
                         <strong>Error:</strong> {this.state.error?.toString()}
@@ -156,13 +156,13 @@ export class ErrorBoundary extends Component<Props, State> {
             )}
 
             {/* Environment Info */}
-            <div className="mt-4 pt-4 border-t text-xs text-gray-500 text-center">
+            <div className="mt-4 pt-4 border-t text-xs text-muted-foreground text-center">
               <p>
-                Sorun devam ederse, lütfen destek ekibiyle iletişime geçin.
+                Sorun devam ederse, lÃ¼tfen destek ekibiyle iletiÅŸime geÃ§in.
               </p>
               {process.env.NODE_ENV === 'development' && (
                 <p className="mt-1 text-orange-600">
-                  (Development mode - Detaylı hatalar gösteriliyor)
+                  (Development mode - DetaylÄ± hatalar gÃ¶steriliyor)
                 </p>
               )}
             </div>
@@ -190,3 +190,5 @@ export function withErrorBoundary<P extends object>(
 
   return WrappedComponent
 }
+
+

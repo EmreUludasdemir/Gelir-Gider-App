@@ -37,7 +37,7 @@ export function getChangeIcon(change: number): string {
 }
 
 export function getChangeColor(change: number): string {
-  if (change > 0) return 'text-green-600'
-  if (change < 0) return 'text-red-600'
-  return 'text-gray-600'
+  if (change > 0) return 'text-success'
+  if (change < 0) return 'text-destructive'
+  return 'text-muted-foreground'
 }

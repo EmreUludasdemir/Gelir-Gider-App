@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { X, Settings, Globe, DollarSign, Moon, Sun, Monitor } from 'lucide-react';
@@ -33,20 +33,20 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       />
 
       {/* Modal */}
-      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+      <div className="relative bg-card rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between p-4 border-b border-border dark:border-gray-700">
           <div className="flex items-center gap-2">
-            <Settings className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            <Settings className="w-5 h-5 text-muted-foreground" />
+            <h2 className="text-lg font-semibold text-foreground">
               {t('settings')}
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            className="p-2 hover:bg-muted dark:hover:bg-gray-700 rounded-lg transition-colors"
           >
-            <X className="w-5 h-5 text-gray-500" />
+            <X className="w-5 h-5 text-muted-foreground" />
           </button>
         </div>
 
@@ -54,7 +54,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         <div className="p-4 space-y-6">
           {/* Language */}
           <div className="space-y-2">
-            <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+            <div className="flex items-center gap-2 text-foreground">
               <Globe className="w-4 h-4" />
               <label className="font-medium">{t('language')}</label>
             </div>
@@ -64,27 +64,27 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 className={`px-4 py-2 rounded-lg border transition-colors ${
                   language === 'tr'
                     ? 'bg-primary-600 border-primary-600 text-white'
-                    : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                    : 'border-border dark:border-gray-600 text-foreground hover:bg-muted/40 dark:hover:bg-gray-700'
                 }`}
               >
-                🇹🇷 Türkçe
+                ğŸ‡¹ğŸ‡· TÃ¼rkÃ§e
               </button>
               <button
                 onClick={() => setLanguage('en')}
                 className={`px-4 py-2 rounded-lg border transition-colors ${
                   language === 'en'
                     ? 'bg-primary-600 border-primary-600 text-white'
-                    : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                    : 'border-border dark:border-gray-600 text-foreground hover:bg-muted/40 dark:hover:bg-gray-700'
                 }`}
               >
-                🇺🇸 English
+                ğŸ‡ºğŸ‡¸ English
               </button>
             </div>
           </div>
 
           {/* Currency */}
           <div className="space-y-2">
-            <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+            <div className="flex items-center gap-2 text-foreground">
               <DollarSign className="w-4 h-4" />
               <label className="font-medium">{t('currency')}</label>
             </div>
@@ -96,10 +96,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   className={`px-4 py-2 rounded-lg border transition-colors ${
                     currency === curr
                       ? 'bg-primary-600 border-primary-600 text-white'
-                      : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      : 'border-border dark:border-gray-600 text-foreground hover:bg-muted/40 dark:hover:bg-gray-700'
                   }`}
                 >
-                  {curr === 'TRY' ? '₺ TRY' : curr === 'USD' ? '$ USD' : '€ EUR'}
+                  {curr === 'TRY' ? 'â‚º TRY' : curr === 'USD' ? '$ USD' : 'â‚¬ EUR'}
                 </button>
               ))}
             </div>
@@ -107,7 +107,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
           {/* Theme */}
           <div className="space-y-2">
-            <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+            <div className="flex items-center gap-2 text-foreground">
               <Sun className="w-4 h-4" />
               <label className="font-medium">{t('theme')}</label>
             </div>
@@ -117,7 +117,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
                   theme === 'light'
                     ? 'bg-primary-600 border-primary-600 text-white'
-                    : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                    : 'border-border dark:border-gray-600 text-foreground hover:bg-muted/40 dark:hover:bg-gray-700'
                 }`}
               >
                 <Sun className="w-4 h-4" />
@@ -128,7 +128,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
                   theme === 'dark'
                     ? 'bg-primary-600 border-primary-600 text-white'
-                    : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                    : 'border-border dark:border-gray-600 text-foreground hover:bg-muted/40 dark:hover:bg-gray-700'
                 }`}
               >
                 <Moon className="w-4 h-4" />
@@ -139,7 +139,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
                   theme === 'system'
                     ? 'bg-primary-600 border-primary-600 text-white'
-                    : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                    : 'border-border dark:border-gray-600 text-foreground hover:bg-muted/40 dark:hover:bg-gray-700'
                 }`}
               >
                 <Monitor className="w-4 h-4" />
@@ -150,8 +150,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         </div>
 
         {/* Footer */}
-        <div className="p-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
-          <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+        <div className="p-4 bg-muted/40 dark:bg-gray-900 border-t border-border dark:border-gray-700">
+          <p className="text-xs text-muted-foreground text-center">
             {language === 'tr'
               ? 'Tercihleriniz otomatik olarak kaydedilir.'
               : 'Your preferences are saved automatically.'}
@@ -161,3 +161,5 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     </div>
   );
 }
+
+

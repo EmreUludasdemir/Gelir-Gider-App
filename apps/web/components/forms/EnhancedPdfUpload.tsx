@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useCallback } from 'react'
 import { uploadPdf, UploadResult } from '@/lib/api'
@@ -23,13 +23,13 @@ export function EnhancedPdfUpload({ onSuccess }: EnhancedPdfUploadProps) {
 
     // Validate file
     if (!selectedFile.name.toLowerCase().endsWith('.pdf')) {
-      setError('Lütfen sadece PDF dosyası seçin')
+      setError('LÃ¼tfen sadece PDF dosyasÄ± seÃ§in')
       return
     }
 
     const sizeMB = selectedFile.size / (1024 * 1024)
     if (sizeMB > 10) {
-      setError('Dosya boyutu 10MB\'dan küçük olmalı')
+      setError('Dosya boyutu 10MB\'dan kÃ¼Ã§Ã¼k olmalÄ±')
       return
     }
 
@@ -95,7 +95,7 @@ export function EnhancedPdfUpload({ onSuccess }: EnhancedPdfUploadProps) {
         setUploadProgress(0)
       }, 3000)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Yükleme başarısız')
+      setError(err instanceof Error ? err.message : 'YÃ¼kleme baÅŸarÄ±sÄ±z')
       setUploadProgress(0)
     } finally {
       clearInterval(progressInterval)
@@ -114,7 +114,7 @@ export function EnhancedPdfUpload({ onSuccess }: EnhancedPdfUploadProps) {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          📄 PDF Ekstre Yükle
+          ğŸ“„ PDF Ekstre YÃ¼kle
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -124,7 +124,7 @@ export function EnhancedPdfUpload({ onSuccess }: EnhancedPdfUploadProps) {
             className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
               dragActive
                 ? 'border-primary-500 bg-primary-50'
-                : 'border-gray-300 hover:border-gray-400'
+                : 'border-border hover:border-gray-400'
             }`}
             onDragEnter={handleDrag}
             onDragOver={handleDrag}
@@ -141,13 +141,13 @@ export function EnhancedPdfUpload({ onSuccess }: EnhancedPdfUploadProps) {
             />
 
             <div className="pointer-events-none">
-              <div className="text-6xl mb-4">📎</div>
+              <div className="text-6xl mb-4">ğŸ“</div>
               <p className="text-lg font-medium text-gray-700 mb-2">
                 {file
-                  ? `Seçilen: ${file.name}`
-                  : 'PDF dosyasını sürükleyip bırakın veya tıklayarak seçin'}
+                  ? `SeÃ§ilen: ${file.name}`
+                  : 'PDF dosyasÄ±nÄ± sÃ¼rÃ¼kleyip bÄ±rakÄ±n veya tÄ±klayarak seÃ§in'}
               </p>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 Maksimum dosya boyutu: 10MB
               </p>
             </div>
@@ -155,12 +155,12 @@ export function EnhancedPdfUpload({ onSuccess }: EnhancedPdfUploadProps) {
 
           {/* File Info */}
           {file && !loading && (
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center justify-between p-4 bg-muted/40 rounded-lg">
               <div className="flex items-center gap-3">
-                <div className="text-2xl">📄</div>
+                <div className="text-2xl">ğŸ“„</div>
                 <div>
-                  <p className="font-medium text-gray-900">{file.name}</p>
-                  <p className="text-sm text-gray-600">
+                  <p className="font-medium text-foreground">{file.name}</p>
+                  <p className="text-sm text-muted-foreground">
                     {(file.size / 1024).toFixed(2)} KB
                   </p>
                 </div>
@@ -169,7 +169,7 @@ export function EnhancedPdfUpload({ onSuccess }: EnhancedPdfUploadProps) {
                 onClick={handleCancel}
                 className="text-red-600 hover:text-red-800 font-medium"
               >
-                ✕
+                âœ•
               </button>
             </div>
           )}
@@ -178,7 +178,7 @@ export function EnhancedPdfUpload({ onSuccess }: EnhancedPdfUploadProps) {
           {loading && (
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-700">Yükleniyor ve parse ediliyor...</span>
+                <span className="text-gray-700">YÃ¼kleniyor ve parse ediliyor...</span>
                 <span className="font-medium text-primary-600">{uploadProgress}%</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
@@ -198,7 +198,7 @@ export function EnhancedPdfUpload({ onSuccess }: EnhancedPdfUploadProps) {
               loading={loading}
               className="flex-1"
             >
-              {loading ? 'İşleniyor...' : 'Yükle ve Parse Et'}
+              {loading ? 'Ä°ÅŸleniyor...' : 'YÃ¼kle ve Parse Et'}
             </Button>
             {file && !loading && (
               <Button
@@ -206,7 +206,7 @@ export function EnhancedPdfUpload({ onSuccess }: EnhancedPdfUploadProps) {
                 variant="outline"
                 className="px-6"
               >
-                İptal
+                Ä°ptal
               </Button>
             )}
           </div>
@@ -215,7 +215,7 @@ export function EnhancedPdfUpload({ onSuccess }: EnhancedPdfUploadProps) {
           {error && (
             <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
               <div className="flex items-start gap-2">
-                <span className="text-red-600 text-xl">⚠️</span>
+                <span className="text-red-600 text-xl">âš ï¸</span>
                 <div className="flex-1">
                   <p className="font-medium text-red-900 mb-1">Hata</p>
                   <p className="text-sm text-red-800">{error}</p>
@@ -228,34 +228,34 @@ export function EnhancedPdfUpload({ onSuccess }: EnhancedPdfUploadProps) {
           {result && result.success && (
             <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
               <div className="flex items-start gap-2 mb-3">
-                <span className="text-green-600 text-xl">✓</span>
+                <span className="text-green-600 text-xl">âœ“</span>
                 <div className="flex-1">
                   <h4 className="font-semibold text-green-900 mb-2">
-                    Başarılı! {result.totalSaved} işlem eklendi
+                    BaÅŸarÄ±lÄ±! {result.totalSaved} iÅŸlem eklendi
                   </h4>
 
                   {/* Statistics */}
                   <div className="grid grid-cols-2 gap-3 mb-3">
-                    <div className="bg-white p-2 rounded">
-                      <p className="text-xs text-gray-600">Parse Edilen</p>
-                      <p className="text-lg font-bold text-gray-900">
+                    <div className="bg-card p-2 rounded">
+                      <p className="text-xs text-muted-foreground">Parse Edilen</p>
+                      <p className="text-lg font-bold text-foreground">
                         {result.totalParsed}
                       </p>
                     </div>
-                    <div className="bg-white p-2 rounded">
-                      <p className="text-xs text-gray-600">Kaydedilen</p>
+                    <div className="bg-card p-2 rounded">
+                      <p className="text-xs text-muted-foreground">Kaydedilen</p>
                       <p className="text-lg font-bold text-green-600">
                         {result.totalSaved}
                       </p>
                     </div>
-                    <div className="bg-white p-2 rounded">
-                      <p className="text-xs text-gray-600">Düşük Güven</p>
+                    <div className="bg-card p-2 rounded">
+                      <p className="text-xs text-muted-foreground">DÃ¼ÅŸÃ¼k GÃ¼ven</p>
                       <p className="text-lg font-bold text-yellow-600">
                         {result.lowConfidenceCount}
                       </p>
                     </div>
-                    <div className="bg-white p-2 rounded">
-                      <p className="text-xs text-gray-600">Hata</p>
+                    <div className="bg-card p-2 rounded">
+                      <p className="text-xs text-muted-foreground">Hata</p>
                       <p className="text-lg font-bold text-red-600">
                         {result.errors.length}
                       </p>
@@ -266,7 +266,7 @@ export function EnhancedPdfUpload({ onSuccess }: EnhancedPdfUploadProps) {
                   {result.errors.length > 0 && (
                     <details className="text-sm">
                       <summary className="cursor-pointer font-medium text-yellow-800 mb-1">
-                        ⚠️ {result.errors.length} hata oluştu (detaylar)
+                        âš ï¸ {result.errors.length} hata oluÅŸtu (detaylar)
                       </summary>
                       <ul className="text-xs text-gray-700 space-y-1 mt-2 max-h-32 overflow-y-auto pl-4">
                         {result.errors.map((err, idx) => (
@@ -287,7 +287,7 @@ export function EnhancedPdfUpload({ onSuccess }: EnhancedPdfUploadProps) {
                   variant="outline"
                   className="flex-1 text-sm"
                 >
-                  İşlemleri Görüntüle →
+                  Ä°ÅŸlemleri GÃ¶rÃ¼ntÃ¼le â†’
                 </Button>
                 {result.lowConfidenceCount > 0 && (
                   <Button
@@ -295,7 +295,7 @@ export function EnhancedPdfUpload({ onSuccess }: EnhancedPdfUploadProps) {
                     variant="outline"
                     className="flex-1 text-sm"
                   >
-                    Düşük Güvenli İşlemler →
+                    DÃ¼ÅŸÃ¼k GÃ¼venli Ä°ÅŸlemler â†’
                   </Button>
                 )}
               </div>
@@ -303,11 +303,11 @@ export function EnhancedPdfUpload({ onSuccess }: EnhancedPdfUploadProps) {
           )}
 
           {/* Help Text */}
-          <div className="text-xs text-gray-500 space-y-1">
-            <p>💡 <strong>İpucu:</strong> Banka ekstrenizi PDF olarak kaydedin ve buraya yükleyin.</p>
+          <div className="text-xs text-muted-foreground space-y-1">
+            <p>ğŸ’¡ <strong>Ä°pucu:</strong> Banka ekstrenizi PDF olarak kaydedin ve buraya yÃ¼kleyin.</p>
             <p>
-              ✅ Desteklenen bankalar: Garanti BBVA, Ziraat, İş Bankası, Akbank,
-              Yapı Kredi, QNB Finansbank ve daha fazlası
+              âœ… Desteklenen bankalar: Garanti BBVA, Ziraat, Ä°ÅŸ BankasÄ±, Akbank,
+              YapÄ± Kredi, QNB Finansbank ve daha fazlasÄ±
             </p>
           </div>
         </div>
@@ -315,3 +315,4 @@ export function EnhancedPdfUpload({ onSuccess }: EnhancedPdfUploadProps) {
     </Card>
   )
 }
+

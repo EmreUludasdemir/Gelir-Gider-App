@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { memo, useMemo } from 'react'
 import { CategorySummary } from '@/lib/api'
@@ -28,12 +28,12 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
   if (active && payload && payload.length > 0) {
     const data = payload[0].payload
     return (
-      <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
+      <div className="bg-card p-3 rounded-lg shadow-lg border border-border">
         <p className="font-medium mb-1">{data.name}</p>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-muted-foreground">
           {formatCurrency(data.value)}
         </p>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted-foreground">
           {data.percentage.toFixed(1)}%
         </p>
       </div>
@@ -54,7 +54,7 @@ export const CategoryPieChart = memo(function CategoryPieChart({ categories }: C
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Harcama Dağılımı</CardTitle>
+        <CardTitle>Harcama DaÄŸÄ±lÄ±mÄ±</CardTitle>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
@@ -84,3 +84,5 @@ export const CategoryPieChart = memo(function CategoryPieChart({ categories }: C
     </Card>
   )
 })
+
+

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect } from 'react';
 
@@ -31,10 +31,10 @@ export function SubscriptionSummary({ subscriptions: propSubs }: SubscriptionSum
         } else {
             // Mock data
             const mockSubs = [
-                { id: '1', name: 'Netflix', amount: 149.99, frequency: 'monthly', category: 'Eğlence', nextPayment: '2024-12-20' },
-                { id: '2', name: 'Spotify', amount: 59.99, frequency: 'monthly', category: 'Eğlence', nextPayment: '2024-12-15' },
+                { id: '1', name: 'Netflix', amount: 149.99, frequency: 'monthly', category: 'EÄŸlence', nextPayment: '2024-12-20' },
+                { id: '2', name: 'Spotify', amount: 59.99, frequency: 'monthly', category: 'EÄŸlence', nextPayment: '2024-12-15' },
                 { id: '3', name: 'iCloud', amount: 44.99, frequency: 'monthly', category: 'Teknoloji', nextPayment: '2024-12-22' },
-                { id: '4', name: 'Spor Salonu', amount: 299, frequency: 'monthly', category: 'Sağlık', nextPayment: '2024-12-25' },
+                { id: '4', name: 'Spor Salonu', amount: 299, frequency: 'monthly', category: 'SaÄŸlÄ±k', nextPayment: '2024-12-25' },
             ];
             setSubscriptions(mockSubs);
             setTotalMonthly(553.97);
@@ -43,10 +43,10 @@ export function SubscriptionSummary({ subscriptions: propSubs }: SubscriptionSum
 
     const getCategoryColor = (category: string) => {
         switch (category) {
-            case 'Eğlence': return 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400';
+            case 'EÄŸlence': return 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400';
             case 'Teknoloji': return 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400';
-            case 'Sağlık': return 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400';
-            default: return 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400';
+            case 'SaÄŸlÄ±k': return 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400';
+            default: return 'bg-muted text-muted-foreground dark:bg-gray-700 dark:text-gray-400';
         }
     };
 
@@ -55,27 +55,27 @@ export function SubscriptionSummary({ subscriptions: propSubs }: SubscriptionSum
         const now = new Date();
         const diff = Math.ceil((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
-        if (diff <= 0) return 'Bugün';
-        if (diff === 1) return 'Yarın';
-        if (diff <= 7) return `${diff} gün`;
+        if (diff <= 0) return 'BugÃ¼n';
+        if (diff === 1) return 'YarÄ±n';
+        if (diff <= 7) return `${diff} gÃ¼n`;
         return date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
     };
 
     return (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+        <div className="bg-card rounded-2xl p-6 shadow-sm border border-border">
             <div className="flex justify-between items-start mb-4">
                 <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                        📱 Abonelikler
+                    <h3 className="text-lg font-semibold text-foreground">
+                        ğŸ“± Abonelikler
                     </h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                    <p className="text-sm text-muted-foreground">
                         {subscriptions.length} aktif abonelik
                     </p>
                 </div>
                 <div className="text-right">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Aylık</p>
+                    <p className="text-sm text-muted-foreground">AylÄ±k</p>
                     <p className="text-xl font-bold text-red-500 dark:text-red-400">
-                        ₺{totalMonthly.toFixed(2)}
+                        â‚º{totalMonthly.toFixed(2)}
                     </p>
                 </div>
             </div>
@@ -88,13 +88,13 @@ export function SubscriptionSummary({ subscriptions: propSubs }: SubscriptionSum
                             <span className={`px-2 py-1 text-xs font-medium rounded ${getCategoryColor(sub.category)}`}>
                                 {sub.category.slice(0, 3)}
                             </span>
-                            <span className="font-medium text-gray-900 dark:text-white">{sub.name}</span>
+                            <span className="font-medium text-foreground">{sub.name}</span>
                         </div>
                         <div className="text-right">
-                            <p className="font-semibold text-gray-900 dark:text-white">
-                                ₺{sub.amount}
+                            <p className="font-semibold text-foreground">
+                                â‚º{sub.amount}
                             </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                            <p className="text-xs text-muted-foreground">
                                 {formatDate(sub.nextPayment)}
                             </p>
                         </div>
@@ -103,18 +103,20 @@ export function SubscriptionSummary({ subscriptions: propSubs }: SubscriptionSum
             </div>
 
             {subscriptions.length > 4 && (
-                <button className="mt-3 w-full py-2 text-center text-purple-600 dark:text-purple-400 font-medium text-sm hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors">
-                    +{subscriptions.length - 4} daha →
+                <button className="mt-3 w-full py-2 text-center text-primary-600 dark:text-primary-400 font-medium text-sm hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors">
+                    +{subscriptions.length - 4} daha â†’
                 </button>
             )}
 
             {/* Yearly cost warning */}
             <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg flex items-start gap-2">
-                <span className="text-lg">💡</span>
+                <span className="text-lg">ğŸ’¡</span>
                 <p className="text-sm text-amber-700 dark:text-amber-300">
-                    Yıllık: ₺{(totalMonthly * 12).toFixed(0)} harcıyorsunuz. Gözden geçirin!
+                    YÄ±llÄ±k: â‚º{(totalMonthly * 12).toFixed(0)} harcÄ±yorsunuz. GÃ¶zden geÃ§irin!
                 </p>
             </div>
         </div>
     );
 }
+
+

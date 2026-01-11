@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { X, CheckCircle, AlertTriangle, AlertCircle, Info } from 'lucide-react';
@@ -143,3 +143,4 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         </NotificationContext.Provider>
     );
 }
+

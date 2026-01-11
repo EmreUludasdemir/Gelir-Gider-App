@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { Transaction } from '@/lib/api'
@@ -22,13 +22,13 @@ export function ExportButton({ transactions, filename }: ExportButtonProps) {
     try {
       if (format === 'csv') {
         exportToCSV(transactions, `${defaultFilename}.csv`)
-        showToast(`${transactions.length} işlem CSV olarak dışa aktarıldı! 📊`, 'success')
+        showToast(`${transactions.length} iÅŸlem CSV olarak dÄ±ÅŸa aktarÄ±ldÄ±! ğŸ“Š`, 'success')
       } else {
         exportToJSON(transactions, `${defaultFilename}.json`)
-        showToast(`${transactions.length} işlem JSON olarak dışa aktarıldı! 📄`, 'success')
+        showToast(`${transactions.length} iÅŸlem JSON olarak dÄ±ÅŸa aktarÄ±ldÄ±! ğŸ“„`, 'success')
       }
     } catch (error) {
-      showToast('Dışa aktarma başarısız oldu', 'error')
+      showToast('DÄ±ÅŸa aktarma baÅŸarÄ±sÄ±z oldu', 'error')
     }
 
     setShowMenu(false)
@@ -40,7 +40,7 @@ export function ExportButton({ transactions, filename }: ExportButtonProps) {
         variant="secondary"
         onClick={() => setShowMenu(!showMenu)}
       >
-        📥 Dışa Aktar
+        ğŸ“¥ DÄ±ÅŸa Aktar
       </Button>
 
       {showMenu && (
@@ -49,18 +49,18 @@ export function ExportButton({ transactions, filename }: ExportButtonProps) {
             className="fixed inset-0 z-10"
             onClick={() => setShowMenu(false)}
           />
-          <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
+          <div className="absolute right-0 mt-2 w-48 bg-card rounded-lg shadow-lg border border-border z-20">
             <button
               onClick={() => handleExport('csv')}
-              className="w-full text-left px-4 py-2 hover:bg-gray-50 rounded-t-lg"
+              className="w-full text-left px-4 py-2 hover:bg-muted/40 rounded-t-lg"
             >
-              📊 CSV Format
+              ğŸ“Š CSV Format
             </button>
             <button
               onClick={() => handleExport('json')}
-              className="w-full text-left px-4 py-2 hover:bg-gray-50 rounded-b-lg"
+              className="w-full text-left px-4 py-2 hover:bg-muted/40 rounded-b-lg"
             >
-              📄 JSON Format
+              ğŸ“„ JSON Format
             </button>
           </div>
         </>
@@ -68,3 +68,5 @@ export function ExportButton({ transactions, filename }: ExportButtonProps) {
     </div>
   )
 }
+
+

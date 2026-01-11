@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
@@ -36,7 +36,7 @@ export function MonthlyComparison({ currentMonth, previousMonth }: MonthlyCompar
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-4 rounded-lg shadow-lg border border-gray-200">
+        <div className="bg-card p-4 rounded-lg shadow-lg border border-border">
           <p className="font-medium mb-2">{payload[0].payload.name}</p>
           {payload.map((entry: any, index: number) => (
             <p key={index} className={`text-sm ${
@@ -65,16 +65,16 @@ export function MonthlyComparison({ currentMonth, previousMonth }: MonthlyCompar
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Aylık Karşılaştırma</CardTitle>
+        <CardTitle>AylÄ±k KarÅŸÄ±laÅŸtÄ±rma</CardTitle>
         <div className="mt-2 grid grid-cols-2 gap-4 text-sm">
           <div>
-            <p className="text-gray-600">Gelir Değişimi</p>
+            <p className="text-muted-foreground">Gelir DeÄŸiÅŸimi</p>
             <p className={`font-semibold ${incomeChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               {incomeChange >= 0 ? '+' : ''}{formatCurrency(incomeChange)} ({incomeChange >= 0 ? '+' : ''}{incomeChangePercent}%)
             </p>
           </div>
           <div>
-            <p className="text-gray-600">Gider Değişimi</p>
+            <p className="text-muted-foreground">Gider DeÄŸiÅŸimi</p>
             <p className={`font-semibold ${expenseChange <= 0 ? 'text-green-600' : 'text-red-600'}`}>
               {expenseChange >= 0 ? '+' : ''}{formatCurrency(expenseChange)} ({expenseChange >= 0 ? '+' : ''}{expenseChangePercent}%)
             </p>
@@ -87,7 +87,7 @@ export function MonthlyComparison({ currentMonth, previousMonth }: MonthlyCompar
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="name" />
             <YAxis 
-              tickFormatter={(value) => `₺${(value / 1000).toFixed(0)}k`}
+              tickFormatter={(value) => `â‚º${(value / 1000).toFixed(0)}k`}
             />
             <Tooltip content={<CustomTooltip />} />
             <Legend />
@@ -100,3 +100,5 @@ export function MonthlyComparison({ currentMonth, previousMonth }: MonthlyCompar
     </Card>
   )
 }
+
+

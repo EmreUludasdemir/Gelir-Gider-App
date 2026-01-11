@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useRouter } from 'next/navigation'
 import { PdfUpload } from '@/components/forms/PdfUpload'
@@ -23,9 +23,9 @@ export default function UploadPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">PDF Yükleme</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
-          Banka ekstrenizi yükleyin, otomatik olarak parse edin
+        <h1 className="text-3xl font-bold text-foreground dark:text-white">PDF YÃ¼kleme</h1>
+        <p className="text-muted-foreground dark:text-gray-400 mt-1">
+          Banka ekstrenizi yÃ¼kleyin, otomatik olarak parse edin
         </p>
       </div>
 
@@ -36,7 +36,7 @@ export default function UploadPage() {
       {pdfTransactions && pdfTransactions.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            <h2 className="text-xl font-semibold text-foreground dark:text-white">
               PDF Islemleri ({pdfTransactions.length})
             </h2>
             <button
@@ -56,3 +56,4 @@ export default function UploadPage() {
     </div>
   )
 }
+

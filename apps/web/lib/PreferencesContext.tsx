@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Language, CurrencyCode, ThemeMode, UserPreferences, CURRENCY_SYMBOLS } from './types';
@@ -124,3 +124,4 @@ export function usePreferences(): PreferencesContextType {
   }
   return context;
 }
+

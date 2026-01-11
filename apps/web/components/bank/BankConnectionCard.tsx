@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 
@@ -21,12 +21,12 @@ interface BankConnectionCardProps {
 }
 
 const bankLogos: Record<string, string> = {
-    mock: '🏦',
-    yapikredi: '💳',
-    garanti: '💰',
-    isbank: '🏛️',
-    ziraat: '🌾',
-    akbank: '🔴',
+    mock: 'BANK',
+    yapikredi: 'YK',
+    garanti: 'GAR',
+    isbank: 'IS',
+    ziraat: 'ZB',
+    akbank: 'AK',
 };
 
 export default function BankConnectionCard({ connection, onSync, onDelete }: BankConnectionCardProps) {
@@ -42,7 +42,7 @@ export default function BankConnectionCard({ connection, onSync, onDelete }: Ban
     };
 
     const formatDate = (dateStr?: string) => {
-        if (!dateStr) return 'Hiç senkronize edilmedi';
+        if (!dateStr) return 'HiÃ§ senkronize edilmedi';
         const date = new Date(dateStr);
         return date.toLocaleString('tr-TR', {
             day: 'numeric',
@@ -57,28 +57,28 @@ export default function BankConnectionCard({ connection, onSync, onDelete }: Ban
         switch (connection.lastSyncStatus) {
             case 'success':
                 return (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                        Başarılı
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-success/15 text-success">
+                        <span className="w-1.5 h-1.5 rounded-full bg-success"></span>
+                        BaÅŸarÄ±lÄ±
                     </span>
                 );
             case 'failed':
                 return (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                        <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
-                        Başarısız
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-destructive/15 text-destructive">
+                        <span className="w-1.5 h-1.5 rounded-full bg-destructive"></span>
+                        BaÅŸarÄ±sÄ±z
                     </span>
                 );
             case 'pending':
                 return (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                        <span className="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-warning/20 text-warning-foreground">
+                        <span className="w-1.5 h-1.5 rounded-full bg-warning"></span>
                         Bekliyor
                     </span>
                 );
             default:
                 return (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground">
                         Senkronize edilmedi
                     </span>
                 );
@@ -86,24 +86,24 @@ export default function BankConnectionCard({ connection, onSync, onDelete }: Ban
     };
 
     return (
-        <div className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow">
+        <div className="bg-card rounded-2xl border border-border p-5 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-start justify-between">
                 <div className="flex items-center gap-4">
                     {/* Bank Icon */}
-                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center text-2xl">
-                        {bankLogos[connection.bankCode] || '🏦'}
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-sm font-semibold text-white">
+                        {bankLogos[connection.bankCode] || 'BANK'}
                     </div>
 
                     {/* Bank Info */}
                     <div>
-                        <h3 className="font-semibold text-gray-900 text-lg">{connection.bankName}</h3>
-                        <p className="text-sm text-gray-500">
+                        <h3 className="font-semibold text-foreground text-lg">{connection.bankName}</h3>
+                        <p className="text-sm text-muted-foreground">
                             {connection.accountName || 'Hesap'}
-                            {connection.accountNumber && ` • ${connection.accountNumber}`}
+                            {connection.accountNumber && ` â€¢ ${connection.accountNumber}`}
                         </p>
                         <div className="flex items-center gap-3 mt-2">
                             {getStatusBadge()}
-                            <span className="text-xs text-gray-400">
+                            <span className="text-xs text-muted-foreground">
                                 Son sync: {formatDate(connection.lastSyncAt)}
                             </span>
                         </div>
@@ -115,7 +115,7 @@ export default function BankConnectionCard({ connection, onSync, onDelete }: Ban
                     <button
                         onClick={handleSync}
                         disabled={syncing}
-                        className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-purple-700 bg-purple-50 rounded-lg hover:bg-purple-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-primary-700 bg-primary-50 rounded-lg hover:bg-primary-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                         {syncing ? (
                             <>
@@ -154,8 +154,8 @@ export default function BankConnectionCard({ connection, onSync, onDelete }: Ban
 
                     <button
                         onClick={onDelete}
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Bağlantıyı Sil"
+                        className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl transition-colors"
+                        title="BaÄŸlantÄ±yÄ± Sil"
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path
@@ -171,3 +171,6 @@ export default function BankConnectionCard({ connection, onSync, onDelete }: Ban
         </div>
     );
 }
+
+
+

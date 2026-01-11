@@ -1,4 +1,4 @@
-import type { Metadata, Viewport } from 'next'
+﻿import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { ToastProvider } from '@/components/ui/Toast'
 import { PreferencesProvider } from '@/lib/PreferencesContext'
@@ -7,7 +7,7 @@ import { RealtimeProvider } from '@/contexts/RealtimeContext'
 
 export const metadata: Metadata = {
   title: 'Gelir-Gider Takip',
-  description: 'Modern finans yönetim uygulaması - Gelir ve giderlerinizi kolayca takip edin',
+  description: 'Modern finans yÃ¶netim uygulamasÄ± - Gelir ve giderlerinizi kolayca takip edin',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#8B5CF6',
+  themeColor: '#0F4C5C',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -41,7 +41,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
-      <body className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+      <body className="min-h-screen bg-background text-foreground transition-colors">
         <PreferencesProvider>
           <AuthProvider>
             <NotificationProvider>
@@ -54,7 +54,7 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              if ('serviceWorker' in navigator) {
+              if ('serviceWorker' in navigator && window.location.hostname !== 'localhost') {
                 window.addEventListener('load', () => {
                   navigator.serviceWorker.register('/sw.js').catch(() => {});
                 });
@@ -66,6 +66,7 @@ export default function RootLayout({
     </html>
   )
 }
+
 
 
 

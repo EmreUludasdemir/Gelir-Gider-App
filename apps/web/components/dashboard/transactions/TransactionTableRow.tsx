@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { memo } from 'react'
 import { Transaction } from '@/lib/api'
@@ -23,7 +23,7 @@ export const TransactionTableRow = memo(function TransactionTableRow({
   onEdit,
 }: TransactionTableRowProps) {
   return (
-    <tr className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+    <tr className="hover:bg-muted/40 transition-colors">
       {hasPdfTransactions && (
         <td className="px-4 py-4 text-center">
           {transaction.source === 'pdf' ? (
@@ -31,18 +31,18 @@ export const TransactionTableRow = memo(function TransactionTableRow({
               type="checkbox"
               checked={isSelected}
               onChange={(e) => onSelect(transaction.id, e.target.checked)}
-              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              className="rounded border-border text-primary-600 focus:ring-primary/30"
               aria-label="Islemi sec"
             />
           ) : (
-            <span className="text-gray-300">-</span>
+            <span className="text-muted-foreground">-</span>
           )}
         </td>
       )}
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
         {formatDate(transaction.date)}
       </td>
-      <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
+      <td className="px-6 py-4 text-sm text-foreground">
         <div className="max-w-md" title={transaction.description}>
           {transaction.description}
         </div>
@@ -58,7 +58,7 @@ export const TransactionTableRow = memo(function TransactionTableRow({
         </Badge>
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-medium">
-        <span className={transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}>
+        <span className={transaction.type === 'income' ? 'text-success' : 'text-destructive'}>
           {transaction.type === 'income' ? '+' : '-'}
           {formatCurrency(Math.abs(transaction.amount), transaction.currency)}
         </span>
@@ -80,3 +80,5 @@ export const TransactionTableRow = memo(function TransactionTableRow({
     </tr>
   )
 })
+
+

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react'
 import { cn } from '@/lib/utils'
@@ -50,10 +50,10 @@ function ToastItem({ toast }: { toast: Toast }) {
   }
 
   const icons = {
-    success: '✓',
-    error: '✕',
-    warning: '⚠',
-    info: 'ℹ',
+    success: 'âœ“',
+    error: 'âœ•',
+    warning: 'âš ',
+    info: 'â„¹',
   }
 
   return (
@@ -76,3 +76,5 @@ export function useToast() {
   }
   return context
 }
+
+

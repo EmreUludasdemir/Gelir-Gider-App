@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { Button } from '../ui/Button';
@@ -41,7 +41,7 @@ export function ExportButton({ startDate, endDate, className }: ExportButtonProp
             );
 
             if (!response.ok) {
-                throw new Error('Export hatası');
+                throw new Error('Export hatasÄ±');
             }
 
             // Get filename from header or use default
@@ -64,7 +64,7 @@ export function ExportButton({ startDate, endDate, className }: ExportButtonProp
             document.body.removeChild(a);
         } catch (error) {
             console.error('Export error:', error);
-            alert('Dışa aktarma sırasında bir hata oluştu.');
+            alert('DÄ±ÅŸa aktarma sÄ±rasÄ±nda bir hata oluÅŸtu.');
         } finally {
             setIsExporting(false);
         }
@@ -96,7 +96,7 @@ export function ExportButton({ startDate, endDate, className }: ExportButtonProp
                                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
                             />
                         </svg>
-                        Dışa Aktarılıyor...
+                        DÄ±ÅŸa AktarÄ±lÄ±yor...
                     </>
                 ) : (
                     <>
@@ -113,17 +113,17 @@ export function ExportButton({ startDate, endDate, className }: ExportButtonProp
                                 d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                             />
                         </svg>
-                        Dışa Aktar
+                        DÄ±ÅŸa Aktar
                     </>
                 )}
             </Button>
 
             {showDropdown && (
-                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg z-10 border border-gray-200 dark:border-gray-700">
+                <div className="absolute right-0 mt-2 w-48 bg-card rounded-md shadow-lg z-10 border border-border">
                     <div className="py-1">
                         <button
                             onClick={() => handleExport('csv')}
-                            className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                            className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-muted dark:hover:bg-gray-700 flex items-center gap-2"
                         >
                             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -132,7 +132,7 @@ export function ExportButton({ startDate, endDate, className }: ExportButtonProp
                         </button>
                         <button
                             onClick={() => handleExport('excel')}
-                            className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                            className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-muted dark:hover:bg-gray-700 flex items-center gap-2"
                         >
                             <svg className="h-4 w-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
@@ -153,3 +153,5 @@ export function ExportButton({ startDate, endDate, className }: ExportButtonProp
         </div>
     );
 }
+
+

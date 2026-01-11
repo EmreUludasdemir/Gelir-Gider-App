@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { memo } from 'react'
 import { CategorySummary } from '@/lib/api'
@@ -13,17 +13,17 @@ export const TopCategories = memo(function TopCategories({ categories }: TopCate
   return (
     <Card>
       <CardHeader>
-        <CardTitle>En Çok Harcanan Kategoriler</CardTitle>
+        <CardTitle>En Ã‡ok Harcanan Kategoriler</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
           {categories.map((category) => (
             <div key={category.categoryId}>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-900">
+                <span className="text-sm font-medium text-foreground">
                   {category.categoryLabel}
                 </span>
-                <span className="text-sm font-semibold text-gray-900">
+                <span className="text-sm font-semibold text-foreground">
                   {formatCurrency(category.total)}
                 </span>
               </div>
@@ -34,10 +34,10 @@ export const TopCategories = memo(function TopCategories({ categories }: TopCate
                 />
               </div>
               <div className="flex items-center justify-between mt-1">
-                <span className="text-xs text-gray-500">
-                  {category.transactionCount} işlem
+                <span className="text-xs text-muted-foreground">
+                  {category.transactionCount} iÅŸlem
                 </span>
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-muted-foreground">
                   {category.percentage.toFixed(1)}%
                 </span>
               </div>
@@ -48,3 +48,5 @@ export const TopCategories = memo(function TopCategories({ categories }: TopCate
     </Card>
   )
 })
+
+

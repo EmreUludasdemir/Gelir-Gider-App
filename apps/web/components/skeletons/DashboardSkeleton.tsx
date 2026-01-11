@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { memo, CSSProperties } from 'react'
 
@@ -8,12 +8,12 @@ interface SkeletonPulseProps {
 }
 
 const SkeletonPulse = ({ className = '', style }: SkeletonPulseProps) => (
-  <div className={`animate-pulse bg-gray-200 dark:bg-gray-700 rounded ${className}`} style={style} />
+  <div className={`animate-pulse bg-muted rounded ${className}`} style={style} />
 )
 
 export const StatCardSkeleton = memo(function StatCardSkeleton() {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+    <div className="bg-card rounded-2xl p-6 shadow-sm border border-border">
       <div className="flex items-center justify-between">
         <SkeletonPulse className="h-4 w-20" />
         <SkeletonPulse className="h-8 w-8 rounded-full" />
@@ -26,7 +26,7 @@ export const StatCardSkeleton = memo(function StatCardSkeleton() {
 
 export const ChartSkeleton = memo(function ChartSkeleton() {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+    <div className="bg-card rounded-2xl p-6 shadow-sm border border-border">
       <SkeletonPulse className="h-6 w-40 mb-4" />
       <div className="h-64 flex items-end justify-around gap-2">
         {[...Array(7)].map((_, i) => (
@@ -43,8 +43,8 @@ export const ChartSkeleton = memo(function ChartSkeleton() {
 
 export const TableSkeleton = memo(function TableSkeleton() {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+    <div className="bg-card rounded-2xl shadow-sm overflow-hidden border border-border">
+      <div className="p-4 border-b border-border">
         <SkeletonPulse className="h-6 w-32" />
       </div>
       <div className="p-4 space-y-3">
@@ -63,7 +63,7 @@ export const TableSkeleton = memo(function TableSkeleton() {
 
 export const CategorySkeleton = memo(function CategorySkeleton() {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+    <div className="bg-card rounded-2xl p-6 shadow-sm border border-border">
       <SkeletonPulse className="h-6 w-32 mb-4" />
       <div className="space-y-3">
         {[...Array(5)].map((_, i) => (
@@ -83,7 +83,7 @@ export const CategorySkeleton = memo(function CategorySkeleton() {
 
 export const AIInsightsSkeleton = memo(function AIInsightsSkeleton() {
   return (
-    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-6">
+    <div className="bg-gradient-to-r from-primary-50 to-accent/30 rounded-2xl p-6 border border-border">
       <div className="flex items-center gap-2 mb-4">
         <SkeletonPulse className="h-6 w-6 rounded-full" />
         <SkeletonPulse className="h-6 w-32" />
@@ -99,7 +99,7 @@ export const AIInsightsSkeleton = memo(function AIInsightsSkeleton() {
 
 export const SmartInputSkeleton = memo(function SmartInputSkeleton() {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
+    <div className="bg-card rounded-2xl p-4 shadow-sm border border-border">
       <SkeletonPulse className="h-12 w-full rounded-lg" />
     </div>
   )
@@ -121,3 +121,4 @@ export const DashboardSkeleton = {
 }
 
 export default DashboardSkeleton
+

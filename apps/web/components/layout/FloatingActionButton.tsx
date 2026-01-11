@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 export function FloatingActionButton() {
   const handleClick = () => {
@@ -18,3 +18,4 @@ export function FloatingActionButton() {
     </button>
   )
 }
+

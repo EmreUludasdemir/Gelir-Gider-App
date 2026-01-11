@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useMemo } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
@@ -14,7 +14,7 @@ interface TrendChartProps {
 
 export function TrendChart({ transactions, months = 6, baseDate }: TrendChartProps) {
   const chartData = useMemo(() => {
-    // Son N ay için veri hazırla
+    // Son N ay iÃ§in veri hazÄ±rla
     const anchor = baseDate ? new Date(baseDate) : new Date()
     const now = new Date(anchor.getFullYear(), anchor.getMonth(), 1)
     const data: Array<{
@@ -29,7 +29,7 @@ export function TrendChart({ transactions, months = 6, baseDate }: TrendChartPro
       const monthKey = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}`
       const monthName = targetDate.toLocaleDateString('tr-TR', { month: 'short', year: '2-digit' })
 
-      // Bu aya ait işlemleri filtrele
+      // Bu aya ait iÅŸlemleri filtrele
       const monthTransactions = transactions.filter(t => {
         const tDate = new Date(t.date)
         return tDate.getFullYear() === targetDate.getFullYear() &&
@@ -71,11 +71,11 @@ export function TrendChart({ transactions, months = 6, baseDate }: TrendChartPro
             <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
             <XAxis 
               dataKey="month" 
-              className="text-xs text-gray-600 dark:text-gray-400"
+              className="text-xs text-muted-foreground"
               tick={{ fill: 'currentColor' }}
             />
             <YAxis 
-              className="text-xs text-gray-600 dark:text-gray-400"
+              className="text-xs text-muted-foreground"
               tick={{ fill: 'currentColor' }}
               tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
             />
@@ -123,3 +123,5 @@ export function TrendChart({ transactions, months = 6, baseDate }: TrendChartPro
     </Card>
   )
 }
+
+

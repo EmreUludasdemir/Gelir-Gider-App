@@ -1,4 +1,4 @@
-import { cn } from '@/lib/utils'
+﻿import { cn } from '@/lib/utils'
 
 interface SpinnerProps {
   size?: 'sm' | 'md' | 'lg'
@@ -36,3 +36,5 @@ export function Spinner({ size = 'md', className }: SpinnerProps) {
     </div>
   )
 }
+
+

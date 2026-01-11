@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect } from 'react';
 
@@ -27,7 +27,7 @@ export function BudgetAlerts({ budgets }: Props) {
       // Mock data
       setAlerts([
         { id: '1', category: 'Yemek', spent: 950, limit: 1000, percentage: 95 },
-        { id: '2', category: 'Alışveriş', spent: 1200, limit: 1000, percentage: 120 },
+        { id: '2', category: 'AlÄ±ÅŸveriÅŸ', spent: 1200, limit: 1000, percentage: 120 },
       ]);
     }
   }, [budgets]);
@@ -71,15 +71,15 @@ export function BudgetAlerts({ budgets }: Props) {
 
             <div className="flex-1">
               <h4 className={`font-semibold ${textColor}`}>
-                {isOver ? `${categoryName} Bütçesi Aşıldı!` : `${categoryName} Bütçesi Dolmak Üzere`}
+                {isOver ? `${categoryName} BÃ¼tÃ§esi AÅŸÄ±ldÄ±!` : `${categoryName} BÃ¼tÃ§esi Dolmak Ãœzere`}
               </h4>
               <p className={`text-sm ${isOver ? 'text-red-600 dark:text-red-300' : 'text-amber-600 dark:text-amber-300'} mt-1`}>
-                ₺{alert.spent.toLocaleString('tr-TR')} / ₺{limitAmount.toLocaleString('tr-TR')}
+                â‚º{alert.spent.toLocaleString('tr-TR')} / â‚º{limitAmount.toLocaleString('tr-TR')}
                 <span className="ml-2 font-medium">(%{Math.round(alert.percentage)})</span>
               </p>
 
               {/* Progress bar */}
-              <div className="mt-2 h-2 bg-white/50 dark:bg-black/20 rounded-full overflow-hidden">
+              <div className="mt-2 h-2 bg-card/50 dark:bg-black/20 rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all duration-500 ${isOver ? 'bg-red-500' : 'bg-amber-500'}`}
                   style={{ width: `${Math.min(alert.percentage, 100)}%` }}
@@ -101,3 +101,5 @@ export function BudgetAlerts({ budgets }: Props) {
     </div>
   );
 }
+
+

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { Suspense } from 'react'
 import dynamic from 'next/dynamic'
@@ -83,8 +83,8 @@ export default function DashboardPage() {
     return (
       <div className="space-y-6">
         <div>
-          <div className="h-9 w-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-          <div className="h-5 w-32 bg-gray-200 dark:bg-gray-700 rounded mt-2 animate-pulse" />
+          <div className="h-9 w-48 bg-muted rounded animate-pulse" />
+          <div className="h-5 w-32 bg-muted rounded mt-2 animate-pulse" />
         </div>
         <SmartInputSkeleton />
         <DashboardSkeleton.Stats />
@@ -104,8 +104,8 @@ export default function DashboardPage() {
 
   if (summaryError || transactionsError) {
     return (
-      <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-        <p className="text-red-800 dark:text-red-200">
+      <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+        <p className="text-destructive">
           {language === 'tr'
             ? 'Veri yuklenirken hata olustu. Backend servisi calisiyor mu?'
             : 'Error loading data. Is the backend service running?'}
@@ -123,8 +123,8 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('dashboard')}</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
+        <h1 className="text-3xl font-bold text-foreground">{t('dashboard')}</h1>
+        <p className="text-muted-foreground mt-1">
           {summary.period.month} {summary.period.year} - {t('overview')}
         </p>
       </div>
@@ -198,3 +198,4 @@ export default function DashboardPage() {
     </div>
   )
 }
+

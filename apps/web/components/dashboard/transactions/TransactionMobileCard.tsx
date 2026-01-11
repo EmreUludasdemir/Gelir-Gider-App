@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { memo } from 'react'
 import { Transaction } from '@/lib/api'
@@ -23,7 +23,7 @@ export const TransactionMobileCard = memo(function TransactionMobileCard({
   onEdit,
 }: TransactionMobileCardProps) {
   return (
-    <div className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+    <div className="p-4 hover:bg-muted/40 transition-colors">
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 space-y-2">
           <div className="flex items-center gap-2">
@@ -32,15 +32,15 @@ export const TransactionMobileCard = memo(function TransactionMobileCard({
                 type="checkbox"
                 checked={isSelected}
                 onChange={(e) => onSelect(transaction.id, e.target.checked)}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="rounded border-border text-primary-600 focus:ring-primary/30"
                 aria-label="Islemi sec"
               />
             )}
             <div className="flex-1">
-              <p className="font-medium text-gray-900 dark:text-white">
+              <p className="font-medium text-foreground">
                 {transaction.description}
               </p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-muted-foreground">
                 {formatDate(transaction.date)}
               </p>
             </div>
@@ -59,7 +59,7 @@ export const TransactionMobileCard = memo(function TransactionMobileCard({
           </div>
 
           <div className="flex items-center justify-between">
-            <span className={`text-lg font-semibold ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+            <span className={`text-lg font-semibold ${transaction.type === 'income' ? 'text-success' : 'text-destructive'}`}>
               {transaction.type === 'income' ? '+' : '-'}
               {formatCurrency(Math.abs(transaction.amount), transaction.currency)}
             </span>
@@ -76,3 +76,5 @@ export const TransactionMobileCard = memo(function TransactionMobileCard({
     </div>
   )
 })
+
+

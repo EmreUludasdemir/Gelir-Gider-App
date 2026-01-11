@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { Receipt, AlertCircle, CheckCircle, Calendar, Plus } from 'lucide-react'
 
@@ -66,27 +66,27 @@ export function UpcomingBillsWidget({
       case 'today': return 'bg-orange-50 border-orange-200'
       case 'urgent': return 'bg-yellow-50 border-yellow-200'
       case 'paid': return 'bg-green-50 border-green-200'
-      default: return 'bg-white border-gray-200'
+      default: return 'bg-card border-border'
     }
   }
 
   const getPriorityBadge = (priority: string, days: number) => {
     switch (priority) {
       case 'overdue':
-        return <span className="text-xs font-medium text-red-600">{Math.abs(days)} gün gecikti</span>
+        return <span className="text-xs font-medium text-red-600">{Math.abs(days)} gÃ¼n gecikti</span>
       case 'today':
-        return <span className="text-xs font-medium text-orange-600">Bugün</span>
+        return <span className="text-xs font-medium text-orange-600">BugÃ¼n</span>
       case 'urgent':
-        return <span className="text-xs font-medium text-yellow-600">{days} gün kaldı</span>
+        return <span className="text-xs font-medium text-yellow-600">{days} gÃ¼n kaldÄ±</span>
       case 'paid':
         return (
           <span className="flex items-center gap-1 text-xs font-medium text-green-600">
             <CheckCircle className="w-3 h-3" />
-            Ödendi
+            Ã–dendi
           </span>
         )
       default:
-        return <span className="text-xs text-gray-500">{days} gün</span>
+        return <span className="text-xs text-muted-foreground">{days} gÃ¼n</span>
     }
   }
 
@@ -101,16 +101,16 @@ export function UpcomingBillsWidget({
   const totalAmount = unpaidBills.reduce((sum, b) => sum + b.amount, 0)
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className="bg-card rounded-lg shadow p-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold flex items-center gap-2">
-          <Receipt className="w-5 h-5 text-purple-600" />
-          Yaklaşan Faturalar
+          <Receipt className="w-5 h-5 text-primary-600" />
+          YaklaÅŸan Faturalar
         </h3>
         {onAddBill && (
           <button
             onClick={onAddBill}
-            className="flex items-center gap-1 px-3 py-1.5 text-sm bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
+            className="flex items-center gap-1 px-3 py-1.5 text-sm bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors"
           >
             <Plus className="w-4 h-4" />
             Yeni Fatura
@@ -119,15 +119,15 @@ export function UpcomingBillsWidget({
       </div>
 
       {sortedBills.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
+        <div className="text-center py-8 text-muted-foreground">
           <Receipt className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p className="text-sm">Yaklaşan faturanız yok</p>
+          <p className="text-sm">YaklaÅŸan faturanÄ±z yok</p>
           {onAddBill && (
             <button
               onClick={onAddBill}
-              className="mt-3 text-purple-600 hover:text-purple-700 text-sm font-medium"
+              className="mt-3 text-primary-600 hover:text-primary-700 text-sm font-medium"
             >
-              İlk faturanızı ekleyin
+              Ä°lk faturanÄ±zÄ± ekleyin
             </button>
           )}
         </div>
@@ -145,18 +145,18 @@ export function UpcomingBillsWidget({
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex-1">
-                    <h4 className="font-medium text-gray-900">{bill.name}</h4>
+                    <h4 className="font-medium text-foreground">{bill.name}</h4>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs text-gray-600">{bill.categoryLabel}</span>
-                      <span className="text-xs text-gray-400">•</span>
-                      <span className="text-xs text-gray-600 flex items-center gap-1">
+                      <span className="text-xs text-muted-foreground">{bill.categoryLabel}</span>
+                      <span className="text-xs text-gray-400">â€¢</span>
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
                         <Calendar className="w-3 h-3" />
                         {formatDate(bill.dueDate)}
                       </span>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-gray-900">
+                    <p className="font-semibold text-foreground">
                       {formatCurrency(bill.amount, bill.currency)}
                     </p>
                     <div className="mt-1">
@@ -171,9 +171,9 @@ export function UpcomingBillsWidget({
                       e.stopPropagation()
                       onPayBill(bill.id)
                     }}
-                    className="w-full mt-2 px-3 py-1.5 text-xs bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors"
+                    className="w-full mt-2 px-3 py-1.5 text-xs bg-card border border-border text-gray-700 rounded hover:bg-muted/40 transition-colors"
                   >
-                    Ödendi Olarak İşaretle
+                    Ã–dendi Olarak Ä°ÅŸaretle
                   </button>
                 )}
               </div>
@@ -181,8 +181,8 @@ export function UpcomingBillsWidget({
           })}
 
           {sortedBills.length > 5 && (
-            <button className="w-full text-sm text-purple-600 hover:text-purple-700 font-medium py-2">
-              Tümünü Gör ({sortedBills.length - 5} daha)
+            <button className="w-full text-sm text-primary-600 hover:text-primary-700 font-medium py-2">
+              TÃ¼mÃ¼nÃ¼ GÃ¶r ({sortedBills.length - 5} daha)
             </button>
           )}
         </div>
@@ -190,17 +190,17 @@ export function UpcomingBillsWidget({
 
       {/* Summary */}
       {unpaidBills.length > 0 && (
-        <div className="mt-4 pt-4 border-t border-gray-200">
+        <div className="mt-4 pt-4 border-t border-border">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-gray-600">Toplam Ödenmemiş</p>
-              <p className="text-lg font-semibold text-gray-900">
+              <p className="text-xs text-muted-foreground">Toplam Ã–denmemiÅŸ</p>
+              <p className="text-lg font-semibold text-foreground">
                 {formatCurrency(totalAmount, unpaidBills[0]?.currency)}
               </p>
             </div>
             <div className="text-right">
-              <p className="text-xs text-gray-600">Fatura Sayısı</p>
-              <p className="text-lg font-semibold text-purple-600">
+              <p className="text-xs text-muted-foreground">Fatura SayÄ±sÄ±</p>
+              <p className="text-lg font-semibold text-primary-600">
                 {unpaidBills.length}
               </p>
             </div>
@@ -209,7 +209,7 @@ export function UpcomingBillsWidget({
           {unpaidBills.some(b => getDaysUntil(b.dueDate) < 0) && (
             <div className="mt-3 flex items-center gap-2 text-sm text-red-600 bg-red-50 rounded-lg p-2">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              <span>Gecikmiş faturalarınız var!</span>
+              <span>GecikmiÅŸ faturalarÄ±nÄ±z var!</span>
             </div>
           )}
         </div>
@@ -217,3 +217,5 @@ export function UpcomingBillsWidget({
     </div>
   )
 }
+
+

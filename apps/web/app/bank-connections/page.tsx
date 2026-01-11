@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import BankConnectionCard from '../../components/bank/BankConnectionCard';
@@ -47,7 +47,7 @@ export default function BankConnectionsPage() {
             setConnections(connectionsData);
             setAvailableBanks(banksData);
         } catch (err) {
-            setError('Banka bağlantıları yüklenirken hata oluştu');
+            setError('Banka baÄŸlantÄ±larÄ± yÃ¼klenirken hata oluÅŸtu');
         } finally {
             setLoading(false);
         }
@@ -74,7 +74,7 @@ export default function BankConnectionsPage() {
             setFormData({ bankCode: '', bankName: '', accountNumber: '', accountName: '' });
             loadData();
         } catch (err) {
-            setError('Banka bağlantısı eklenirken hata oluştu');
+            setError('Banka baÄŸlantÄ±sÄ± eklenirken hata oluÅŸtu');
         }
     };
 
@@ -85,12 +85,12 @@ export default function BankConnectionsPage() {
             });
             loadData();
         } catch (err) {
-            setError('Senkronizasyon başarısız');
+            setError('Senkronizasyon baÅŸarÄ±sÄ±z');
         }
     };
 
     const handleDelete = async (connectionId: string) => {
-        if (!confirm('Bu banka bağlantısını silmek istediğinize emin misiniz?')) return;
+        if (!confirm('Bu banka baÄŸlantÄ±sÄ±nÄ± silmek istediÄŸinize emin misiniz?')) return;
 
         try {
             await fetchWithAuth(`/bank-connections/${connectionId}`, {
@@ -98,14 +98,14 @@ export default function BankConnectionsPage() {
             });
             loadData();
         } catch (err) {
-            setError('Bağlantı silinirken hata oluştu');
+            setError('BaÄŸlantÄ± silinirken hata oluÅŸtu');
         }
     };
 
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-screen">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
             </div>
         );
     }
@@ -114,14 +114,14 @@ export default function BankConnectionsPage() {
         <div className="container mx-auto px-4 py-8 max-w-4xl">
             <div className="flex justify-between items-center mb-8">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Banka Bağlantıları</h1>
-                    <p className="text-gray-600 mt-1">
-                        Banka hesaplarınızı bağlayarak işlemlerinizi otomatik olarak içe aktarın
+                    <h1 className="text-2xl font-bold text-foreground">Banka BaÄŸlantÄ±larÄ±</h1>
+                    <p className="text-muted-foreground mt-1">
+                        Banka hesaplarÄ±nÄ±zÄ± baÄŸlayarak iÅŸlemlerinizi otomatik olarak iÃ§e aktarÄ±n
                     </p>
                 </div>
                 <button
                     onClick={() => setShowAddForm(true)}
-                    className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+                    className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2"
                 >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -133,28 +133,28 @@ export default function BankConnectionsPage() {
             {error && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
                     {error}
-                    <button onClick={() => setError(null)} className="float-right font-bold">×</button>
+                    <button onClick={() => setError(null)} className="float-right font-bold">Ã—</button>
                 </div>
             )}
 
             {/* Add Bank Form Modal */}
             {showAddForm && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-xl p-6 w-full max-w-md">
-                        <h2 className="text-xl font-semibold mb-4">Yeni Banka Bağlantısı</h2>
+                    <div className="bg-card rounded-xl p-6 w-full max-w-md">
+                        <h2 className="text-xl font-semibold mb-4">Yeni Banka BaÄŸlantÄ±sÄ±</h2>
                         <form onSubmit={handleAddConnection}>
                             <div className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Banka Seçin
+                                        Banka SeÃ§in
                                     </label>
                                     <select
                                         value={formData.bankCode}
                                         onChange={(e) => setFormData({ ...formData, bankCode: e.target.value })}
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                        className="w-full border border-border rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                                         required
                                     >
-                                        <option value="">Banka seçin...</option>
+                                        <option value="">Banka seÃ§in...</option>
                                         {availableBanks.map((bank) => (
                                             <option key={bank.code} value={bank.code}>
                                                 {bank.name}
@@ -165,26 +165,26 @@ export default function BankConnectionsPage() {
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Hesap Numarası (Opsiyonel)
+                                        Hesap NumarasÄ± (Opsiyonel)
                                     </label>
                                     <input
                                         type="text"
                                         value={formData.accountNumber}
                                         onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value })}
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                        className="w-full border border-border rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                                         placeholder="1234567890"
                                     />
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Hesap Adı (Opsiyonel)
+                                        Hesap AdÄ± (Opsiyonel)
                                     </label>
                                     <input
                                         type="text"
                                         value={formData.accountName}
                                         onChange={(e) => setFormData({ ...formData, accountName: e.target.value })}
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                        className="w-full border border-border rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                                         placeholder="Ana Hesap"
                                     />
                                 </div>
@@ -194,15 +194,15 @@ export default function BankConnectionsPage() {
                                 <button
                                     type="button"
                                     onClick={() => setShowAddForm(false)}
-                                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                                    className="flex-1 px-4 py-2 border border-border rounded-lg text-gray-700 hover:bg-muted/40"
                                 >
-                                    İptal
+                                    Ä°ptal
                                 </button>
                                 <button
                                     type="submit"
-                                    className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                                    className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
                                 >
-                                    Bağlan
+                                    BaÄŸlan
                                 </button>
                             </div>
                         </form>
@@ -212,22 +212,22 @@ export default function BankConnectionsPage() {
 
             {/* Connections List */}
             {connections.length === 0 ? (
-                <div className="text-center py-12 bg-gray-50 rounded-xl">
+                <div className="text-center py-12 bg-muted/40 rounded-xl">
                     <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                     </svg>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Henüz banka bağlantısı yok</h3>
-                    <p className="text-gray-500 mb-4">
-                        Banka hesabınızı bağlayarak işlemlerinizi otomatik olarak içe aktarabilirsiniz
+                    <h3 className="text-lg font-medium text-foreground mb-2">HenÃ¼z banka baÄŸlantÄ±sÄ± yok</h3>
+                    <p className="text-muted-foreground mb-4">
+                        Banka hesabÄ±nÄ±zÄ± baÄŸlayarak iÅŸlemlerinizi otomatik olarak iÃ§e aktarabilirsiniz
                     </p>
                     <button
                         onClick={() => setShowAddForm(true)}
-                        className="inline-flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
+                        className="inline-flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700"
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                         </svg>
-                        İlk Banka Bağlantısını Ekle
+                        Ä°lk Banka BaÄŸlantÄ±sÄ±nÄ± Ekle
                     </button>
                 </div>
             ) : (
@@ -252,9 +252,9 @@ export default function BankConnectionsPage() {
                     <div>
                         <h4 className="font-medium text-blue-900">Demo Mod</h4>
                         <p className="text-sm text-blue-700 mt-1">
-                            Şu anda demo banka adaptörü kullanılmaktadır. Gerçek banka entegrasyonları için
-                            Open Banking API'leri gelecekte eklenecektir. Demo mod, test amaçlı rastgele
-                            işlemler oluşturur.
+                            Åu anda demo banka adaptÃ¶rÃ¼ kullanÄ±lmaktadÄ±r. GerÃ§ek banka entegrasyonlarÄ± iÃ§in
+                            Open Banking API'leri gelecekte eklenecektir. Demo mod, test amaÃ§lÄ± rastgele
+                            iÅŸlemler oluÅŸturur.
                         </p>
                     </div>
                 </div>
@@ -262,3 +262,5 @@ export default function BankConnectionsPage() {
         </div>
     );
 }
+
+

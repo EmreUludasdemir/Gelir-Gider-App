@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { AlertTriangle, CheckCircle, TrendingUp, Plus, X, Loader2 } from 'lucide-react';
@@ -20,8 +20,8 @@ interface BudgetItem {
 // Mock data - in production, this would come from the API
 const MOCK_BUDGETS: BudgetItem[] = [
   { id: '1', categoryId: 'exp-1', categoryLabel: 'Yemek', limitAmount: 3000, spent: 2100, remaining: 900, percentage: 70, status: 'ok' },
-  { id: '2', categoryId: 'exp-2', categoryLabel: 'Ulaşım', limitAmount: 1500, spent: 1350, remaining: 150, percentage: 90, status: 'warning' },
-  { id: '3', categoryId: 'exp-7', categoryLabel: 'Alışveriş', limitAmount: 2000, spent: 2500, remaining: 0, percentage: 100, status: 'over' },
+  { id: '2', categoryId: 'exp-2', categoryLabel: 'UlaÅŸÄ±m', limitAmount: 1500, spent: 1350, remaining: 150, percentage: 90, status: 'warning' },
+  { id: '3', categoryId: 'exp-7', categoryLabel: 'AlÄ±ÅŸveriÅŸ', limitAmount: 2000, spent: 2500, remaining: 0, percentage: 100, status: 'over' },
 ];
 
 export function BudgetSection() {
@@ -82,12 +82,12 @@ export function BudgetSection() {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+    <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+      <div className="p-4 border-b border-border dark:border-gray-700 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <TrendingUp className="w-5 h-5 text-primary-600" />
-          <h3 className="font-semibold text-gray-900 dark:text-white">
-            {language === 'tr' ? 'Bütçe Takibi' : 'Budget Tracking'}
+          <h3 className="font-semibold text-foreground">
+            {language === 'tr' ? 'BÃ¼tÃ§e Takibi' : 'Budget Tracking'}
           </h3>
         </div>
         <button
@@ -100,14 +100,14 @@ export function BudgetSection() {
 
       <div className="p-4 space-y-4">
         {isAdding && (
-          <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg space-y-3">
+          <div className="p-4 bg-muted/40 rounded-lg space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <select
                 value={newBudget.categoryId}
                 onChange={(e) => setNewBudget((prev) => ({ ...prev, categoryId: e.target.value }))}
-                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
+                className="px-3 py-2 border border-border dark:border-gray-600 rounded-lg bg-card text-foreground text-sm"
               >
-                <option value="">{language === 'tr' ? 'Kategori seçin' : 'Select category'}</option>
+                <option value="">{language === 'tr' ? 'Kategori seÃ§in' : 'Select category'}</option>
                 {expenseCategories.map((cat) => (
                   <option key={cat.id} value={cat.id}>
                     {cat.name}
@@ -119,13 +119,13 @@ export function BudgetSection() {
                 value={newBudget.limit}
                 onChange={(e) => setNewBudget((prev) => ({ ...prev, limit: e.target.value }))}
                 placeholder={language === 'tr' ? 'Limit' : 'Limit'}
-                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
+                className="px-3 py-2 border border-border dark:border-gray-600 rounded-lg bg-card text-foreground text-sm"
               />
             </div>
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setIsAdding(false)}
-                className="px-3 py-1.5 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded text-sm"
+                className="px-3 py-1.5 text-muted-foreground hover:bg-muted/70 rounded text-sm"
               >
                 {t('cancel')}
               </button>
@@ -140,8 +140,8 @@ export function BudgetSection() {
         )}
 
         {budgets.length === 0 ? (
-          <p className="text-center text-gray-500 dark:text-gray-400 py-4">
-            {language === 'tr' ? 'Bütçe tanımlanmamış' : 'No budgets defined'}
+          <p className="text-center text-muted-foreground py-4">
+            {language === 'tr' ? 'BÃ¼tÃ§e tanÄ±mlanmamÄ±ÅŸ' : 'No budgets defined'}
           </p>
         ) : (
           budgets.map((budget) => (
@@ -149,12 +149,12 @@ export function BudgetSection() {
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
                   {getStatusIcon(budget.status)}
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">
+                  <span className="text-sm font-medium text-foreground">
                     {budget.categoryLabel}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                  <span className="text-sm text-muted-foreground">
                     {formatCurrency(budget.spent)} / {formatCurrency(budget.limitAmount)}
                   </span>
                   <button
@@ -174,7 +174,7 @@ export function BudgetSection() {
               {budget.status === 'over' && (
                 <p className="mt-1 text-xs text-red-500">
                   {language === 'tr'
-                    ? `${formatCurrency(budget.spent - budget.limitAmount)} aşım!`
+                    ? `${formatCurrency(budget.spent - budget.limitAmount)} aÅŸÄ±m!`
                     : `${formatCurrency(budget.spent - budget.limitAmount)} over budget!`}
                 </p>
               )}
@@ -185,3 +185,5 @@ export function BudgetSection() {
     </div>
   );
 }
+
+

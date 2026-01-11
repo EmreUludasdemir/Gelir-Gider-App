@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { createTransaction, CreateTransactionDto, TransactionType } from '@/lib/api'
@@ -43,10 +43,10 @@ export function ManualTransactionForm({ onSuccess }: ManualTransactionFormProps)
         type: 'expense',
         date: new Date().toISOString().split('T')[0],
       })
-      showToast('İşlem başarıyla eklendi!', 'success')
+      showToast('Ä°ÅŸlem baÅŸarÄ±yla eklendi!', 'success')
       onSuccess?.()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'İşlem eklenemedi')
+      setError(err instanceof Error ? err.message : 'Ä°ÅŸlem eklenemedi')
     } finally {
       setLoading(false)
     }
@@ -55,15 +55,15 @@ export function ManualTransactionForm({ onSuccess }: ManualTransactionFormProps)
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Manuel İşlem Ekle</CardTitle>
+        <CardTitle>Manuel Ä°ÅŸlem Ekle</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input
-            label="Açıklama"
+            label="AÃ§Ä±klama"
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            placeholder="ör: Market alışverişi"
+            placeholder="Ã¶r: Market alÄ±ÅŸveriÅŸi"
             required
           />
 
@@ -102,10 +102,11 @@ export function ManualTransactionForm({ onSuccess }: ManualTransactionFormProps)
           )}
 
           <Button type="submit" loading={loading} className="w-full">
-            İşlem Ekle
+            Ä°ÅŸlem Ekle
           </Button>
         </form>
       </CardContent>
     </Card>
   )
 }
+

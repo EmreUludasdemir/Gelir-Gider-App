@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useMemo, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
@@ -72,9 +72,9 @@ export default function BudgetsPage() {
   useEffect(() => {
     budgetsWithSpending.forEach(budget => {
       if (budget.percentage >= 100 && budget.spent > 0) {
-        showToast(`🚨 ${budget.categoryLabel} bütçesi aşıldı!`, 'error')
+        showToast(`ğŸš¨ ${budget.categoryLabel} bÃ¼tÃ§esi aÅŸÄ±ldÄ±!`, 'error')
       } else if (budget.percentage >= 80 && budget.percentage < 100) {
-        showToast(`⚠️ ${budget.categoryLabel} bütçesi %${Math.round(budget.percentage)} doldu`, 'warning')
+        showToast(`âš ï¸ ${budget.categoryLabel} bÃ¼tÃ§esi %${Math.round(budget.percentage)} doldu`, 'warning')
       }
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -100,12 +100,12 @@ export default function BudgetsPage() {
     setBudgets([...budgets, newBudget])
     setFormData({ categoryId: '', amount: '', period: 'monthly' })
     setShowForm(false)
-    showToast('Bütçe başarıyla oluşturuldu! 💰', 'success')
+    showToast('BÃ¼tÃ§e baÅŸarÄ±yla oluÅŸturuldu! ğŸ’°', 'success')
   }
 
   const handleDelete = (id: string) => {
     setBudgets(budgets.filter(b => b.id !== id))
-    showToast('Bütçe silindi! 🗑️', 'success')
+    showToast('BÃ¼tÃ§e silindi! ğŸ—‘ï¸', 'success')
   }
 
   const getStatusColor = (percentage: number) => {
@@ -118,18 +118,18 @@ export default function BudgetsPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Bütçe Yönetimi</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Harcama limitlerini belirle ve takip et</p>
+          <h1 className="text-3xl font-bold text-foreground dark:text-white">BÃ¼tÃ§e YÃ¶netimi</h1>
+          <p className="text-muted-foreground dark:text-gray-400 mt-1">Harcama limitlerini belirle ve takip et</p>
         </div>
         <Button onClick={() => setShowForm(!showForm)}>
-          {showForm ? 'İptal' : '+ Yeni Bütçe'}
+          {showForm ? 'Ä°ptal' : '+ Yeni BÃ¼tÃ§e'}
         </Button>
       </div>
 
       {showForm && (
         <Card>
           <CardHeader>
-            <CardTitle>Yeni Bütçe Oluştur</CardTitle>
+            <CardTitle>Yeni BÃ¼tÃ§e OluÅŸtur</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -140,7 +140,7 @@ export default function BudgetsPage() {
                   onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
                   required
                 >
-                  <option value="">Kategori seçin</option>
+                  <option value="">Kategori seÃ§in</option>
                   {CATEGORIES.filter(c => c.type === 'expense').map((cat) => (
                     <option key={cat.id} value={cat.id}>
                       {cat.emoji} {cat.label}
@@ -149,7 +149,7 @@ export default function BudgetsPage() {
                 </Select>
 
                 <Input
-                  label="Limit (₺)"
+                  label="Limit (â‚º)"
                   type="number"
                   step="0.01"
                   value={formData.amount}
@@ -163,14 +163,14 @@ export default function BudgetsPage() {
                   value={formData.period}
                   onChange={(e) => setFormData({ ...formData, period: e.target.value as 'monthly' | 'weekly' })}
                   options={[
-                    { value: 'monthly', label: 'Aylık' },
-                    { value: 'weekly', label: 'Haftalık' }
+                    { value: 'monthly', label: 'AylÄ±k' },
+                    { value: 'weekly', label: 'HaftalÄ±k' }
                   ]}
                 />
               </div>
 
               <div className="flex justify-end">
-                <Button type="submit">Bütçe Oluştur</Button>
+                <Button type="submit">BÃ¼tÃ§e OluÅŸtur</Button>
               </div>
             </form>
           </CardContent>
@@ -185,15 +185,15 @@ export default function BudgetsPage() {
       {budgets.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-4xl mb-4">💰</p>
-            <p className="text-lg font-medium text-gray-900 mb-2">
-              Henüz bütçe oluşturulmadı
+            <p className="text-4xl mb-4">ğŸ’°</p>
+            <p className="text-lg font-medium text-foreground mb-2">
+              HenÃ¼z bÃ¼tÃ§e oluÅŸturulmadÄ±
             </p>
-            <p className="text-gray-600 mb-4">
-              Harcamalarınızı kontrol altında tutmak için bütçe limitleri belirleyin
+            <p className="text-muted-foreground mb-4">
+              HarcamalarÄ±nÄ±zÄ± kontrol altÄ±nda tutmak iÃ§in bÃ¼tÃ§e limitleri belirleyin
             </p>
             <Button onClick={() => setShowForm(true)}>
-              İlk Bütçeni Oluştur
+              Ä°lk BÃ¼tÃ§eni OluÅŸtur
             </Button>
           </CardContent>
         </Card>
@@ -210,13 +210,13 @@ export default function BudgetsPage() {
                     onClick={() => handleDelete(budget.id)}
                     className="text-red-600 hover:text-red-700"
                   >
-                    🗑️
+                    ğŸ—‘ï¸
                   </Button>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <div className="flex justify-between text-sm text-gray-600 mb-2">
+                  <div className="flex justify-between text-sm text-muted-foreground mb-2">
                     <span>Harcanan</span>
                     <span>{budget.percentage.toFixed(0)}%</span>
                   </div>
@@ -230,19 +230,19 @@ export default function BudgetsPage() {
 
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Limit:</span>
-                    <span className="font-medium">₺{budget.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                    <span className="text-muted-foreground">Limit:</span>
+                    <span className="font-medium">â‚º{budget.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Harcanan:</span>
-                    <span className="font-medium text-red-600">₺{budget.spent.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                    <span className="text-muted-foreground">Harcanan:</span>
+                    <span className="font-medium text-red-600">â‚º{budget.spent.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
                   </div>
                   <div className="flex justify-between border-t pt-2">
-                    <span className="text-gray-600">Kalan:</span>
-                    <span className="font-semibold text-green-600">₺{budget.remaining.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                    <span className="text-muted-foreground">Kalan:</span>
+                    <span className="font-semibold text-green-600">â‚º{budget.remaining.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
                   </div>
-                  <div className="text-xs text-gray-500">
-                    Periyot: {budget.period === 'monthly' ? 'Aylık' : 'Haftalık'}
+                  <div className="text-xs text-muted-foreground">
+                    Periyot: {budget.period === 'monthly' ? 'AylÄ±k' : 'HaftalÄ±k'}
                   </div>
                 </div>
               </CardContent>
@@ -253,3 +253,4 @@ export default function BudgetsPage() {
     </div>
   )
 }
+

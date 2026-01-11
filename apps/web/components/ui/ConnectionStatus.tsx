@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useRealtimeContext } from '@/contexts/RealtimeContext';
 
@@ -55,3 +55,5 @@ export function ConnectionStatusDot() {
     </span>
   );
 }
+
+

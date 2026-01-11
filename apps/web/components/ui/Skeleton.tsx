@@ -1,4 +1,4 @@
-import { cn } from '@/lib/utils'
+﻿import { cn } from '@/lib/utils'
 
 interface SkeletonProps {
   className?: string
@@ -35,7 +35,7 @@ export function Skeleton({
 
 export function StatCardSkeleton() {
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className="bg-card rounded-lg shadow p-6">
       <div className="flex items-center justify-between">
         <div className="flex-1 space-y-3">
           <Skeleton className="h-4 w-20" />
@@ -50,7 +50,7 @@ export function StatCardSkeleton() {
 
 export function ChartSkeleton() {
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className="bg-card rounded-lg shadow p-6">
       <Skeleton className="h-6 w-40 mb-4" />
       <Skeleton className="h-64 w-full" />
     </div>
@@ -59,7 +59,7 @@ export function ChartSkeleton() {
 
 export function TableSkeleton({ rows = 5 }: { rows?: number }) {
   return (
-    <div className="bg-white rounded-lg shadow">
+    <div className="bg-card rounded-lg shadow">
       <div className="p-6 border-b">
         <Skeleton className="h-6 w-32" />
       </div>
@@ -95,7 +95,7 @@ export function DashboardSkeleton() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-card rounded-lg shadow p-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-10 w-full" />
@@ -127,3 +127,5 @@ export function DashboardSkeleton() {
     </div>
   )
 }
+
+

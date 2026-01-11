@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { WeeklyData } from '@/lib/api'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
@@ -14,7 +14,7 @@ export function WeeklyTrendChart({ data, type = 'bar' }: WeeklyTrendChartProps) 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
+        <div className="bg-card p-3 rounded-lg shadow-lg border border-border">
           <p className="font-medium mb-2">{payload[0].payload.week}</p>
           <p className="text-sm text-green-600">
             Gelir: {formatCurrency(payload[0].value)}
@@ -31,7 +31,7 @@ export function WeeklyTrendChart({ data, type = 'bar' }: WeeklyTrendChartProps) 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Haftalık Trend</CardTitle>
+        <CardTitle>HaftalÄ±k Trend</CardTitle>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
@@ -61,3 +61,5 @@ export function WeeklyTrendChart({ data, type = 'bar' }: WeeklyTrendChartProps) 
     </Card>
   )
 }
+
+

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useMemo } from 'react'
 import {
@@ -76,45 +76,45 @@ export function MonthlyComparisonChart({ data, currency = 'TRY' }: MonthlyCompar
   const TrendIcon = ({ trend }: { trend: 'up' | 'down' | 'same' }) => {
     if (trend === 'up') return <TrendingUp className="w-4 h-4 text-green-500" />
     if (trend === 'down') return <TrendingDown className="w-4 h-4 text-red-500" />
-    return <Minus className="w-4 h-4 text-gray-500" />
+    return <Minus className="w-4 h-4 text-muted-foreground" />
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <h3 className="text-lg font-semibold mb-4">Aylık Karşılaştırma</h3>
+    <div className="bg-card rounded-lg shadow p-6">
+      <h3 className="text-lg font-semibold mb-4">AylÄ±k KarÅŸÄ±laÅŸtÄ±rma</h3>
 
       {comparison && (
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="bg-blue-50 rounded-lg p-3">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-sm text-gray-600">Gelir</span>
+              <span className="text-sm text-muted-foreground">Gelir</span>
               <TrendIcon trend={comparison.income.trend} />
             </div>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-muted-foreground">
               {comparison.income.value > 0 ? '+' : ''}
-              {comparison.income.value.toFixed(1)}% vs geçen ay
+              {comparison.income.value.toFixed(1)}% vs geÃ§en ay
             </p>
           </div>
 
           <div className="bg-red-50 rounded-lg p-3">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-sm text-gray-600">Gider</span>
+              <span className="text-sm text-muted-foreground">Gider</span>
               <TrendIcon trend={comparison.expense.trend} />
             </div>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-muted-foreground">
               {comparison.expense.value > 0 ? '+' : ''}
-              {comparison.expense.value.toFixed(1)}% vs geçen ay
+              {comparison.expense.value.toFixed(1)}% vs geÃ§en ay
             </p>
           </div>
 
           <div className="bg-green-50 rounded-lg p-3">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-sm text-gray-600">Tasarruf</span>
+              <span className="text-sm text-muted-foreground">Tasarruf</span>
               <TrendIcon trend={comparison.savings.trend} />
             </div>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-muted-foreground">
               {comparison.savings.value > 0 ? '+' : ''}
-              {comparison.savings.value.toFixed(1)}% vs geçen ay
+              {comparison.savings.value.toFixed(1)}% vs geÃ§en ay
             </p>
           </div>
         </div>
@@ -138,19 +138,19 @@ export function MonthlyComparisonChart({ data, currency = 'TRY' }: MonthlyCompar
 
       <div className="mt-4 grid grid-cols-3 gap-4 text-center">
         <div>
-          <p className="text-sm text-gray-600">Toplam Gelir</p>
+          <p className="text-sm text-muted-foreground">Toplam Gelir</p>
           <p className="text-lg font-semibold text-green-600">
             {formatCurrency(chartData.reduce((sum, item) => sum + item.income, 0))}
           </p>
         </div>
         <div>
-          <p className="text-sm text-gray-600">Toplam Gider</p>
+          <p className="text-sm text-muted-foreground">Toplam Gider</p>
           <p className="text-lg font-semibold text-red-600">
             {formatCurrency(chartData.reduce((sum, item) => sum + item.expense, 0))}
           </p>
         </div>
         <div>
-          <p className="text-sm text-gray-600">Net Tasarruf</p>
+          <p className="text-sm text-muted-foreground">Net Tasarruf</p>
           <p className="text-lg font-semibold text-blue-600">
             {formatCurrency(chartData.reduce((sum, item) => sum + item.savings!, 0))}
           </p>
@@ -159,3 +159,5 @@ export function MonthlyComparisonChart({ data, currency = 'TRY' }: MonthlyCompar
     </div>
   )
 }
+
+

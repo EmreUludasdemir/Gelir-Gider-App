@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { useTransactions, useRefreshAll } from '@/lib/hooks'
@@ -7,6 +7,7 @@ import { ManualTransactionForm } from '@/components/forms/ManualTransactionForm'
 import { TransactionFilters } from '@/components/forms/TransactionFilters'
 import { ExportButton } from '@/components/ui/ExportButton'
 import { Spinner } from '@/components/ui/Spinner'
+import { Button } from '@/components/ui/Button'
 
 export default function TransactionsPage() {
   const [showForm, setShowForm] = useState(false)
@@ -29,9 +30,9 @@ export default function TransactionsPage() {
 
   if (error) {
     return (
-      <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-        <p className="text-red-800">
-          Veri yüklenirken hata oluştu. Backend servisi çalışıyor mu?
+      <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+        <p className="text-destructive">
+          Veri yÃ¼klenirken hata oluÅŸtu. Backend servisi Ã§alÄ±ÅŸÄ±yor mu?
         </p>
       </div>
     )
@@ -39,23 +40,23 @@ export default function TransactionsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Tüm İşlemler</h1>
-          <p className="text-gray-600 mt-1">
-            Toplam {transactions?.length || 0} işlem
+          <h1 className="text-3xl font-bold text-foreground">TÃ¼m Ä°ÅŸlemler</h1>
+          <p className="text-muted-foreground mt-1">
+            Toplam {transactions?.length || 0} iÅŸlem
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {transactions && transactions.length > 0 && (
             <ExportButton transactions={transactions} />
           )}
-          <button
+          <Button
             onClick={() => setShowForm(!showForm)}
-            className="px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors"
+            variant="primary"
           >
-            {showForm ? 'Formu Kapat' : '+ Yeni İşlem'}
-          </button>
+            {showForm ? 'Formu Kapat' : '+ Yeni Ä°ÅŸlem'}
+          </Button>
         </div>
       </div>
 
@@ -71,12 +72,13 @@ export default function TransactionsPage() {
       )}
 
       {transactions && transactions.length > 0 ? (
-        <TransactionTable transactions={transactions} title="Tüm İşlemler" />
+        <TransactionTable transactions={transactions} title="TÃ¼m Ä°ÅŸlemler" />
       ) : (
-        <div className="p-8 text-center bg-white rounded-lg border border-gray-200">
-          <p className="text-gray-600">Henüz işlem yok. Yeni işlem ekleyin veya PDF yükleyin.</p>
+        <div className="p-8 text-center bg-card rounded-2xl border border-border">
+          <p className="text-muted-foreground">HenÃ¼z iÅŸlem yok. Yeni iÅŸlem ekleyin veya PDF yÃ¼kleyin.</p>
         </div>
       )}
     </div>
   )
 }
+

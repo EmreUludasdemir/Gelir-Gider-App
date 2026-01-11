@@ -1,7 +1,7 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
-import { Sparkles, Loader2, Plus, Check, X } from 'lucide-react';
+import { Sparkles, Loader2, Check, X } from 'lucide-react';
 import { parseTransactionNaturalLanguage, isAIAvailable } from '@/lib/gemini';
 import { createTransaction } from '@/lib/api';
 import { usePreferences } from '@/lib/PreferencesContext';
@@ -32,10 +32,10 @@ export function SmartTransactionInput({ onSuccess }: SmartTransactionInputProps)
       if (result) {
         setParsedResult(result);
       } else {
-        setError(language === 'tr' ? 'İşlem parse edilemedi. Lütfen farklı bir ifade deneyin.' : 'Could not parse transaction. Please try a different phrase.');
+        setError(language === 'tr' ? 'Islem parse edilemedi. Lutfen farkli bir ifade deneyin.' : 'Could not parse transaction. Please try a different phrase.');
       }
     } catch {
-      setError(language === 'tr' ? 'Bir hata oluştu.' : 'An error occurred.');
+      setError(language === 'tr' ? 'Bir hata oldu.' : 'An error occurred.');
     } finally {
       setIsLoading(false);
     }
@@ -53,12 +53,12 @@ export function SmartTransactionInput({ onSuccess }: SmartTransactionInputProps)
         type: parsedResult.type === TransactionType.INCOME ? 'income' : 'expense',
         categoryLabel: parsedResult.category,
       });
-      
+
       setInput('');
       setParsedResult(null);
       onSuccess?.();
     } catch {
-      setError(language === 'tr' ? 'İşlem kaydedilemedi.' : 'Failed to save transaction.');
+      setError(language === 'tr' ? 'Islem kaydedilemedi.' : 'Failed to save transaction.');
     } finally {
       setIsLoading(false);
     }
@@ -75,10 +75,10 @@ export function SmartTransactionInput({ onSuccess }: SmartTransactionInputProps)
   }
 
   return (
-    <div className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-xl p-4 border border-purple-200 dark:border-purple-800">
+    <div className="bg-gradient-to-r from-primary-50 to-accent/20 rounded-xl p-4 border border-border">
       <div className="flex items-center gap-2 mb-3">
-        <Sparkles className="w-5 h-5 text-purple-600" />
-        <h3 className="font-semibold text-gray-900 dark:text-white">{t('smart_input')}</h3>
+        <Sparkles className="w-5 h-5 text-primary-600" />
+        <h3 className="font-semibold text-foreground">{t('smart_input')}</h3>
       </div>
 
       {!parsedResult ? (
@@ -89,13 +89,13 @@ export function SmartTransactionInput({ onSuccess }: SmartTransactionInputProps)
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleParse()}
             placeholder={t('smart_input_placeholder')}
-            className="flex-1 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className="flex-1 px-4 py-2 rounded-lg border border-border bg-card text-foreground focus:ring-2 focus:ring-primary/30 focus:border-transparent"
             disabled={isLoading}
           />
           <button
             onClick={handleParse}
             disabled={isLoading || !input.trim()}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
           >
             {isLoading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -107,36 +107,36 @@ export function SmartTransactionInput({ onSuccess }: SmartTransactionInputProps)
         </div>
       ) : (
         <div className="space-y-3">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+          <div className="bg-card rounded-lg p-4 border border-border">
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="text-gray-500 dark:text-gray-400">{t('description')}:</span>
-                <p className="font-medium text-gray-900 dark:text-white">{parsedResult.description}</p>
+                <span className="text-muted-foreground">{t('description')}:</span>
+                <p className="font-medium text-foreground">{parsedResult.description}</p>
               </div>
               <div>
-                <span className="text-gray-500 dark:text-gray-400">{t('amount')}:</span>
-                <p className={`font-bold ${parsedResult.type === TransactionType.INCOME ? 'text-green-600' : 'text-red-600'}`}>
-                  {parsedResult.type === TransactionType.INCOME ? '+' : '-'}{parsedResult.amount.toLocaleString('tr-TR')} ₺
+                <span className="text-muted-foreground">{t('amount')}:</span>
+                <p className={`font-bold ${parsedResult.type === TransactionType.INCOME ? 'text-success' : 'text-destructive'}`}>
+                  {parsedResult.type === TransactionType.INCOME ? '+' : '-'}{parsedResult.amount.toLocaleString('tr-TR')} TL
                 </p>
               </div>
               <div>
-                <span className="text-gray-500 dark:text-gray-400">{t('category')}:</span>
-                <p className="font-medium text-gray-900 dark:text-white">{parsedResult.category}</p>
+                <span className="text-muted-foreground">{t('category')}:</span>
+                <p className="font-medium text-foreground">{parsedResult.category}</p>
               </div>
               <div>
-                <span className="text-gray-500 dark:text-gray-400">{t('type')}:</span>
-                <p className="font-medium text-gray-900 dark:text-white">
+                <span className="text-muted-foreground">{t('type')}:</span>
+                <p className="font-medium text-foreground">
                   {parsedResult.type === TransactionType.INCOME ? t('income') : t('expense')}
                 </p>
               </div>
             </div>
           </div>
-          
+
           <div className="flex gap-2">
             <button
               onClick={handleConfirm}
               disabled={isLoading}
-              className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
+              className="flex-1 px-4 py-2 bg-success text-success-foreground rounded-lg hover:bg-success/90 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
             >
               {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
               {t('save')}
@@ -144,7 +144,7 @@ export function SmartTransactionInput({ onSuccess }: SmartTransactionInputProps)
             <button
               onClick={handleCancel}
               disabled={isLoading}
-              className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 flex items-center gap-2 transition-colors"
+              className="px-4 py-2 bg-muted text-foreground rounded-lg hover:bg-muted/80 flex items-center gap-2 transition-colors"
             >
               <X className="w-4 h-4" />
               {t('cancel')}
@@ -154,8 +154,9 @@ export function SmartTransactionInput({ onSuccess }: SmartTransactionInputProps)
       )}
 
       {error && (
-        <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>
+        <p className="mt-2 text-sm text-destructive">{error}</p>
       )}
     </div>
   );
 }
+

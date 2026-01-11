@@ -1,6 +1,5 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
-import { Blob } from 'buffer';
 import {
   TransactionEntity,
   UploadResult,
@@ -72,7 +71,11 @@ export class UploadsService {
 
       // Use the native FormData/Blob so fetch can set the correct boundary.
       const formData = new FormData();
-      const pdfBlob = new Blob([file.buffer], { type: 'application/pdf' });
+      const pdfBuffer = file.buffer.buffer.slice(
+        file.buffer.byteOffset,
+        file.buffer.byteOffset + file.buffer.byteLength
+      ) as ArrayBuffer;
+      const pdfBlob = new Blob([pdfBuffer], { type: 'application/pdf' });
       formData.append('file', pdfBlob, file.originalname);
 
       const response = await fetch(`${pdfParserUrl}/parse`, {
@@ -193,10 +196,6 @@ export class UploadsService {
   }
 
   private inferTransactionType(parsed: ParsedTransaction): TransactionType {
-    if (parsed.type === 'income' || parsed.type === 'expense') {
-      return parsed.type;
-    }
-
     const desc = this.normalizeText(parsed.description || '');
 
     if (this.hasKeywordMatch(desc, UploadsService.EXPENSE_OVERRIDE_KEYWORDS)) {
@@ -212,6 +211,14 @@ export class UploadsService {
 
     if (matchesIncome && !matchesExpense) {
       return 'income';
+    }
+
+    if (parsed.amount < 0) {
+      return 'expense';
+    }
+
+    if (parsed.type === 'income' || parsed.type === 'expense') {
+      return parsed.type;
     }
 
     return parsed.amount < 0 ? 'expense' : 'income';

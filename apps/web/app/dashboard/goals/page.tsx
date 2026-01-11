@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { Plus, Target, Trash2, Edit2, X, Check } from 'lucide-react'
@@ -14,7 +14,7 @@ const MOCK_GOALS: SavingsGoal[] = [
     targetAmount: 50000,
     currentAmount: 15000,
     color: '#8B5CF6',
-    icon: '✈️',
+    icon: 'âœˆï¸',
   },
   {
     id: '2',
@@ -22,7 +22,7 @@ const MOCK_GOALS: SavingsGoal[] = [
     targetAmount: 100000,
     currentAmount: 45000,
     color: '#10B981',
-    icon: '🏦',
+    icon: 'ğŸ¦',
   },
   {
     id: '3',
@@ -30,7 +30,7 @@ const MOCK_GOALS: SavingsGoal[] = [
     targetAmount: 300000,
     currentAmount: 75000,
     color: '#F59E0B',
-    icon: '🚗',
+    icon: 'ğŸš—',
   },
 ]
 
@@ -50,7 +50,7 @@ export default function GoalsPage() {
       targetAmount: parseFloat(newGoal.targetAmount),
       currentAmount: parseFloat(newGoal.currentAmount) || 0,
       color: `#${Math.floor(Math.random()*16777215).toString(16)}`,
-      icon: '🎯',
+      icon: 'ğŸ¯',
     }
 
     setGoals((prev) => [...prev, goal])
@@ -70,8 +70,8 @@ export default function GoalsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('savings_goals')}</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
+          <h1 className="text-3xl font-bold text-foreground">{t('savings_goals')}</h1>
+          <p className="text-muted-foreground mt-1">
             {language === 'tr' 
               ? 'Finansal hedeflerinizi takip edin' 
               : 'Track your financial goals'}
@@ -88,44 +88,44 @@ export default function GoalsPage() {
 
       {/* Add Goal Form */}
       {isAdding && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        <div className="bg-card rounded-xl shadow-sm border border-border p-6">
+          <h3 className="text-lg font-semibold text-foreground mb-4">
             {t('add_goal')}
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 {t('goal_name')}
               </label>
               <input
                 type="text"
                 value={newGoal.name}
                 onChange={(e) => setNewGoal((prev) => ({ ...prev, name: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                placeholder={language === 'tr' ? 'Örn: Tatil Fonu' : 'E.g., Vacation Fund'}
+                className="w-full px-3 py-2 border border-border rounded-lg bg-card dark:bg-gray-700 text-foreground"
+                placeholder={language === 'tr' ? 'Ã–rn: Tatil Fonu' : 'E.g., Vacation Fund'}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 {t('target_amount')}
               </label>
               <input
                 type="number"
                 value={newGoal.targetAmount}
                 onChange={(e) => setNewGoal((prev) => ({ ...prev, targetAmount: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                className="w-full px-3 py-2 border border-border rounded-lg bg-card dark:bg-gray-700 text-foreground"
                 placeholder="50000"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 {t('current_amount')}
               </label>
               <input
                 type="number"
                 value={newGoal.currentAmount}
                 onChange={(e) => setNewGoal((prev) => ({ ...prev, currentAmount: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                className="w-full px-3 py-2 border border-border rounded-lg bg-card dark:bg-gray-700 text-foreground"
                 placeholder="0"
               />
             </div>
@@ -133,7 +133,7 @@ export default function GoalsPage() {
           <div className="flex justify-end gap-2 mt-4">
             <button
               onClick={() => setIsAdding(false)}
-              className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg flex items-center gap-2 transition-colors"
+              className="px-4 py-2 text-foreground hover:bg-muted dark:hover:bg-gray-700 rounded-lg flex items-center gap-2 transition-colors"
             >
               <X className="w-4 h-4" />
               {t('cancel')}
@@ -156,7 +156,7 @@ export default function GoalsPage() {
           return (
             <div
               key={goal.id}
-              className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 relative group"
+              className="bg-card rounded-xl shadow-sm border border-border p-6 relative group"
             >
               <button
                 onClick={() => handleDeleteGoal(goal.id)}
@@ -168,8 +168,8 @@ export default function GoalsPage() {
               <div className="flex items-center gap-3 mb-4">
                 <span className="text-3xl">{goal.icon}</span>
                 <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white">{goal.name}</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                  <h3 className="font-semibold text-foreground">{goal.name}</h3>
+                  <p className="text-sm text-muted-foreground">
                     {progress}% {t('progress')}
                   </p>
                 </div>
@@ -188,18 +188,18 @@ export default function GoalsPage() {
               </div>
 
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600 dark:text-gray-400">
+                <span className="text-muted-foreground">
                   {formatCurrency(goal.currentAmount)}
                 </span>
-                <span className="font-medium text-gray-900 dark:text-white">
+                <span className="font-medium text-foreground">
                   {formatCurrency(goal.targetAmount)}
                 </span>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+              <div className="mt-4 pt-4 border-t border-border dark:border-gray-700">
+                <p className="text-sm text-muted-foreground">
                   {language === 'tr' ? 'Kalan:' : 'Remaining:'}{' '}
-                  <span className="font-semibold text-gray-900 dark:text-white">
+                  <span className="font-semibold text-foreground">
                     {formatCurrency(goal.targetAmount - goal.currentAmount)}
                   </span>
                 </p>
@@ -210,14 +210,14 @@ export default function GoalsPage() {
       </div>
 
       {goals.length === 0 && !isAdding && (
-        <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+        <div className="text-center py-12 bg-card rounded-xl border border-border">
           <Target className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-            {language === 'tr' ? 'Henüz hedef yok' : 'No goals yet'}
+          <h3 className="text-lg font-medium text-foreground mb-2">
+            {language === 'tr' ? 'HenÃ¼z hedef yok' : 'No goals yet'}
           </h3>
-          <p className="text-gray-500 dark:text-gray-400 mb-4">
+          <p className="text-muted-foreground mb-4">
             {language === 'tr' 
-              ? 'İlk tasarruf hedefinizi oluşturun' 
+              ? 'Ä°lk tasarruf hedefinizi oluÅŸturun' 
               : 'Create your first savings goal'}
           </p>
           <button
@@ -231,3 +231,5 @@ export default function GoalsPage() {
     </div>
   )
 }
+
+

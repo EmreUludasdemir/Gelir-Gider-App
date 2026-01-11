@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import {
@@ -55,9 +55,9 @@ export function FinancialHealthCard() {
 
   if (isLoading) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+      <div className="bg-card rounded-xl shadow-sm border border-border p-6">
         <div className="flex items-center justify-center h-40">
-          <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+          <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
         </div>
       </div>
     );
@@ -70,18 +70,18 @@ export function FinancialHealthCard() {
   const highSeverityAnomalies = anomalies?.filter((a: SpendingAnomaly) => a.severity === 'high') || [];
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+      <div className="p-4 border-b border-border dark:border-gray-700">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Heart className="w-5 h-5 text-red-500" />
-            <h3 className="font-semibold text-gray-900 dark:text-white">Finansal Sağlık</h3>
+            <h3 className="font-semibold text-foreground">Finansal SaÄŸlÄ±k</h3>
           </div>
           {highSeverityAnomalies.length > 0 && (
             <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 rounded-full flex items-center gap-1">
               <AlertTriangle className="w-3 h-3" />
-              {highSeverityAnomalies.length} Uyarı
+              {highSeverityAnomalies.length} UyarÄ±
             </span>
           )}
         </div>
@@ -95,10 +95,10 @@ export function FinancialHealthCard() {
               {health.grade}
             </div>
             <div>
-              <div className="text-3xl font-bold text-gray-900 dark:text-white">
+              <div className="text-3xl font-bold text-foreground">
                 {health.score}/100
               </div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">
+              <div className="text-sm text-muted-foreground">
                 Finansal Puan
               </div>
             </div>
@@ -106,13 +106,13 @@ export function FinancialHealthCard() {
 
           <div className="text-right space-y-1">
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-gray-500 dark:text-gray-400">Tasarruf:</span>
+              <span className="text-muted-foreground">Tasarruf:</span>
               <span className={`font-medium ${health.savingsRate >= 20 ? 'text-green-600' : health.savingsRate >= 10 ? 'text-yellow-600' : 'text-red-600'}`}>
                 %{health.savingsRate}
               </span>
             </div>
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-gray-500 dark:text-gray-400">Bütçe Uyumu:</span>
+              <span className="text-muted-foreground">BÃ¼tÃ§e Uyumu:</span>
               <span className={`font-medium ${health.budgetAdherence >= 90 ? 'text-green-600' : health.budgetAdherence >= 70 ? 'text-yellow-600' : 'text-red-600'}`}>
                 %{health.budgetAdherence}
               </span>
@@ -137,12 +137,12 @@ export function FinancialHealthCard() {
           {health.factors.map((factor: FinancialHealthFactor, index: number) => {
             const Icon = statusIcons[factor.status as Status];
             return (
-              <div key={index} className="text-center p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <div key={index} className="text-center p-2 bg-muted/40/50 rounded-lg">
                 <Icon className={`w-5 h-5 mx-auto mb-1 ${statusColors[factor.status as Status]}`} />
-                <div className="text-xs text-gray-500 dark:text-gray-400 truncate" title={factor.name}>
+                <div className="text-xs text-muted-foreground truncate" title={factor.name}>
                   {factor.name}
                 </div>
-                <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                <div className="text-sm font-semibold text-foreground">
                   {factor.score}%
                 </div>
               </div>
@@ -152,9 +152,9 @@ export function FinancialHealthCard() {
 
         {/* Anomalies Section */}
         {anomalies && anomalies.length > 0 && (
-          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="mt-4 pt-4 border-t border-border">
             <div className="flex items-center gap-2 mb-3">
-              <Activity className="w-4 h-4 text-purple-600" />
+              <Activity className="w-4 h-4 text-primary-600" />
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Tespit Edilen Anomaliler
               </span>
@@ -182,32 +182,32 @@ export function FinancialHealthCard() {
         {/* Toggle Details Button */}
         <button
           onClick={() => setShowDetails(!showDetails)}
-          className="w-full mt-4 py-2 text-sm text-purple-600 hover:text-purple-700 dark:text-purple-400 flex items-center justify-center gap-1"
+          className="w-full mt-4 py-2 text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400 flex items-center justify-center gap-1"
         >
           {showDetails ? (
             <>
               <ChevronUp className="w-4 h-4" />
-              Detayları Gizle
+              DetaylarÄ± Gizle
             </>
           ) : (
             <>
               <ChevronDown className="w-4 h-4" />
-              Detayları Göster
+              DetaylarÄ± GÃ¶ster
             </>
           )}
         </button>
 
         {/* Detailed Factors */}
         {showDetails && (
-          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-3">
+          <div className="mt-4 pt-4 border-t border-border space-y-3">
             {health.factors.map((factor: FinancialHealthFactor, index: number) => {
               const Icon = statusIcons[factor.status as Status];
               return (
-                <div key={index} className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div key={index} className="p-3 bg-muted/40/50 rounded-lg">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <Icon className={`w-5 h-5 ${statusColors[factor.status as Status]}`} />
-                      <span className="font-medium text-gray-900 dark:text-white">
+                      <span className="font-medium text-foreground">
                         {factor.name}
                       </span>
                     </div>
@@ -215,7 +215,7 @@ export function FinancialHealthCard() {
                       {factor.score}%
                     </span>
                   </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-muted-foreground">
                     {factor.advice}
                   </p>
                 </div>
@@ -227,3 +227,6 @@ export function FinancialHealthCard() {
     </div>
   );
 }
+
+
+

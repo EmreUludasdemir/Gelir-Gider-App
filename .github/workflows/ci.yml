@@ -55,9 +55,11 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --workspaces --include-workspace-root
 
       - name: Generate Prisma Client
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
         run: |
           cd apps/api
           npx prisma generate
@@ -131,7 +133,7 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --workspaces --include-workspace-root
 
       - name: Run linting
         run: |
