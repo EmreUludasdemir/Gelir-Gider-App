@@ -13,7 +13,16 @@
     "test:unit": "jest --selectProjects unit",
     "test:e2e": "jest --selectProjects e2e",
     "test:debug": "node --inspect-brk -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:ci": "jest --coverage --ci --reporters=default --reporters=jest-junit"
+    "test:ci": "jest --coverage --ci --reporters=default --reporters=jest-junit",
+    "db:migrate": "prisma migrate deploy",
+    "db:migrate:dev": "prisma migrate dev",
+    "db:seed": "ts-node prisma/seed.ts",
+    "db:reset": "prisma migrate reset --force",
+    "db:studio": "prisma studio",
+    "db:generate": "prisma generate"
+  },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.10",
@@ -58,7 +67,8 @@
     "validator": "^13.15.26",
     "web-push": "^3.6.7",
     "winston": "^3.19.0",
-    "xss-clean": "^0.1.4"
+    "xss-clean": "^0.1.4",
+    "zod": "^4.3.5"
   },
   "devDependencies": {
     "@nestjs/testing": "^10.4.20",

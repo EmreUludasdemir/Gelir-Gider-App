@@ -39,3 +39,13 @@ export { Cacheable, CacheInvalidate, CacheTransactions, CacheTransactionSummary,
 // Performance exports
 export { CompressionMiddleware, createCompressionMiddleware, CompressionPresets } from './performance';
 export { PerformanceController, PerformanceModule } from './performance';
+
+// File validation exports
+export {
+  validateFile,
+  sanitizeFileName,
+  generateUniqueFileName,
+  ALLOWED_MIME_TYPES,
+  DEFAULT_PDF_OPTIONS,
+  DEFAULT_CSV_OPTIONS,
+} from './file-validation';

@@ -13,8 +13,19 @@
     "build": "npm run build -w @app/api && npm run build -w @app/web",
     "build:desktop": "npm run electron:build -w @app/desktop",
     "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test -w @app/api",
+    "test:web": "npm run test -w @app/web",
+    "test:cov": "npm run test:cov -w @app/api",
     "clean": "rm -rf node_modules apps/*/node_modules apps/*/.next apps/*/dist",
-    "verify": "bash scripts/verify.sh"
+    "verify": "bash scripts/verify.sh",
+    "db:migrate": "npm run db:migrate -w @app/api",
+    "db:seed": "npm run db:seed -w @app/api",
+    "db:reset": "npm run db:reset -w @app/api",
+    "db:studio": "npm run db:studio -w @app/api",
+    "setup": "npm install && npm run db:migrate && npm run db:seed",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
