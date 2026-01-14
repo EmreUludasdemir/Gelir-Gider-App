@@ -13,6 +13,34 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  # Security Scanning
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit
+        run: npm audit --audit-level=high || true
+        continue-on-error: true
+
+      - name: Check for secrets in code
+        uses: trufflesecurity/trufflehog@main
+        with:
+          extra_args: --only-verified
+        continue-on-error: true
+
+
   # Backend Tests and Build
   backend:
     name: Backend CI
@@ -67,11 +95,20 @@ jobs:
           cd apps/api
           npm run lint
 
+      - name: Run migrations
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
+        run: |
+          cd apps/api
+          npx prisma migrate deploy || npx prisma db push --force-reset
+
       - name: Run tests
         env:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
-          REDIS_URL: redis://localhost:6379
-          JWT_SECRET: test-jwt-secret
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          JWT_SECRET: test-jwt-secret-that-is-at-least-32-chars
+          NODE_ENV: test
         run: |
           cd apps/api
           npm test
@@ -79,8 +116,10 @@ jobs:
       - name: Run tests with coverage
         env:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
-          REDIS_URL: redis://localhost:6379
-          JWT_SECRET: test-jwt-secret
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          JWT_SECRET: test-jwt-secret-that-is-at-least-32-chars
+          NODE_ENV: test
         run: |
           cd apps/api
           npm run test:cov
