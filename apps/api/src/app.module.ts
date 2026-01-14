@@ -30,6 +30,7 @@ import { AiAnalyticsModule } from "./modules/ai-analytics/ai-analytics.module";
 import { AiModule } from "./modules/ai/ai.module";
 import { HouseholdsModule } from "./modules/households/households.module";
 import { CurrencyModule } from "./modules/currency/currency.module";
+import { BillingModule } from "./modules/billing/billing.module";
 import { CacheModule } from "./shared/cache";
 import { PerformanceModule } from "./shared/performance";
 import { MonitoringModule } from "./shared/monitoring";
@@ -85,6 +86,7 @@ import {
     AiModule,
     HouseholdsModule,
     CurrencyModule,
+    BillingModule,
     MonitoringModule,
   ],
   controllers: [HealthController],

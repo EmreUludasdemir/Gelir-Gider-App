@@ -403,3 +403,104 @@ model HouseholdInvite {
   @@index([code])
   @@index([expiresAt])
 }
+
+// ==================== SaaS Billing ====================
+
+// Pricing Plans
+model Plan {
+  id          String @id @default(uuid())
+  name        String @unique // 'free' | 'pro' | 'business'
+  displayName String // 'Ücretsiz' | 'Pro' | 'İşletme'
+  description String?
+
+  // Pricing
+  priceMonthly    Float @default(0)
+  priceYearly     Float @default(0)
+  currency        String @default("TRY")
+  stripePriceIdMonthly String?
+  stripePriceIdYearly  String?
+
+  // Limits
+  maxTransactions   Int @default(-1) // -1 = unlimited
+  maxBudgets        Int @default(-1)
+  maxSavingsGoals   Int @default(-1)
+  maxBankConnections Int @default(0)
+  maxHouseholdMembers Int @default(0)
+
+  // Features (JSON array of feature keys)
+  features String @default("[]")
+
+  // Sorting
+  sortOrder Int @default(0)
+  isActive  Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userPlans UserPlan[]
+}
+
+// User's Active Subscription
+model UserPlan {
+  id     String @id @default(uuid())
+  userId String @unique
+  planId String
+  plan   Plan @relation(fields: [planId], references: [id])
+
+  // Stripe
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+
+  // Status
+  status    String @default("active") // 'active' | 'cancelled' | 'past_due' | 'trialing'
+  billingCycle String @default("monthly") // 'monthly' | 'yearly'
+
+  // Dates
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  cancelAt           DateTime?
+  cancelledAt        DateTime?
+  trialEnd           DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([planId])
+  @@index([stripeCustomerId])
+  @@index([stripeSubscriptionId])
+}
+
+// Payment History
+model PaymentHistory {
+  id     String @id @default(uuid())
+  userId String
+
+  // Stripe
+  stripePaymentIntentId String? @unique
+  stripeInvoiceId       String?
+
+  // Amount
+  amount   Float
+  currency String @default("TRY")
+
+  // Status
+  status String @default("pending") // 'pending' | 'succeeded' | 'failed' | 'refunded'
+
+  // Details
+  description String?
+  planName    String?
+  billingCycle String?
+
+  // Metadata
+  receiptUrl  String?
+  invoiceUrl  String?
+  failureMessage String?
+
+  paidAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
