@@ -1,13 +1,17 @@
 'use client';
 
+import { CSSProperties } from 'react';
+
 interface SkeletonProps {
   className?: string;
+  style?: CSSProperties;
 }
 
-function Skeleton({ className = '' }: SkeletonProps) {
+function Skeleton({ className = '', style }: SkeletonProps) {
   return (
     <div
       className={`animate-pulse bg-gray-200 dark:bg-gray-700 rounded ${className}`}
+      style={style}
     />
   );
 }

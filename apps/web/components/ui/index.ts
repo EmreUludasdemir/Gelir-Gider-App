@@ -8,7 +8,7 @@ export { Skeleton } from './Skeleton';
 export { Spinner } from './Spinner';
 
 // Feedback Components
-export { Toast, ToastProvider, useToast } from './Toast';
+export { ToastProvider, useToast } from './Toast';
 export { ErrorBoundary } from './ErrorBoundary';
 
 // Empty States
