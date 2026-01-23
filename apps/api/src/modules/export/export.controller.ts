@@ -5,6 +5,7 @@ import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { User } from "../auth/user.decorator";
 import { SkipThrottle } from "@nestjs/throttler";
 import { JwtPayload } from "../../shared/types";
+import { PlanFeatureGuard, RequireFeature } from "../billing/plan.guard";
 
 interface ExportQueryDto {
   dateFrom?: string;
@@ -19,11 +20,13 @@ export class ExportController {
   constructor(private readonly exportService: ExportService) {}
 
   /**
-   * Export transactions to CSV file
+   * Export transactions to CSV file (Premium feature)
    * GET /export/csv
    */
   @Get("csv")
   @SkipThrottle()
+  @UseGuards(PlanFeatureGuard)
+  @RequireFeature("exportCsv")
   @Header("Content-Type", "text/csv; charset=utf-8")
   async exportCSV(
     @User() user: JwtPayload,
@@ -38,11 +41,13 @@ export class ExportController {
   }
 
   /**
-   * Export transactions to Excel file
+   * Export transactions to Excel file (Premium feature)
    * GET /export/excel
    */
   @Get("excel")
   @SkipThrottle()
+  @UseGuards(PlanFeatureGuard)
+  @RequireFeature("exportCsv")
   @Header(
     "Content-Type",
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -60,11 +65,13 @@ export class ExportController {
   }
 
   /**
-   * Export transactions to PDF report
+   * Export transactions to PDF report (Premium feature)
    * GET /export/pdf
    */
   @Get("pdf")
   @SkipThrottle()
+  @UseGuards(PlanFeatureGuard)
+  @RequireFeature("exportPdf")
   async exportPDF(
     @User() user: JwtPayload,
     @Query() query: ExportQueryDto,

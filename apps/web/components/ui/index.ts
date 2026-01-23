@@ -38,6 +38,7 @@ export {
 
 // Feature Components
 export { ExportButton } from './ExportButton';
+export { ExportModal } from './ExportModal';
 export { ReportGenerator } from './ReportGenerator';
 export { SettingsModal } from './SettingsModal';
 export { BulkActionsBar } from './BulkActionsBar';
