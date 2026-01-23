@@ -1,7 +1,7 @@
 # 🧠 CLAUDE.md - Proje Hafıza Dosyası
 
 > Bu dosya Claude'un projeyi hatırlaması ve tutarlı çalışması için oluşturulmuştur.
-> Son güncelleme: 2026-01-03
+> Son güncelleme: 2026-01-23
 
 ---
 
@@ -462,6 +462,42 @@ GET /performance/health  - Sistem sağlık durumu
 - bank-connections useEffect: loadData useCallback ile sarıldı
 - auth-provider useEffect: router dependency eklendi
 
+### FAZ 17: Production-Grade Improvements ✅ (2026-01-23)
+- Comprehensive seed script with demo data (3 plans, demo user, 19 transactions, 3 budgets, 2 goals, 3 bills)
+- Zod-based environment validation at startup
+- File upload security (MIME type + magic byte verification)
+- RUNBOOK.md operations guide
+- EmptyState & LoadingState UI components
+- 5-minute quick start setup
+
+### FAZ 18: Admin Dashboard ✅ (2026-01-23)
+- AdminService with dashboard stats, user list, subscription list, payment history
+- Admin API endpoints (/admin/verify, /admin/stats, /admin/users, /admin/payments)
+- Admin dashboard frontend page with stats cards, tabs, search, pagination
+- Plan distribution and revenue charts
+
+### FAZ 19: Premium Export Features ✅ (2026-01-23)
+- Export endpoints with plan feature guards (exportCsv, exportPdf)
+- ExportModal component with plan-based access
+- CSV, Excel, PDF export formats
+- Premium upsell for free users
+
+### FAZ 20: Comprehensive Testing ✅ (2026-01-23)
+- 44 new backend tests (488 total)
+  - AdminService: 17 tests
+  - BillingService: 14 tests
+  - ExportService: 13 tests
+- 14 Playwright E2E tests
+  - Auth tests (5 tests)
+  - Landing page tests (5 tests)
+  - Navigation tests (4 tests)
+
+### FAZ 21: Claude Code Tooling ✅ (2026-01-23)
+- SessionStart hook for dev environment check
+- Custom slash commands (/check, /add-feature, /fix-bug, /deploy-checklist)
+- settings.json configuration
+- Stop hook for verify script
+
 ---
 
 ## 🔧 ERROR HANDLING & LOGGING (v2.1)
@@ -718,9 +754,10 @@ Task A (önkoşul) → Task B (bağımlı) → Task C (bağımlı)
 ### Proje Metrikleri
 | Metrik | Değer | Hedef |
 |--------|-------|-------|
-| Test Sayısı | 444 | 500+ |
+| Backend Tests | 488 | 500+ |
+| E2E Tests | 14 | 20+ |
 | Test Coverage | ~70% | 80%+ |
-| Lint Uyarıları | 2 | 0 |
+| Lint Uyarıları | 0 | 0 |
 | TypeScript Strict | ✅ | ✅ |
 | Build Süresi | ~30s | <30s |
 
