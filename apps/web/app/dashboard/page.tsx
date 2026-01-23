@@ -53,6 +53,11 @@ const SmartTransactionInput = dynamic(
   { loading: () => <SmartInputSkeleton />, ssr: false }
 )
 
+const CashflowForecast = dynamic(
+  () => import('@/components/dashboard/CashflowForecast').then(mod => ({ default: mod.CashflowForecast })),
+  { loading: () => <CategorySkeleton />, ssr: false }
+)
+
 export default function DashboardPage() {
   const { loading: authLoading } = useAuth()
   const { data: summary, error: summaryError, isLoading: summaryLoading, mutate: mutateSummary } = useSummary()
@@ -148,10 +153,15 @@ export default function DashboardPage() {
         />
       </div>
 
-      {/* AI Insights - Lazy loaded */}
-      <Suspense fallback={<AIInsightsSkeleton />}>
-        <AIInsights />
-      </Suspense>
+      {/* AI Insights and Cashflow Forecast - Lazy loaded */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Suspense fallback={<AIInsightsSkeleton />}>
+          <AIInsights />
+        </Suspense>
+        <Suspense fallback={<CategorySkeleton />}>
+          <CashflowForecast />
+        </Suspense>
+      </div>
 
       {/* Charts - Lazy loaded */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

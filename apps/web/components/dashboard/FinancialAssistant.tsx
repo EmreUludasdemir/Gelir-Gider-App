@@ -1,23 +1,29 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, Loader2, Sparkles, Minimize2 } from 'lucide-react';
-import { askFinancialAdvisor, isAIAvailable } from '@/lib/gemini';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { MessageCircle, X, Send, Loader2, Sparkles, Minimize2, Wrench } from 'lucide-react';
 import { usePreferences } from '@/lib/PreferencesContext';
 import { useTranslation } from '@/lib/translations';
-import { useTransactions } from '@/lib/hooks';
 import { ChatMessage } from '@/lib/types';
+import { useAuth } from '@/components/auth-provider';
+
+interface ChatResponse {
+  reply: string;
+  toolsUsed?: string[];
+  data?: Record<string, unknown>;
+}
 
 export function FinancialAssistant() {
   const { language } = usePreferences();
   const { t } = useTranslation(language);
-  const { data: transactions } = useTransactions();
-  
+  const { isAuthenticated, fetchWithAuth } = useAuth();
+
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [toolsUsed, setToolsUsed] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -27,6 +33,30 @@ export function FinancialAssistant() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const sendChatMessage = useCallback(async (message: string): Promise<ChatResponse> => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+    const conversationHistory = messages.map(m => ({
+      role: m.role as 'user' | 'assistant',
+      content: m.content,
+    }));
+
+    const response = await fetchWithAuth(`${apiUrl}/ai/chat`, {
+      method: 'POST',
+      body: JSON.stringify({
+        message,
+        conversationHistory,
+        language,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Chat request failed: ${response.status}`);
+    }
+
+    return response.json();
+  }, [fetchWithAuth, messages, language]);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -41,14 +71,19 @@ export function FinancialAssistant() {
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
+    setToolsUsed([]);
 
     try {
-      const response = await askFinancialAdvisor(userMessage.content, transactions || [], language);
-      
+      const response = await sendChatMessage(userMessage.content);
+
+      if (response.toolsUsed) {
+        setToolsUsed(response.toolsUsed);
+      }
+
       const assistantMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: response,
+        content: response.reply,
         timestamp: Date.now(),
       };
 
@@ -66,7 +101,8 @@ export function FinancialAssistant() {
     }
   };
 
-  if (!isAIAvailable()) {
+  // Only show for authenticated users
+  if (!isAuthenticated) {
     return null;
   }
 
@@ -116,13 +152,34 @@ export function FinancialAssistant() {
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4" style={{ height: 'calc(100% - 120px)' }}>
             {messages.length === 0 ? (
-              <div className="text-center text-gray-500 dark:text-gray-400 py-8">
-                <Sparkles className="w-12 h-12 mx-auto mb-3 text-purple-400" />
-                <p className="text-sm">
+              <div className="text-center text-gray-500 dark:text-gray-400 py-6">
+                <Sparkles className="w-10 h-10 mx-auto mb-3 text-purple-400" />
+                <p className="text-sm mb-4">
                   {language === 'tr'
                     ? 'Merhaba! Ben Lumina, finansal asistanınız. Harcamalarınız hakkında sorular sorabilirsiniz.'
                     : "Hi! I'm Lumina, your financial assistant. Ask me anything about your spending."}
                 </p>
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {(language === 'tr' ? [
+                    'Bu ay ne kadar harcadım?',
+                    'Bütçe durumum nasıl?',
+                    'Tasarruf hedeflerim ne durumda?',
+                    'Yaklaşan faturalarım var mı?',
+                  ] : [
+                    'How much did I spend this month?',
+                    'How are my budgets?',
+                    'How are my savings goals?',
+                    'Any upcoming bills?',
+                  ]).map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      onClick={() => setInput(suggestion)}
+                      className="px-3 py-1.5 text-xs bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full hover:bg-purple-100 dark:hover:bg-purple-900/50 transition-colors"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
               </div>
             ) : (
               messages.map((msg) => (
@@ -144,8 +201,24 @@ export function FinancialAssistant() {
             )}
             {isLoading && (
               <div className="flex justify-start">
-                <div className="bg-gray-100 dark:bg-gray-700 px-4 py-2 rounded-2xl rounded-bl-none">
-                  <Loader2 className="w-5 h-5 animate-spin text-purple-600" />
+                <div className="bg-gray-100 dark:bg-gray-700 px-4 py-3 rounded-2xl rounded-bl-none">
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-purple-600" />
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      {language === 'tr' ? 'Veriler alınıyor...' : 'Fetching data...'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+            {toolsUsed.length > 0 && !isLoading && (
+              <div className="flex justify-start">
+                <div className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
+                  <Wrench className="w-3 h-3" />
+                  <span>
+                    {language === 'tr' ? 'Kullanılan: ' : 'Used: '}
+                    {toolsUsed.map(t => t.replace('get_', '')).join(', ')}
+                  </span>
                 </div>
               </div>
             )}
