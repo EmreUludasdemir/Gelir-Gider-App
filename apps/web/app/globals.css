@@ -21,7 +21,38 @@
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 221.2 83.2% 53.3%;
-    --radius: 0.5rem;
+    --radius: 0.625rem;
+
+    /* Finance semantic colors */
+    --income: 142 76% 36%;
+    --expense: 0 84% 60%;
+    --savings: 217 91% 60%;
+    --warning: 38 92% 50%;
+  }
+
+  .dark {
+    --background: 222 47% 7%;
+    --foreground: 210 40% 98%;
+    --card: 222 47% 10%;
+    --card-foreground: 210 40% 98%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 7%;
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 217 33% 17%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 63% 50%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 217 91% 60%;
+
+    --income: 142 70% 45%;
+    --expense: 0 70% 55%;
+    --savings: 217 80% 55%;
+    --warning: 38 80% 50%;
   }
 }
 
@@ -30,28 +61,56 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 dark:bg-gray-700 rounded-full;
   }
 }
 
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+  .text-balance { text-wrap: balance; }
+  .text-income { color: hsl(var(--income)); }
+  .text-expense { color: hsl(var(--expense)); }
+  .text-savings { color: hsl(var(--savings)); }
+  .bg-income { background-color: hsl(var(--income)); }
+  .bg-expense { background-color: hsl(var(--expense)); }
+  .bg-income-muted { background-color: hsl(var(--income) / 0.1); }
+  .bg-expense-muted { background-color: hsl(var(--expense) / 0.1); }
+  .gradient-income { @apply bg-gradient-to-br from-emerald-500 to-green-600; }
+  .gradient-expense { @apply bg-gradient-to-br from-rose-500 to-red-600; }
+  .gradient-primary { @apply bg-gradient-to-br from-blue-600 to-indigo-700; }
+  .glass { @apply backdrop-blur-xl bg-white/80 dark:bg-gray-900/80; }
 }
 
 @keyframes slide-in {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes slide-up {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
-.animate-slide-in {
-  animation: slide-in 0.3s ease-out;
+.animate-slide-in { animation: slide-in 0.3s ease-out; }
+.animate-slide-up { animation: slide-up 0.3s ease-out; }
+.animate-shimmer {
+  background: linear-gradient(90deg, hsl(var(--muted)) 0%, hsl(var(--muted-foreground) / 0.1) 50%, hsl(var(--muted)) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
 }

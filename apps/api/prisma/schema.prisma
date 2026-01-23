@@ -504,3 +504,32 @@ model PaymentHistory {
   @@index([status])
   @@index([createdAt])
 }
+
+// Category Rules - User-defined categorization rules
+model CategoryRule {
+  id     String @id @default(uuid())
+  userId String
+
+  // Matching pattern
+  pattern   String // Pattern to match in transaction description
+  matchType String @default("contains") // 'contains' | 'startsWith' | 'exact' | 'regex'
+
+  // Target category
+  categoryId    String
+  categoryLabel String
+
+  // Optional fields
+  merchant    String?
+  isRecurring Boolean @default(false)
+
+  // Rule settings
+  priority Int     @default(0) // Higher priority rules are checked first
+  hitCount Int     @default(0) // How many times this rule matched
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, isActive])
+  @@index([userId, pattern])
+}

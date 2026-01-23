@@ -32,6 +32,7 @@ import { HouseholdsModule } from "./modules/households/households.module";
 import { CurrencyModule } from "./modules/currency/currency.module";
 import { BillingModule } from "./modules/billing/billing.module";
 import { AdminModule } from "./modules/admin/admin.module";
+import { RulesModule } from "./modules/rules/rules.module";
 import { CacheModule } from "./shared/cache";
 import { PerformanceModule } from "./shared/performance";
 import { MonitoringModule } from "./shared/monitoring";
@@ -89,6 +90,7 @@ import {
     CurrencyModule,
     BillingModule,
     AdminModule,
+    RulesModule,
     MonitoringModule,
   ],
   controllers: [HealthController],
