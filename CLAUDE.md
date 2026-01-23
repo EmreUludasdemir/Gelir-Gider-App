@@ -498,6 +498,25 @@ GET /performance/health  - Sistem sağlık durumu
 - settings.json configuration
 - Stop hook for verify script
 
+### FAZ 22: AI Tool-Use & Cashflow Forecast ✅ (2026-01-23)
+- **AI Tool-Use Pattern**:
+  - AssistantService with 7 financial data tools
+  - Intent analysis for Türkçe/English queries
+  - Natural language response generation
+  - POST /ai/chat endpoint with tool execution
+  - FinancialAssistant now uses backend API (not Gemini)
+- **Cashflow Forecast**:
+  - ForecastService with 30-day prediction
+  - Historical transaction pattern analysis
+  - Bill and subscription integration
+  - Insights and warnings generation
+  - CashflowForecast dashboard widget
+  - GET /analytics/cashflow endpoint
+- **Claude Code Commands**:
+  - /ux-audit: UX quality audit (a11y, consistency, responsive)
+  - /api-contract: API documentation and consistency check
+  - /perf-audit: Performance audit (bundle, caching, database)
+
 ---
 
 ## 🔧 ERROR HANDLING & LOGGING (v2.1)
