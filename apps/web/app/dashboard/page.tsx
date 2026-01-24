@@ -58,6 +58,11 @@ const CashflowForecast = dynamic(
   { loading: () => <CategorySkeleton />, ssr: false }
 )
 
+const NetWorthWidget = dynamic(
+  () => import('@/components/dashboard/NetWorthWidget').then(mod => ({ default: mod.NetWorthWidget })),
+  { loading: () => <CategorySkeleton />, ssr: false }
+)
+
 export default function DashboardPage() {
   const { loading: authLoading } = useAuth()
   const { data: summary, error: summaryError, isLoading: summaryLoading, mutate: mutateSummary } = useSummary()
@@ -163,8 +168,11 @@ export default function DashboardPage() {
         </Suspense>
       </div>
 
-      {/* Charts - Lazy loaded */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Net Worth and Charts - Lazy loaded */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Suspense fallback={<CategorySkeleton />}>
+          <NetWorthWidget />
+        </Suspense>
         <Suspense fallback={<ChartSkeleton />}>
           <WeeklyTrendChart data={summary.weeklyTrend} />
         </Suspense>

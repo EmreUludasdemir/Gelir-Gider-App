@@ -1,6 +1,7 @@
 import { Controller, Get, Query, UseGuards } from "@nestjs/common";
 import { AnalyticsService } from "./analytics.service";
 import { ForecastService } from "./forecast.service";
+import { NetWorthService } from "./networth.service";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { User } from "../auth/user.decorator";
 import { JwtPayload } from "../../shared/types";
@@ -11,6 +12,7 @@ export class AnalyticsController {
   constructor(
     private readonly analyticsService: AnalyticsService,
     private readonly forecastService: ForecastService,
+    private readonly netWorthService: NetWorthService,
   ) {}
 
   /**
@@ -93,5 +95,17 @@ export class AnalyticsController {
     @Query("language") language?: "tr" | "en",
   ) {
     return this.forecastService.getWeeklyForecast(user.id, language || "tr");
+  }
+
+  /**
+   * Get user's net worth summary
+   * GET /analytics/networth?language=tr
+   */
+  @Get("networth")
+  async getNetWorth(
+    @User() user: JwtPayload,
+    @Query("language") language?: "tr" | "en",
+  ) {
+    return this.netWorthService.getNetWorth(user.id, language || "tr");
   }
 }

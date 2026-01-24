@@ -71,7 +71,12 @@ export default function TransactionsPage() {
       )}
 
       {transactions && transactions.length > 0 ? (
-        <TransactionTable transactions={transactions} title="Tüm İşlemler" />
+        <TransactionTable
+          transactions={transactions}
+          title="Tüm İşlemler"
+          showPagination
+          showSearch
+        />
       ) : (
         <div className="p-8 text-center bg-white rounded-lg border border-gray-200">
           <p className="text-gray-600">Henüz işlem yok. Yeni işlem ekleyin veya PDF yükleyin.</p>
