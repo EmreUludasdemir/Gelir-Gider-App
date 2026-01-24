@@ -41,6 +41,12 @@ export function Header() {
                 PDF
               </Link>
               <Link
+                href="/dashboard/statements"
+                className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              >
+                {language === 'tr' ? 'Ekstreler' : 'Statements'}
+              </Link>
+              <Link
                 href="/dashboard/goals"
                 className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
               >
