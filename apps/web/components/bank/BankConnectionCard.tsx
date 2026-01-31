@@ -42,7 +42,7 @@ export default function BankConnectionCard({ connection, onSync, onDelete }: Ban
     };
 
     const formatDate = (dateStr?: string) => {
-        if (!dateStr) return 'HiÃ§ senkronize edilmedi';
+        if (!dateStr) return 'Hiç senkronize edilmedi';
         const date = new Date(dateStr);
         return date.toLocaleString('tr-TR', {
             day: 'numeric',
@@ -59,14 +59,14 @@ export default function BankConnectionCard({ connection, onSync, onDelete }: Ban
                 return (
                     <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-success/15 text-success">
                         <span className="w-1.5 h-1.5 rounded-full bg-success"></span>
-                        BaÅŸarÄ±lÄ±
+                        Başarılı
                     </span>
                 );
             case 'failed':
                 return (
                     <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-destructive/15 text-destructive">
                         <span className="w-1.5 h-1.5 rounded-full bg-destructive"></span>
-                        BaÅŸarÄ±sÄ±z
+                        Başarısız
                     </span>
                 );
             case 'pending':
@@ -99,7 +99,7 @@ export default function BankConnectionCard({ connection, onSync, onDelete }: Ban
                         <h3 className="font-semibold text-foreground text-lg">{connection.bankName}</h3>
                         <p className="text-sm text-muted-foreground">
                             {connection.accountName || 'Hesap'}
-                            {connection.accountNumber && ` â€¢ ${connection.accountNumber}`}
+                            {connection.accountNumber && ` • ${connection.accountNumber}`}
                         </p>
                         <div className="flex items-center gap-3 mt-2">
                             {getStatusBadge()}
@@ -155,7 +155,7 @@ export default function BankConnectionCard({ connection, onSync, onDelete }: Ban
                     <button
                         onClick={onDelete}
                         className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl transition-colors"
-                        title="BaÄŸlantÄ±yÄ± Sil"
+                        title="Bağlantıyı Sil"
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path

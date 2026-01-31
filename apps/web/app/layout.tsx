@@ -7,7 +7,7 @@ import { RealtimeProvider } from '@/contexts/RealtimeContext'
 
 export const metadata: Metadata = {
   title: 'Gelir-Gider Takip',
-  description: 'Modern finans yÃ¶netim uygulamasÄ± - Gelir ve giderlerinizi kolayca takip edin',
+  description: 'Modern finans yönetim uygulaması - Gelir ve giderlerinizi kolayca takip edin',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,

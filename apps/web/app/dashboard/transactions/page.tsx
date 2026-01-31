@@ -32,7 +32,7 @@ export default function TransactionsPage() {
     return (
       <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
         <p className="text-destructive">
-          Veri yÃ¼klenirken hata oluÅŸtu. Backend servisi Ã§alÄ±ÅŸÄ±yor mu?
+          Veri yüklenirken hata oluştu. Backend servisi çalışıyor mu?
         </p>
       </div>
     )
@@ -42,9 +42,9 @@ export default function TransactionsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">TÃ¼m Ä°ÅŸlemler</h1>
+          <h1 className="text-3xl font-bold text-foreground">Tüm İşlemler</h1>
           <p className="text-muted-foreground mt-1">
-            Toplam {transactions?.length || 0} iÅŸlem
+            Toplam {transactions?.length || 0} işlem
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -55,7 +55,7 @@ export default function TransactionsPage() {
             onClick={() => setShowForm(!showForm)}
             variant="primary"
           >
-            {showForm ? 'Formu Kapat' : '+ Yeni Ä°ÅŸlem'}
+            {showForm ? 'Formu Kapat' : '+ Yeni İşlem'}
           </Button>
         </div>
       </div>
@@ -72,10 +72,10 @@ export default function TransactionsPage() {
       )}
 
       {transactions && transactions.length > 0 ? (
-        <TransactionTable transactions={transactions} title="TÃ¼m Ä°ÅŸlemler" />
+        <TransactionTable transactions={transactions} title="Tüm İşlemler" />
       ) : (
         <div className="p-8 text-center bg-card rounded-2xl border border-border">
-          <p className="text-muted-foreground">HenÃ¼z iÅŸlem yok. Yeni iÅŸlem ekleyin veya PDF yÃ¼kleyin.</p>
+          <p className="text-muted-foreground">Henüz işlem yok. Yeni işlem ekleyin veya PDF yükleyin.</p>
         </div>
       )}
     </div>

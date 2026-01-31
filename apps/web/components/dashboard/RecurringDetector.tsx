@@ -7,10 +7,10 @@ import { usePreferences } from '@/lib/PreferencesContext';
 import { detectRecurringPayments, RecurringPattern } from '@/lib/utilities';
 
 const frequencyLabels = {
-    weekly: { tr: 'HaftalÄ±k', en: 'Weekly' },
-    biweekly: { tr: 'Ä°ki HaftalÄ±k', en: 'Bi-weekly' },
-    monthly: { tr: 'AylÄ±k', en: 'Monthly' },
-    yearly: { tr: 'YÄ±llÄ±k', en: 'Yearly' },
+    weekly: { tr: 'Haftalık', en: 'Weekly' },
+    biweekly: { tr: 'İki Haftalık', en: 'Bi-weekly' },
+    monthly: { tr: 'Aylık', en: 'Monthly' },
+    yearly: { tr: 'Yıllık', en: 'Yearly' },
 };
 
 export function RecurringDetector() {
@@ -32,7 +32,7 @@ export function RecurringDetector() {
             <div className="p-4 border-b border-border dark:border-gray-700 flex items-center gap-2">
                 <Repeat className="w-5 h-5 text-primary-500" />
                 <h3 className="font-semibold text-foreground">
-                    {language === 'tr' ? 'Tespit Edilen Tekrarlayan Ã–demeler' : 'Detected Recurring Payments'}
+                    {language === 'tr' ? 'Tespit Edilen Tekrarlayan Ödemeler' : 'Detected Recurring Payments'}
                 </h3>
             </div>
 

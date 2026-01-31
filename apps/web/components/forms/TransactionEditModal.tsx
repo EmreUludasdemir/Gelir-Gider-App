@@ -80,11 +80,11 @@ export function TransactionEditModal({
         tags
       })
 
-      showToast('Ä°ÅŸlem baÅŸarÄ±yla gÃ¼ncellendi! âœ“', 'success')
+      showToast('İşlem başarıyla güncellendi! ✓', 'success')
       onSuccess()
       onClose()
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'GÃ¼ncelleme baÅŸarÄ±sÄ±z'
+      const errorMsg = err instanceof Error ? err.message : 'Güncelleme başarısız'
       setError(errorMsg)
       showToast(errorMsg, 'error')
     } finally {
@@ -98,11 +98,11 @@ export function TransactionEditModal({
 
     try {
       await deleteTransaction(transaction.id)
-      showToast('Ä°ÅŸlem baÅŸarÄ±yla silindi! ğŸ—‘ï¸', 'success')
+      showToast('İşlem başarıyla silindi! 🗑️', 'success')
       onSuccess()
       onClose()
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Silme baÅŸarÄ±sÄ±z'
+      const errorMsg = err instanceof Error ? err.message : 'Silme başarısız'
       setError(errorMsg)
       showToast(errorMsg, 'error')
     } finally {
@@ -127,10 +127,10 @@ export function TransactionEditModal({
             {/* Header */}
             <div className="bg-muted/40 px-6 py-4 border-b border-border">
               <h3 className="text-lg font-semibold text-foreground">
-                Ä°ÅŸlemi DÃ¼zenle
+                İşlemi Düzenle
               </h3>
               <p className="text-sm text-muted-foreground mt-1">
-                {new Date(transaction.date).toLocaleDateString('tr-TR')} â€¢{' '}
+                {new Date(transaction.date).toLocaleDateString('tr-TR')} •{' '}
                 {transaction.source === 'pdf' ? 'PDF' : 'Manuel'}
               </p>
             </div>
@@ -140,14 +140,14 @@ export function TransactionEditModal({
               {/* Description */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  AÃ§Ä±klama
+                  Açıklama
                 </label>
                 <Input
                   value={formData.description}
                   onChange={(e) =>
                     setFormData({ ...formData, description: e.target.value })
                   }
-                  placeholder="Ä°ÅŸlem aÃ§Ä±klamasÄ±"
+                  placeholder="İşlem açıklaması"
                   required
                 />
               </div>
@@ -155,7 +155,7 @@ export function TransactionEditModal({
               {/* Amount */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tutar (â‚º)
+                  Tutar (₺)
                 </label>
                 <Input
                   type="number"
@@ -189,7 +189,7 @@ export function TransactionEditModal({
                   ))}
                 </Select>
                 <p className="text-xs text-muted-foreground mt-1">
-                  GÃ¼ven skoru: {transaction.confidence.toFixed(0)}%
+                  Güven skoru: {transaction.confidence.toFixed(0)}%
                 </p>
               </div>
 
@@ -203,10 +203,10 @@ export function TransactionEditModal({
                   onChange={(e) =>
                     setFormData({ ...formData, tags: e.target.value })
                   }
-                  placeholder="VirgÃ¼lle ayÄ±rarak: iÅŸ, proje, Ã¶nemli"
+                  placeholder="Virgülle ayırarak: iş, proje, önemli"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  VirgÃ¼lle ayÄ±rarak birden fazla etiket ekleyebilirsiniz
+                  Virgülle ayırarak birden fazla etiket ekleyebilirsiniz
                 </p>
               </div>
 
@@ -237,7 +237,7 @@ export function TransactionEditModal({
               {showDeleteConfirm && (
                 <div className="p-4 bg-red-50 border border-red-300 rounded-lg">
                   <p className="text-sm font-medium text-red-900 mb-3">
-                    Bu iÅŸlemi silmek istediÄŸinizden emin misiniz?
+                    Bu işlemi silmek istediğinizden emin misiniz?
                   </p>
                   <div className="flex gap-2">
                     <Button
@@ -254,7 +254,7 @@ export function TransactionEditModal({
                       variant="outline"
                       className="flex-1"
                     >
-                      Ä°ptal
+                      İptal
                     </Button>
                   </div>
                 </div>
@@ -270,7 +270,7 @@ export function TransactionEditModal({
                 className="text-red-600 hover:text-red-700 hover:border-red-300"
                 disabled={loading || showDeleteConfirm}
               >
-                ğŸ—‘ï¸ Sil
+                🗑️ Sil
               </Button>
 
               <div className="flex gap-2">
@@ -280,7 +280,7 @@ export function TransactionEditModal({
                   variant="outline"
                   disabled={loading}
                 >
-                  Ä°ptal
+                  İptal
                 </Button>
                 <Button
                   type="submit"

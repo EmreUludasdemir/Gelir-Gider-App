@@ -13,7 +13,7 @@ export const TopCategories = memo(function TopCategories({ categories }: TopCate
   return (
     <Card>
       <CardHeader>
-        <CardTitle>En Ã‡ok Harcanan Kategoriler</CardTitle>
+        <CardTitle>En Çok Harcanan Kategoriler</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
@@ -35,7 +35,7 @@ export const TopCategories = memo(function TopCategories({ categories }: TopCate
               </div>
               <div className="flex items-center justify-between mt-1">
                 <span className="text-xs text-muted-foreground">
-                  {category.transactionCount} iÅŸlem
+                  {category.transactionCount} işlem
                 </span>
                 <span className="text-xs text-muted-foreground">
                   {category.percentage.toFixed(1)}%

@@ -177,7 +177,7 @@ export function AIInsights() {
             }`}
           >
             <Activity className="w-4 h-4" />
-            {language === 'tr' ? 'Ã–neriler' : 'Insights'}
+            {language === 'tr' ? 'Öneriler' : 'Insights'}
           </button>
           <button
             onClick={() => setActiveTab('anomalies')}
@@ -188,7 +188,7 @@ export function AIInsights() {
             }`}
           >
             <Shield className="w-4 h-4" />
-            {language === 'tr' ? 'UyarÄ±lar' : 'Alerts'}
+            {language === 'tr' ? 'Uyarılar' : 'Alerts'}
             {anomalySummary && anomalySummary.totalAnomalies > 0 && (
               <span className="ml-1 px-1.5 py-0.5 text-xs bg-red-500 text-white rounded-full">
                 {anomalySummary.totalAnomalies}
@@ -217,7 +217,7 @@ export function AIInsights() {
             {!hasAnalyzed && spendingInsights.length === 0 ? (
               <p className="text-muted-foreground text-center py-4">
                 {language === 'tr'
-                  ? 'Harcama alÄ±ÅŸkanlÄ±klarÄ±nÄ±za gÃ¶re tavsiye almak iÃ§in butona tÄ±klayÄ±n.'
+                  ? 'Harcama alışkanlıklarınıza göre tavsiye almak için butona tıklayın.'
                   : 'Click Analyze to get personalized advice based on your spending habits.'}
               </p>
             ) : (
@@ -249,7 +249,7 @@ export function AIInsights() {
                           </h4>
                           {insight.potentialSavings && insight.potentialSavings > 0 && (
                             <span className="text-sm font-medium text-green-600 bg-green-100 dark:bg-green-900/30 px-2 py-0.5 rounded">
-                              +{insight.potentialSavings.toLocaleString('tr-TR')} â‚º
+                              +{insight.potentialSavings.toLocaleString('tr-TR')} ₺
                             </span>
                           )}
                         </div>
@@ -356,7 +356,7 @@ export function AIInsights() {
                 ) : (
                   <p className="text-muted-foreground text-center py-4">
                     {language === 'tr'
-                      ? 'ÅÃ¼pheli iÅŸlem tespit edilmedi.'
+                      ? 'Şüpheli işlem tespit edilmedi.'
                       : 'No suspicious transactions detected.'}
                   </p>
                 )}
@@ -364,7 +364,7 @@ export function AIInsights() {
             ) : (
               <p className="text-muted-foreground text-center py-4">
                 {language === 'tr'
-                  ? 'Analiz iÃ§in yeterli veri yok.'
+                  ? 'Analiz için yeterli veri yok.'
                   : 'Not enough data for analysis.'}
               </p>
             )}
@@ -381,13 +381,13 @@ export function AIInsights() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-green-600 dark:text-green-400">
-                        {language === 'tr' ? 'Potansiyel AylÄ±k Tasarruf' : 'Potential Monthly Savings'}
+                        {language === 'tr' ? 'Potansiyel Aylık Tasarruf' : 'Potential Monthly Savings'}
                       </p>
                       <p className="text-2xl font-bold text-green-700 dark:text-green-300">
                         {spendingInsights
                           .filter(i => i.potentialSavings)
                           .reduce((sum, i) => sum + (i.potentialSavings || 0), 0)
-                          .toLocaleString('tr-TR')} â‚º
+                          .toLocaleString('tr-TR')} ₺
                       </p>
                     </div>
                     <PiggyBank className="w-10 h-10 text-green-500" />
@@ -409,7 +409,7 @@ export function AIInsights() {
                             {insight.title}
                           </span>
                           <span className="text-sm font-semibold text-green-600">
-                            +{insight.potentialSavings?.toLocaleString('tr-TR')} â‚º
+                            +{insight.potentialSavings?.toLocaleString('tr-TR')} ₺
                           </span>
                         </div>
                         <p className="text-sm text-muted-foreground">
@@ -424,7 +424,7 @@ export function AIInsights() {
                 <PiggyBank className="w-12 h-12 text-gray-300 dark:text-muted-foreground mx-auto mb-3" />
                 <p className="text-muted-foreground">
                   {language === 'tr'
-                    ? 'Tasarruf fÄ±rsatlarÄ± bulmak iÃ§in Analiz\'e tÄ±klayÄ±n.'
+                    ? 'Tasarruf fırsatları bulmak için Analiz\'e tıklayın.'
                     : 'Click Analyze to find savings opportunities.'}
                 </p>
               </div>

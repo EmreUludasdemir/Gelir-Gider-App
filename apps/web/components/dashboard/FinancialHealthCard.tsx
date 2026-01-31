@@ -76,12 +76,12 @@ export function FinancialHealthCard() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Heart className="w-5 h-5 text-red-500" />
-            <h3 className="font-semibold text-foreground">Finansal SaÄŸlÄ±k</h3>
+            <h3 className="font-semibold text-foreground">Finansal Sağlık</h3>
           </div>
           {highSeverityAnomalies.length > 0 && (
             <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 rounded-full flex items-center gap-1">
               <AlertTriangle className="w-3 h-3" />
-              {highSeverityAnomalies.length} UyarÄ±
+              {highSeverityAnomalies.length} Uyarı
             </span>
           )}
         </div>
@@ -112,7 +112,7 @@ export function FinancialHealthCard() {
               </span>
             </div>
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">BÃ¼tÃ§e Uyumu:</span>
+              <span className="text-muted-foreground">Bütçe Uyumu:</span>
               <span className={`font-medium ${health.budgetAdherence >= 90 ? 'text-green-600' : health.budgetAdherence >= 70 ? 'text-yellow-600' : 'text-red-600'}`}>
                 %{health.budgetAdherence}
               </span>
@@ -187,12 +187,12 @@ export function FinancialHealthCard() {
           {showDetails ? (
             <>
               <ChevronUp className="w-4 h-4" />
-              DetaylarÄ± Gizle
+              Detayları Gizle
             </>
           ) : (
             <>
               <ChevronDown className="w-4 h-4" />
-              DetaylarÄ± GÃ¶ster
+              Detayları Göster
             </>
           )}
         </button>

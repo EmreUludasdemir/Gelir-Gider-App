@@ -43,10 +43,10 @@ export function ManualTransactionForm({ onSuccess }: ManualTransactionFormProps)
         type: 'expense',
         date: new Date().toISOString().split('T')[0],
       })
-      showToast('Ä°ÅŸlem baÅŸarÄ±yla eklendi!', 'success')
+      showToast('İşlem başarıyla eklendi!', 'success')
       onSuccess?.()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ä°ÅŸlem eklenemedi')
+      setError(err instanceof Error ? err.message : 'İşlem eklenemedi')
     } finally {
       setLoading(false)
     }
@@ -55,15 +55,15 @@ export function ManualTransactionForm({ onSuccess }: ManualTransactionFormProps)
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Manuel Ä°ÅŸlem Ekle</CardTitle>
+        <CardTitle>Manuel İşlem Ekle</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input
-            label="AÃ§Ä±klama"
+            label="Açıklama"
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            placeholder="Ã¶r: Market alÄ±ÅŸveriÅŸi"
+            placeholder="ör: Market alışverişi"
             required
           />
 
@@ -102,7 +102,7 @@ export function ManualTransactionForm({ onSuccess }: ManualTransactionFormProps)
           )}
 
           <Button type="submit" loading={loading} className="w-full">
-            Ä°ÅŸlem Ekle
+            İşlem Ekle
           </Button>
         </form>
       </CardContent>

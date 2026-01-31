@@ -54,7 +54,7 @@ export const CategoryPieChart = memo(function CategoryPieChart({ categories }: C
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Harcama DaÄŸÄ±lÄ±mÄ±</CardTitle>
+        <CardTitle>Harcama Dağılımı</CardTitle>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>

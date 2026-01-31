@@ -41,7 +41,7 @@ export function ExportButton({ startDate, endDate, className }: ExportButtonProp
             );
 
             if (!response.ok) {
-                throw new Error('Export hatasÄ±');
+                throw new Error('Export hatası');
             }
 
             // Get filename from header or use default
@@ -64,7 +64,7 @@ export function ExportButton({ startDate, endDate, className }: ExportButtonProp
             document.body.removeChild(a);
         } catch (error) {
             console.error('Export error:', error);
-            alert('DÄ±ÅŸa aktarma sÄ±rasÄ±nda bir hata oluÅŸtu.');
+            alert('Dışa aktarma sırasında bir hata oluştu.');
         } finally {
             setIsExporting(false);
         }
@@ -96,7 +96,7 @@ export function ExportButton({ startDate, endDate, className }: ExportButtonProp
                                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
                             />
                         </svg>
-                        DÄ±ÅŸa AktarÄ±lÄ±yor...
+                        Dışa Aktarılıyor...
                     </>
                 ) : (
                     <>
@@ -113,7 +113,7 @@ export function ExportButton({ startDate, endDate, className }: ExportButtonProp
                                 d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                             />
                         </svg>
-                        DÄ±ÅŸa Aktar
+                        Dışa Aktar
                     </>
                 )}
             </Button>

@@ -38,7 +38,7 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     )
 
-    expect(screen.getByText(/Bir Hata OluÅŸtu/i)).toBeInTheDocument()
+    expect(screen.getByText(/Bir Hata Oluştu/i)).toBeInTheDocument()
     expect(screen.getByText(/Test error/i)).toBeInTheDocument()
   })
 
@@ -64,7 +64,7 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     )
 
-    expect(screen.getByText(/Bir Hata OluÅŸtu/i)).toBeInTheDocument()
+    expect(screen.getByText(/Bir Hata Oluştu/i)).toBeInTheDocument()
 
     // Rerender with no error
     rerender(
@@ -77,7 +77,7 @@ describe('ErrorBoundary', () => {
     fireEvent.click(retryButton)
 
     // After retry, should show content
-    expect(screen.queryByText(/Bir Hata OluÅŸtu/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Bir Hata Oluştu/i)).not.toBeInTheDocument()
   })
 
   it('should render custom fallback when provided', () => {
@@ -99,7 +99,7 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     )
 
-    expect(screen.getByText(/Hata DetaylarÄ±/i)).toBeInTheDocument()
+    expect(screen.getByText(/Hata Detayları/i)).toBeInTheDocument()
   })
 
   it('should toggle error details when button is clicked', () => {
@@ -109,7 +109,7 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     )
 
-    const detailsButton = screen.getByText(/Hata DetaylarÄ±/i)
+    const detailsButton = screen.getByText(/Hata Detayları/i)
 
     // Details should not be visible initially
     expect(screen.queryByText(/componentStack/i)).not.toBeInTheDocument()

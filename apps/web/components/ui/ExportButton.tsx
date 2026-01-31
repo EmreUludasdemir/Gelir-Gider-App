@@ -22,13 +22,13 @@ export function ExportButton({ transactions, filename }: ExportButtonProps) {
     try {
       if (format === 'csv') {
         exportToCSV(transactions, `${defaultFilename}.csv`)
-        showToast(`${transactions.length} iÅŸlem CSV olarak dÄ±ÅŸa aktarÄ±ldÄ±! ğŸ“Š`, 'success')
+        showToast(`${transactions.length} işlem CSV olarak dışa aktarıldı! 📊`, 'success')
       } else {
         exportToJSON(transactions, `${defaultFilename}.json`)
-        showToast(`${transactions.length} iÅŸlem JSON olarak dÄ±ÅŸa aktarÄ±ldÄ±! ğŸ“„`, 'success')
+        showToast(`${transactions.length} işlem JSON olarak dışa aktarıldı! 📄`, 'success')
       }
     } catch (error) {
-      showToast('DÄ±ÅŸa aktarma baÅŸarÄ±sÄ±z oldu', 'error')
+      showToast('Dışa aktarma başarısız oldu', 'error')
     }
 
     setShowMenu(false)
@@ -40,7 +40,7 @@ export function ExportButton({ transactions, filename }: ExportButtonProps) {
         variant="secondary"
         onClick={() => setShowMenu(!showMenu)}
       >
-        ğŸ“¥ DÄ±ÅŸa Aktar
+        📥 Dışa Aktar
       </Button>
 
       {showMenu && (
@@ -54,13 +54,13 @@ export function ExportButton({ transactions, filename }: ExportButtonProps) {
               onClick={() => handleExport('csv')}
               className="w-full text-left px-4 py-2 hover:bg-muted/40 rounded-t-lg"
             >
-              ğŸ“Š CSV Format
+              📊 CSV Format
             </button>
             <button
               onClick={() => handleExport('json')}
               className="w-full text-left px-4 py-2 hover:bg-muted/40 rounded-b-lg"
             >
-              ğŸ“„ JSON Format
+              📄 JSON Format
             </button>
           </div>
         </>

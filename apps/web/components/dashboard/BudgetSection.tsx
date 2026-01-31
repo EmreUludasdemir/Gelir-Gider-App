@@ -20,8 +20,8 @@ interface BudgetItem {
 // Mock data - in production, this would come from the API
 const MOCK_BUDGETS: BudgetItem[] = [
   { id: '1', categoryId: 'exp-1', categoryLabel: 'Yemek', limitAmount: 3000, spent: 2100, remaining: 900, percentage: 70, status: 'ok' },
-  { id: '2', categoryId: 'exp-2', categoryLabel: 'UlaÅŸÄ±m', limitAmount: 1500, spent: 1350, remaining: 150, percentage: 90, status: 'warning' },
-  { id: '3', categoryId: 'exp-7', categoryLabel: 'AlÄ±ÅŸveriÅŸ', limitAmount: 2000, spent: 2500, remaining: 0, percentage: 100, status: 'over' },
+  { id: '2', categoryId: 'exp-2', categoryLabel: 'Ulaşım', limitAmount: 1500, spent: 1350, remaining: 150, percentage: 90, status: 'warning' },
+  { id: '3', categoryId: 'exp-7', categoryLabel: 'Alışveriş', limitAmount: 2000, spent: 2500, remaining: 0, percentage: 100, status: 'over' },
 ];
 
 export function BudgetSection() {
@@ -87,7 +87,7 @@ export function BudgetSection() {
         <div className="flex items-center gap-2">
           <TrendingUp className="w-5 h-5 text-primary-600" />
           <h3 className="font-semibold text-foreground">
-            {language === 'tr' ? 'BÃ¼tÃ§e Takibi' : 'Budget Tracking'}
+            {language === 'tr' ? 'Bütçe Takibi' : 'Budget Tracking'}
           </h3>
         </div>
         <button
@@ -107,7 +107,7 @@ export function BudgetSection() {
                 onChange={(e) => setNewBudget((prev) => ({ ...prev, categoryId: e.target.value }))}
                 className="px-3 py-2 border border-border dark:border-gray-600 rounded-lg bg-card text-foreground text-sm"
               >
-                <option value="">{language === 'tr' ? 'Kategori seÃ§in' : 'Select category'}</option>
+                <option value="">{language === 'tr' ? 'Kategori seçin' : 'Select category'}</option>
                 {expenseCategories.map((cat) => (
                   <option key={cat.id} value={cat.id}>
                     {cat.name}
@@ -141,7 +141,7 @@ export function BudgetSection() {
 
         {budgets.length === 0 ? (
           <p className="text-center text-muted-foreground py-4">
-            {language === 'tr' ? 'BÃ¼tÃ§e tanÄ±mlanmamÄ±ÅŸ' : 'No budgets defined'}
+            {language === 'tr' ? 'Bütçe tanımlanmamış' : 'No budgets defined'}
           </p>
         ) : (
           budgets.map((budget) => (
@@ -174,7 +174,7 @@ export function BudgetSection() {
               {budget.status === 'over' && (
                 <p className="mt-1 text-xs text-red-500">
                   {language === 'tr'
-                    ? `${formatCurrency(budget.spent - budget.limitAmount)} aÅŸÄ±m!`
+                    ? `${formatCurrency(budget.spent - budget.limitAmount)} aşım!`
                     : `${formatCurrency(budget.spent - budget.limitAmount)} over budget!`}
                 </p>
               )}

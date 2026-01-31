@@ -81,7 +81,7 @@ export const StatCard = memo(function StatCard({
               <span>
                 {change > 0 ? '+' : ''}{change.toFixed(1)}%
               </span>
-              <span className="text-muted-foreground text-xs ml-1">vs Ã¶nceki ay</span>
+              <span className="text-muted-foreground text-xs ml-1">vs önceki ay</span>
             </div>
           )}
         </div>

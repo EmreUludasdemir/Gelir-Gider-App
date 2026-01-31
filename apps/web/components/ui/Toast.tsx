@@ -50,10 +50,10 @@ function ToastItem({ toast }: { toast: Toast }) {
   }
 
   const icons = {
-    success: 'âœ“',
-    error: 'âœ•',
-    warning: 'âš ',
-    info: 'â„¹',
+    success: '✓',
+    error: '✕',
+    warning: '⚠',
+    info: 'ℹ',
   }
 
   return (

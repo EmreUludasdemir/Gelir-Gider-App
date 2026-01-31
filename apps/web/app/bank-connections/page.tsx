@@ -47,7 +47,7 @@ export default function BankConnectionsPage() {
             setConnections(connectionsData);
             setAvailableBanks(banksData);
         } catch (err) {
-            setError('Banka baÄŸlantÄ±larÄ± yÃ¼klenirken hata oluÅŸtu');
+            setError('Banka bağlantıları yüklenirken hata oluştu');
         } finally {
             setLoading(false);
         }
@@ -74,7 +74,7 @@ export default function BankConnectionsPage() {
             setFormData({ bankCode: '', bankName: '', accountNumber: '', accountName: '' });
             loadData();
         } catch (err) {
-            setError('Banka baÄŸlantÄ±sÄ± eklenirken hata oluÅŸtu');
+            setError('Banka bağlantısı eklenirken hata oluştu');
         }
     };
 
@@ -85,12 +85,12 @@ export default function BankConnectionsPage() {
             });
             loadData();
         } catch (err) {
-            setError('Senkronizasyon baÅŸarÄ±sÄ±z');
+            setError('Senkronizasyon başarısız');
         }
     };
 
     const handleDelete = async (connectionId: string) => {
-        if (!confirm('Bu banka baÄŸlantÄ±sÄ±nÄ± silmek istediÄŸinize emin misiniz?')) return;
+        if (!confirm('Bu banka bağlantısını silmek istediğinize emin misiniz?')) return;
 
         try {
             await fetchWithAuth(`/bank-connections/${connectionId}`, {
@@ -98,7 +98,7 @@ export default function BankConnectionsPage() {
             });
             loadData();
         } catch (err) {
-            setError('BaÄŸlantÄ± silinirken hata oluÅŸtu');
+            setError('Bağlantı silinirken hata oluştu');
         }
     };
 
@@ -114,9 +114,9 @@ export default function BankConnectionsPage() {
         <div className="container mx-auto px-4 py-8 max-w-4xl">
             <div className="flex justify-between items-center mb-8">
                 <div>
-                    <h1 className="text-2xl font-bold text-foreground">Banka BaÄŸlantÄ±larÄ±</h1>
+                    <h1 className="text-2xl font-bold text-foreground">Banka Bağlantıları</h1>
                     <p className="text-muted-foreground mt-1">
-                        Banka hesaplarÄ±nÄ±zÄ± baÄŸlayarak iÅŸlemlerinizi otomatik olarak iÃ§e aktarÄ±n
+                        Banka hesaplarınızı bağlayarak işlemlerinizi otomatik olarak içe aktarın
                     </p>
                 </div>
                 <button
@@ -133,7 +133,7 @@ export default function BankConnectionsPage() {
             {error && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
                     {error}
-                    <button onClick={() => setError(null)} className="float-right font-bold">Ã—</button>
+                    <button onClick={() => setError(null)} className="float-right font-bold">×</button>
                 </div>
             )}
 
@@ -141,12 +141,12 @@ export default function BankConnectionsPage() {
             {showAddForm && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-card rounded-xl p-6 w-full max-w-md">
-                        <h2 className="text-xl font-semibold mb-4">Yeni Banka BaÄŸlantÄ±sÄ±</h2>
+                        <h2 className="text-xl font-semibold mb-4">Yeni Banka Bağlantısı</h2>
                         <form onSubmit={handleAddConnection}>
                             <div className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Banka SeÃ§in
+                                        Banka Seçin
                                     </label>
                                     <select
                                         value={formData.bankCode}
@@ -154,7 +154,7 @@ export default function BankConnectionsPage() {
                                         className="w-full border border-border rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                                         required
                                     >
-                                        <option value="">Banka seÃ§in...</option>
+                                        <option value="">Banka seçin...</option>
                                         {availableBanks.map((bank) => (
                                             <option key={bank.code} value={bank.code}>
                                                 {bank.name}
@@ -165,7 +165,7 @@ export default function BankConnectionsPage() {
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Hesap NumarasÄ± (Opsiyonel)
+                                        Hesap Numarası (Opsiyonel)
                                     </label>
                                     <input
                                         type="text"
@@ -178,7 +178,7 @@ export default function BankConnectionsPage() {
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Hesap AdÄ± (Opsiyonel)
+                                        Hesap Adı (Opsiyonel)
                                     </label>
                                     <input
                                         type="text"
@@ -196,13 +196,13 @@ export default function BankConnectionsPage() {
                                     onClick={() => setShowAddForm(false)}
                                     className="flex-1 px-4 py-2 border border-border rounded-lg text-gray-700 hover:bg-muted/40"
                                 >
-                                    Ä°ptal
+                                    İptal
                                 </button>
                                 <button
                                     type="submit"
                                     className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
                                 >
-                                    BaÄŸlan
+                                    Bağlan
                                 </button>
                             </div>
                         </form>
@@ -216,9 +216,9 @@ export default function BankConnectionsPage() {
                     <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                     </svg>
-                    <h3 className="text-lg font-medium text-foreground mb-2">HenÃ¼z banka baÄŸlantÄ±sÄ± yok</h3>
+                    <h3 className="text-lg font-medium text-foreground mb-2">Henüz banka bağlantısı yok</h3>
                     <p className="text-muted-foreground mb-4">
-                        Banka hesabÄ±nÄ±zÄ± baÄŸlayarak iÅŸlemlerinizi otomatik olarak iÃ§e aktarabilirsiniz
+                        Banka hesabınızı bağlayarak işlemlerinizi otomatik olarak içe aktarabilirsiniz
                     </p>
                     <button
                         onClick={() => setShowAddForm(true)}
@@ -227,7 +227,7 @@ export default function BankConnectionsPage() {
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                         </svg>
-                        Ä°lk Banka BaÄŸlantÄ±sÄ±nÄ± Ekle
+                        İlk Banka Bağlantısını Ekle
                     </button>
                 </div>
             ) : (
@@ -252,9 +252,9 @@ export default function BankConnectionsPage() {
                     <div>
                         <h4 className="font-medium text-blue-900">Demo Mod</h4>
                         <p className="text-sm text-blue-700 mt-1">
-                            Åu anda demo banka adaptÃ¶rÃ¼ kullanÄ±lmaktadÄ±r. GerÃ§ek banka entegrasyonlarÄ± iÃ§in
-                            Open Banking API'leri gelecekte eklenecektir. Demo mod, test amaÃ§lÄ± rastgele
-                            iÅŸlemler oluÅŸturur.
+                            Şu anda demo banka adaptörü kullanılmaktadır. Gerçek banka entegrasyonları için
+                            Open Banking API'leri gelecekte eklenecektir. Demo mod, test amaçlı rastgele
+                            işlemler oluşturur.
                         </p>
                     </div>
                 </div>

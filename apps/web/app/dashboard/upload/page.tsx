@@ -23,9 +23,9 @@ export default function UploadPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-foreground dark:text-white">PDF YÃ¼kleme</h1>
+        <h1 className="text-3xl font-bold text-foreground dark:text-white">PDF Yükleme</h1>
         <p className="text-muted-foreground dark:text-gray-400 mt-1">
-          Banka ekstrenizi yÃ¼kleyin, otomatik olarak parse edin
+          Banka ekstrenizi yükleyin, otomatik olarak parse edin
         </p>
       </div>
 

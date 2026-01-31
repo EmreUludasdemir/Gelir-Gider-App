@@ -67,7 +67,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     : 'border-border dark:border-gray-600 text-foreground hover:bg-muted/40 dark:hover:bg-gray-700'
                 }`}
               >
-                ğŸ‡¹ğŸ‡· TÃ¼rkÃ§e
+                🇹🇷 Türkçe
               </button>
               <button
                 onClick={() => setLanguage('en')}
@@ -77,7 +77,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     : 'border-border dark:border-gray-600 text-foreground hover:bg-muted/40 dark:hover:bg-gray-700'
                 }`}
               >
-                ğŸ‡ºğŸ‡¸ English
+                🇺🇸 English
               </button>
             </div>
           </div>
@@ -99,7 +99,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       : 'border-border dark:border-gray-600 text-foreground hover:bg-muted/40 dark:hover:bg-gray-700'
                   }`}
                 >
-                  {curr === 'TRY' ? 'â‚º TRY' : curr === 'USD' ? '$ USD' : 'â‚¬ EUR'}
+                  {curr === 'TRY' ? '₺ TRY' : curr === 'USD' ? '$ USD' : '€ EUR'}
                 </button>
               ))}
             </div>

@@ -40,12 +40,12 @@ export function BulkActionsBar({
             <button
               onClick={onDeselect}
               className="p-1 hover:bg-muted rounded transition-colors"
-              aria-label="SeÃ§imi kaldÄ±r"
+              aria-label="Seçimi kaldır"
             >
               <X className="w-5 h-5 text-muted-foreground" />
             </button>
             <span className="text-sm font-medium text-foreground">
-              {selectedCount} Ã¶ÄŸe seÃ§ildi
+              {selectedCount} öğe seçildi
             </span>
           </div>
 
@@ -77,7 +77,7 @@ export function BulkActionsBar({
                     <div className="absolute bottom-full right-0 mb-2 w-64 bg-card border border-border rounded-lg shadow-lg z-20 max-h-80 overflow-y-auto">
                       <div className="p-2">
                         <p className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase">
-                          Kategori SeÃ§
+                          Kategori Seç
                         </p>
                         {CATEGORIES.map((category) => (
                           <button
@@ -103,7 +103,7 @@ export function BulkActionsBar({
                 className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 bg-card border border-border rounded-md hover:bg-muted/40 transition-colors"
               >
                 <Download className="w-4 h-4" />
-                DÄ±ÅŸa Aktar
+                Dışa Aktar
               </button>
             )}
 
@@ -127,7 +127,7 @@ export function BulkActionsBar({
                   setShowCategoryMenu(false)
                 }}
                 className="p-2 text-gray-700 hover:bg-muted rounded-md transition-colors"
-                aria-label="Daha fazla iÅŸlem"
+                aria-label="Daha fazla işlem"
               >
                 <MoreHorizontal className="w-5 h-5" />
               </button>
@@ -150,7 +150,7 @@ export function BulkActionsBar({
                         }}
                         className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-muted rounded transition-colors"
                       >
-                        Toplu DÃ¼zenle
+                        Toplu Düzenle
                       </button>
                       <button
                         onClick={() => {

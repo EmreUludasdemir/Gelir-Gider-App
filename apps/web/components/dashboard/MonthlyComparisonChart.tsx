@@ -81,7 +81,7 @@ export function MonthlyComparisonChart({ data, currency = 'TRY' }: MonthlyCompar
 
   return (
     <div className="bg-card rounded-lg shadow p-6">
-      <h3 className="text-lg font-semibold mb-4">AylÄ±k KarÅŸÄ±laÅŸtÄ±rma</h3>
+      <h3 className="text-lg font-semibold mb-4">Aylık Karşılaştırma</h3>
 
       {comparison && (
         <div className="grid grid-cols-3 gap-4 mb-6">
@@ -92,7 +92,7 @@ export function MonthlyComparisonChart({ data, currency = 'TRY' }: MonthlyCompar
             </div>
             <p className="text-xs text-muted-foreground">
               {comparison.income.value > 0 ? '+' : ''}
-              {comparison.income.value.toFixed(1)}% vs geÃ§en ay
+              {comparison.income.value.toFixed(1)}% vs geçen ay
             </p>
           </div>
 
@@ -103,7 +103,7 @@ export function MonthlyComparisonChart({ data, currency = 'TRY' }: MonthlyCompar
             </div>
             <p className="text-xs text-muted-foreground">
               {comparison.expense.value > 0 ? '+' : ''}
-              {comparison.expense.value.toFixed(1)}% vs geÃ§en ay
+              {comparison.expense.value.toFixed(1)}% vs geçen ay
             </p>
           </div>
 
@@ -114,7 +114,7 @@ export function MonthlyComparisonChart({ data, currency = 'TRY' }: MonthlyCompar
             </div>
             <p className="text-xs text-muted-foreground">
               {comparison.savings.value > 0 ? '+' : ''}
-              {comparison.savings.value.toFixed(1)}% vs geÃ§en ay
+              {comparison.savings.value.toFixed(1)}% vs geçen ay
             </p>
           </div>
         </div>

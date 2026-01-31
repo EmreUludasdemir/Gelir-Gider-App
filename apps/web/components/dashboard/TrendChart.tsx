@@ -14,7 +14,7 @@ interface TrendChartProps {
 
 export function TrendChart({ transactions, months = 6, baseDate }: TrendChartProps) {
   const chartData = useMemo(() => {
-    // Son N ay iÃ§in veri hazÄ±rla
+    // Son N ay için veri hazırla
     const anchor = baseDate ? new Date(baseDate) : new Date()
     const now = new Date(anchor.getFullYear(), anchor.getMonth(), 1)
     const data: Array<{
@@ -29,7 +29,7 @@ export function TrendChart({ transactions, months = 6, baseDate }: TrendChartPro
       const monthKey = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}`
       const monthName = targetDate.toLocaleDateString('tr-TR', { month: 'short', year: '2-digit' })
 
-      // Bu aya ait iÅŸlemleri filtrele
+      // Bu aya ait işlemleri filtrele
       const monthTransactions = transactions.filter(t => {
         const tDate = new Date(t.date)
         return tDate.getFullYear() === targetDate.getFullYear() &&

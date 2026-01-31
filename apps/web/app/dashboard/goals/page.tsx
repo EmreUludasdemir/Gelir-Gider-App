@@ -14,7 +14,7 @@ const MOCK_GOALS: SavingsGoal[] = [
     targetAmount: 50000,
     currentAmount: 15000,
     color: '#8B5CF6',
-    icon: 'âœˆï¸',
+    icon: '✈️ï¸',
   },
   {
     id: '2',
@@ -22,7 +22,7 @@ const MOCK_GOALS: SavingsGoal[] = [
     targetAmount: 100000,
     currentAmount: 45000,
     color: '#10B981',
-    icon: 'ğŸ¦',
+    icon: '🏦',
   },
   {
     id: '3',
@@ -30,7 +30,7 @@ const MOCK_GOALS: SavingsGoal[] = [
     targetAmount: 300000,
     currentAmount: 75000,
     color: '#F59E0B',
-    icon: 'ğŸš—',
+    icon: '🚗',
   },
 ]
 
@@ -50,7 +50,7 @@ export default function GoalsPage() {
       targetAmount: parseFloat(newGoal.targetAmount),
       currentAmount: parseFloat(newGoal.currentAmount) || 0,
       color: `#${Math.floor(Math.random()*16777215).toString(16)}`,
-      icon: 'ğŸ¯',
+      icon: '🎯',
     }
 
     setGoals((prev) => [...prev, goal])
@@ -102,7 +102,7 @@ export default function GoalsPage() {
                 value={newGoal.name}
                 onChange={(e) => setNewGoal((prev) => ({ ...prev, name: e.target.value }))}
                 className="w-full px-3 py-2 border border-border rounded-lg bg-card dark:bg-gray-700 text-foreground"
-                placeholder={language === 'tr' ? 'Ã–rn: Tatil Fonu' : 'E.g., Vacation Fund'}
+                placeholder={language === 'tr' ? 'Örn: Tatil Fonu' : 'E.g., Vacation Fund'}
               />
             </div>
             <div>
@@ -213,11 +213,11 @@ export default function GoalsPage() {
         <div className="text-center py-12 bg-card rounded-xl border border-border">
           <Target className="w-12 h-12 mx-auto text-gray-400 mb-4" />
           <h3 className="text-lg font-medium text-foreground mb-2">
-            {language === 'tr' ? 'HenÃ¼z hedef yok' : 'No goals yet'}
+            {language === 'tr' ? 'Henüz hedef yok' : 'No goals yet'}
           </h3>
           <p className="text-muted-foreground mb-4">
             {language === 'tr' 
-              ? 'Ä°lk tasarruf hedefinizi oluÅŸturun' 
+              ? 'İlk tasarruf hedefinizi oluşturun' 
               : 'Create your first savings goal'}
           </p>
           <button

@@ -15,7 +15,7 @@ interface Props {
 const DEFAULT_WEEK_DATA: WeeklyData[] = [
     { day: 'Pzt', income: 0, expense: 120 },
     { day: 'Sal', income: 0, expense: 85 },
-    { day: 'Ã‡ar', income: 5000, expense: 230 },
+    { day: 'Çar', income: 5000, expense: 230 },
     { day: 'Per', income: 0, expense: 45 },
     { day: 'Cum', income: 0, expense: 380 },
     { day: 'Cmt', income: 0, expense: 520 },
@@ -48,7 +48,7 @@ export const WeeklySummary = memo(function WeeklySummary({ data }: Props) {
                         Bu Hafta
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                        GÃ¼nlÃ¼k gelir ve gider Ã¶zeti
+                        Günlük gelir ve gider özeti
                     </p>
                 </div>
                 <div className="flex gap-4 text-sm">
@@ -72,13 +72,13 @@ export const WeeklySummary = memo(function WeeklySummary({ data }: Props) {
                             <div
                                 className="w-3 bg-green-500 rounded-t-sm transition-all duration-500 hover:bg-green-600"
                                 style={{ height: getBarHeight(day.income) }}
-                                title={`Gelir: â‚º${day.income.toLocaleString('tr-TR')}`}
+                                title={`Gelir: ₺${day.income.toLocaleString('tr-TR')}`}
                             />
                             {/* Expense bar */}
                             <div
                                 className="w-3 bg-red-400 rounded-t-sm transition-all duration-500 hover:bg-red-500"
                                 style={{ height: getBarHeight(day.expense) }}
-                                title={`Gider: â‚º${day.expense.toLocaleString('tr-TR')}`}
+                                title={`Gider: ₺${day.expense.toLocaleString('tr-TR')}`}
                             />
                         </div>
                         <span className="text-xs text-muted-foreground">
@@ -93,19 +93,19 @@ export const WeeklySummary = memo(function WeeklySummary({ data }: Props) {
                 <div className="text-center">
                     <p className="text-sm text-muted-foreground">Toplam Gelir</p>
                     <p className="text-lg font-semibold text-green-600 dark:text-green-400">
-                        +â‚º{totalIncome.toLocaleString('tr-TR')}
+                        +₺{totalIncome.toLocaleString('tr-TR')}
                     </p>
                 </div>
                 <div className="text-center">
                     <p className="text-sm text-muted-foreground">Toplam Gider</p>
                     <p className="text-lg font-semibold text-red-500 dark:text-red-400">
-                        -â‚º{totalExpense.toLocaleString('tr-TR')}
+                        -₺{totalExpense.toLocaleString('tr-TR')}
                     </p>
                 </div>
                 <div className="text-center">
                     <p className="text-sm text-muted-foreground">Net</p>
                     <p className={`text-lg font-semibold ${totalIncome - totalExpense >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
-                        {totalIncome - totalExpense >= 0 ? '+' : ''}â‚º{(totalIncome - totalExpense).toLocaleString('tr-TR')}
+                        {totalIncome - totalExpense >= 0 ? '+' : ''}₺{(totalIncome - totalExpense).toLocaleString('tr-TR')}
                     </p>
                 </div>
             </div>

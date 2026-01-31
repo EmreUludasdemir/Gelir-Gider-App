@@ -81,11 +81,11 @@ export class ErrorBoundary extends Component<Props, State> {
             </div>
 
             <h1 className="text-2xl font-bold text-foreground text-center mb-2">
-              Bir Hata OluÅŸtu
+              Bir Hata Oluştu
             </h1>
 
             <p className="text-muted-foreground text-center mb-6">
-              ÃœzgÃ¼nÃ¼z, bir ÅŸeyler ters gitti. LÃ¼tfen sayfayÄ± yenilemeyi deneyin.
+              Üzgünüz, bir şeyler ters gitti. Lütfen sayfayı yenilemeyi deneyin.
             </p>
 
             {/* Error Message */}
@@ -123,7 +123,7 @@ export class ErrorBoundary extends Component<Props, State> {
                   onClick={this.toggleDetails}
                   className="w-full flex items-center justify-between text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  <span>Hata DetaylarÄ±</span>
+                  <span>Hata Detayları</span>
                   {this.state.showDetails ? (
                     <ChevronUp className="w-4 h-4" />
                   ) : (
@@ -158,11 +158,11 @@ export class ErrorBoundary extends Component<Props, State> {
             {/* Environment Info */}
             <div className="mt-4 pt-4 border-t text-xs text-muted-foreground text-center">
               <p>
-                Sorun devam ederse, lÃ¼tfen destek ekibiyle iletiÅŸime geÃ§in.
+                Sorun devam ederse, lütfen destek ekibiyle iletişime geçin.
               </p>
               {process.env.NODE_ENV === 'development' && (
                 <p className="mt-1 text-orange-600">
-                  (Development mode - DetaylÄ± hatalar gÃ¶steriliyor)
+                  (Development mode - Detaylı hatalar gösteriliyor)
                 </p>
               )}
             </div>

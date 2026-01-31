@@ -25,10 +25,10 @@ export function AchievementsList({ achievements: propAchievements, compact = fal
         } else {
             // Mock data
             setAchievements([
-                { id: '1', name: 'BaÅŸlangÄ±Ã§', description: 'Ä°lk iÅŸlemini ekle', icon: 'âœ¨', xpReward: 25, unlocked: true },
-                { id: '2', name: 'Ä°lk AdÄ±m', description: 'Ä°lk tasarruf hedefini oluÅŸtur', icon: 'ğŸ¯', xpReward: 50, unlocked: true },
-                { id: '3', name: 'TakipÃ§i', description: '10 iÅŸlem ekle', icon: 'ğŸ“', xpReward: 75, unlocked: false },
-                { id: '4', name: 'DÃ¼zenli', description: '7 gÃ¼n art arda iÅŸlem ekle', icon: 'ğŸ”¥', xpReward: 150, unlocked: false },
+                { id: '1', name: 'Başlangıç', description: 'İlk işlemini ekle', icon: '✨', xpReward: 25, unlocked: true },
+                { id: '2', name: 'İlk Adım', description: 'İlk tasarruf hedefini oluştur', icon: '🎯', xpReward: 50, unlocked: true },
+                { id: '3', name: 'Takipçi', description: '10 işlem ekle', icon: '📝', xpReward: 75, unlocked: false },
+                { id: '4', name: 'Düzenli', description: '7 gün art arda işlem ekle', icon: '🔥', xpReward: 150, unlocked: false },
             ]);
         }
     }, [propAchievements]);
@@ -41,10 +41,10 @@ export function AchievementsList({ achievements: propAchievements, compact = fal
             <div className="flex justify-between items-center mb-4">
                 <div>
                     <h3 className="text-lg font-semibold text-foreground">
-                        ğŸ† BaÅŸarÄ±lar
+                        🏆 Başarılar
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                        {unlockedCount} / {achievements.length} kazanÄ±ldÄ±
+                        {unlockedCount} / {achievements.length} kazanıldı
                     </p>
                 </div>
                 {!compact && (
@@ -99,7 +99,7 @@ export function AchievementsList({ achievements: propAchievements, compact = fal
 
             {compact && (
                 <button className="mt-4 w-full py-2 text-center text-primary-600 dark:text-primary-400 font-medium text-sm hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors">
-                    TÃ¼mÃ¼nÃ¼ GÃ¶r â†’
+                    Tümünü Gör →
                 </button>
             )}
         </div>

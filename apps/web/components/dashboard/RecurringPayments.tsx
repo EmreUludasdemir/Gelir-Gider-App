@@ -17,7 +17,7 @@ export function RecurringPayments({ payments }: RecurringPaymentsProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Tekrarlayan Ã–demeler</CardTitle>
+        <CardTitle>Tekrarlayan Ödemeler</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
@@ -39,9 +39,9 @@ export function RecurringPayments({ payments }: RecurringPaymentsProps) {
                   {formatCurrency(payment.amount, payment.currency)}
                 </p>
                 <Badge variant="warning" className="mt-1">
-                  {payment.frequency === 'monthly' && 'AylÄ±k'}
-                  {payment.frequency === 'weekly' && 'HaftalÄ±k'}
-                  {payment.frequency === 'yearly' && 'YÄ±llÄ±k'}
+                  {payment.frequency === 'monthly' && 'Aylık'}
+                  {payment.frequency === 'weekly' && 'Haftalık'}
+                  {payment.frequency === 'yearly' && 'Yıllık'}
                 </Badge>
               </div>
             </div>

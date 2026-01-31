@@ -45,13 +45,13 @@ export function PdfUpload({ onSuccess }: PdfUploadProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>PDF Ekstre YÃ¼kle</CardTitle>
+        <CardTitle>PDF Ekstre Yükle</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
           <div>
             <label htmlFor="pdf-file-input" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Banka Ekstresi PDF DosyasÄ±
+              Banka Ekstresi PDF Dosyası
             </label>
             <input
               id="pdf-file-input"
@@ -65,11 +65,11 @@ export function PdfUpload({ onSuccess }: PdfUploadProps) {
                 file:bg-primary-50 dark:file:bg-primary-900 file:text-primary-700 dark:file:text-primary-300
                 hover:file:bg-primary-100 dark:hover:file:bg-primary-800
                 file:cursor-pointer file:transition-colors"
-              aria-label="PDF dosyasÄ± seÃ§in"
+              aria-label="PDF dosyası seçin"
             />
             {file && (
               <p className="mt-2 text-sm text-muted-foreground dark:text-gray-400">
-                SeÃ§ilen dosya: {file.name} ({(file.size / 1024).toFixed(2)} KB)
+                Seçilen dosya: {file.name} ({(file.size / 1024).toFixed(2)} KB)
               </p>
             )}
           </div>
@@ -80,7 +80,7 @@ export function PdfUpload({ onSuccess }: PdfUploadProps) {
             loading={loading}
             className="w-full"
           >
-            {loading ? 'YÃ¼kleniyor...' : 'PDF YÃ¼kle ve Parse Et'}
+            {loading ? 'Yükleniyor...' : 'PDF Yükle ve Parse Et'}
           </Button>
 
           {error && (
@@ -91,18 +91,18 @@ export function PdfUpload({ onSuccess }: PdfUploadProps) {
 
           {result && (
             <div className={`p-4 rounded-lg border ${result.success ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'}`}>
-              <h4 className="font-semibold text-foreground dark:text-white mb-2">SonuÃ§lar</h4>
+              <h4 className="font-semibold text-foreground dark:text-white mb-2">Sonuçlar</h4>
               <ul className="space-y-1 text-sm text-gray-700 dark:text-gray-300">
-                <li>âœ… Parse edilen: {result.totalParsed} iÅŸlem</li>
-                <li>ğŸ’¾ Kaydedilen: {result.totalSaved} iÅŸlem</li>
-                <li>âš ï¸ DÃ¼ÅŸÃ¼k gÃ¼ven: {result.lowConfidenceCount} iÅŸlem</li>
+                <li>✅ Parse edilen: {result.totalParsed} işlem</li>
+                <li>💾 Kaydedilen: {result.totalSaved} işlem</li>
+                <li>⚠ï¸ Düşük güven: {result.lowConfidenceCount} işlem</li>
               </ul>
               {result.errors.length > 0 && (
                 <div className="mt-3">
                   <p className="text-sm font-medium text-foreground dark:text-white mb-1">Hatalar:</p>
                   <ul className="text-xs text-muted-foreground dark:text-gray-400 space-y-1">
                     {result.errors.map((err, idx) => (
-                      <li key={idx}>â€¢ {err}</li>
+                      <li key={idx}>• {err}</li>
                     ))}
                   </ul>
                 </div>

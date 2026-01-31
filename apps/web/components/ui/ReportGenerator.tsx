@@ -52,10 +52,10 @@ export function ReportGenerator() {
         </style>
       </head>
       <body>
-        <h1>ğŸ“Š Finansal Rapor</h1>
+        <h1>📊 Finansal Rapor</h1>
         <p style="color: #666;">${monthName}</p>
         
-        <h2>Ã–zet</h2>
+        <h2>Özet</h2>
         <div class="summary">
           <div class="summary-card income">
             <h3>${language === 'tr' ? 'Toplam Gelir' : 'Total Income'}</h3>
@@ -71,12 +71,12 @@ export function ReportGenerator() {
           </div>
         </div>
         
-        <h2>${language === 'tr' ? 'Ä°ÅŸlem Listesi' : 'Transaction List'}</h2>
+        <h2>${language === 'tr' ? 'İşlem Listesi' : 'Transaction List'}</h2>
         <table>
           <thead>
             <tr>
               <th>${language === 'tr' ? 'Tarih' : 'Date'}</th>
-              <th>${language === 'tr' ? 'AÃ§Ä±klama' : 'Description'}</th>
+              <th>${language === 'tr' ? 'Açıklama' : 'Description'}</th>
               <th>${language === 'tr' ? 'Kategori' : 'Category'}</th>
               <th>${language === 'tr' ? 'Tutar' : 'Amount'}</th>
             </tr>
@@ -93,11 +93,11 @@ export function ReportGenerator() {
           </tbody>
         </table>
         
-        ${transactions.length > 50 ? `<p style="color: #666; font-style: italic;">... ve ${transactions.length - 50} iÅŸlem daha</p>` : ''}
+        ${transactions.length > 50 ? `<p style="color: #666; font-style: italic;">... ve ${transactions.length - 50} işlem daha</p>` : ''}
         
         <div class="footer">
-          <p>Bu rapor otomatik olarak oluÅŸturulmuÅŸtur.</p>
-          <p>Gelir-Gider Takip UygulamasÄ± - ${now.toLocaleDateString()}</p>
+          <p>Bu rapor otomatik olarak oluşturulmuştur.</p>
+          <p>Gelir-Gider Takip Uygulaması - ${now.toLocaleDateString()}</p>
         </div>
       </body>
       </html>

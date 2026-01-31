@@ -27,7 +27,7 @@ export function BudgetAlerts({ budgets }: Props) {
       // Mock data
       setAlerts([
         { id: '1', category: 'Yemek', spent: 950, limit: 1000, percentage: 95 },
-        { id: '2', category: 'AlÄ±ÅŸveriÅŸ', spent: 1200, limit: 1000, percentage: 120 },
+        { id: '2', category: 'Alışveriş', spent: 1200, limit: 1000, percentage: 120 },
       ]);
     }
   }, [budgets]);
@@ -71,10 +71,10 @@ export function BudgetAlerts({ budgets }: Props) {
 
             <div className="flex-1">
               <h4 className={`font-semibold ${textColor}`}>
-                {isOver ? `${categoryName} BÃ¼tÃ§esi AÅŸÄ±ldÄ±!` : `${categoryName} BÃ¼tÃ§esi Dolmak Ãœzere`}
+                {isOver ? `${categoryName} Bütçesi Aşıldı!` : `${categoryName} Bütçesi Dolmak Üzere`}
               </h4>
               <p className={`text-sm ${isOver ? 'text-red-600 dark:text-red-300' : 'text-amber-600 dark:text-amber-300'} mt-1`}>
-                â‚º{alert.spent.toLocaleString('tr-TR')} / â‚º{limitAmount.toLocaleString('tr-TR')}
+                ₺{alert.spent.toLocaleString('tr-TR')} / ₺{limitAmount.toLocaleString('tr-TR')}
                 <span className="ml-2 font-medium">(%{Math.round(alert.percentage)})</span>
               </p>
 

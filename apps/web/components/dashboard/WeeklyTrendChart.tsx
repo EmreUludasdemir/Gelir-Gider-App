@@ -31,7 +31,7 @@ export function WeeklyTrendChart({ data, type = 'bar' }: WeeklyTrendChartProps) 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>HaftalÄ±k Trend</CardTitle>
+        <CardTitle>Haftalık Trend</CardTitle>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>

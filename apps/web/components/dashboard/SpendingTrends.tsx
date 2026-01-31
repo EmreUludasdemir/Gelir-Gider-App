@@ -44,7 +44,7 @@ export function SpendingTrends() {
           <h3 className="font-semibold text-foreground">Harcama Trendleri</h3>
         </div>
         <p className="text-muted-foreground text-center py-4">
-          Trend analizi iÃ§in yeterli veri yok.
+          Trend analizi için yeterli veri yok.
         </p>
       </div>
     );
@@ -83,14 +83,14 @@ export function SpendingTrends() {
 
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2 text-muted-foreground">
-                  <span>{trend.previousMonthSpending.toLocaleString('tr-TR')} â‚º</span>
+                  <span>{trend.previousMonthSpending.toLocaleString('tr-TR')} ₺</span>
                   <ArrowRight className="w-4 h-4" />
                   <span className="font-medium text-foreground">
-                    {trend.currentMonthSpending.toLocaleString('tr-TR')} â‚º
+                    {trend.currentMonthSpending.toLocaleString('tr-TR')} ₺
                   </span>
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  Tahmini: {trend.prediction.toLocaleString('tr-TR')} â‚º
+                  Tahmini: {trend.prediction.toLocaleString('tr-TR')} ₺
                 </div>
               </div>
 

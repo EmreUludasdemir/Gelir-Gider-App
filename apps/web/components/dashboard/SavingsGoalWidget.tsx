@@ -64,13 +64,13 @@ export function SavingsGoalWidget({ goals, onAddGoal, onGoalClick }: SavingsGoal
       {activeGoals.length === 0 && completedGoals.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
           <Target className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p className="text-sm">HenÃ¼z tasarruf hedefiniz yok</p>
+          <p className="text-sm">Henüz tasarruf hedefiniz yok</p>
           {onAddGoal && (
             <button
               onClick={onAddGoal}
               className="mt-3 text-blue-600 hover:text-blue-700 text-sm font-medium"
             >
-              Ä°lk hedefinizi oluÅŸturun
+              İlk hedefinizi oluşturun
             </button>
           )}
         </div>
@@ -99,7 +99,7 @@ export function SavingsGoalWidget({ goals, onAddGoal, onGoalClick }: SavingsGoal
                       {daysRemaining !== null && (
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3.5 h-3.5" />
-                          {daysRemaining > 0 ? `${daysRemaining} gÃ¼n kaldÄ±` : 'SÃ¼re doldu'}
+                          {daysRemaining > 0 ? `${daysRemaining} gün kaldı` : 'Süre doldu'}
                         </span>
                       )}
                     </div>
@@ -121,7 +121,7 @@ export function SavingsGoalWidget({ goals, onAddGoal, onGoalClick }: SavingsGoal
                 <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
                   <span>Kalan: {formatCurrency(remaining, goal.currency)}</span>
                   {daysRemaining !== null && daysRemaining > 0 && (
-                    <span>GÃ¼nlÃ¼k: {formatCurrency(remaining / daysRemaining, goal.currency)}</span>
+                    <span>Günlük: {formatCurrency(remaining / daysRemaining, goal.currency)}</span>
                   )}
                 </div>
               </div>
@@ -133,9 +133,9 @@ export function SavingsGoalWidget({ goals, onAddGoal, onGoalClick }: SavingsGoal
             <div className="pt-4 border-t border-border">
               <p className="text-sm text-muted-foreground flex items-center gap-2">
                 <span className="flex items-center justify-center w-6 h-6 bg-green-100 text-green-600 rounded-full text-xs font-semibold">
-                  âœ“
+                  ✓
                 </span>
-                {completedGoals.length} hedef tamamlandÄ±
+                {completedGoals.length} hedef tamamlandı
               </p>
             </div>
           )}
