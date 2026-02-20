@@ -61,28 +61,63 @@ const getMonthOptions = () => {
   return [{ value: '', label: 'Tum Aylar' }, ...months]
 }
 
+const formatDateInput = (date: Date) => date.toISOString().split('T')[0]
+
 export function TransactionFilters({ onFilterChange, onReset }: TransactionFiltersProps) {
   const [filters, setFilters] = useState<FilterState>({})
   const [isExpanded, setIsExpanded] = useState(false)
+  const [activeQuickFilter, setActiveQuickFilter] = useState<string | null>(null)
 
-  const handleChange = (key: keyof FilterState, value: string) => {
-    const newFilters = { ...filters, [key]: value }
-    setFilters(newFilters)
-
-    const cleanFilters = Object.entries(newFilters).reduce((acc, [k, v]) => {
+  const buildCleanFilters = (nextFilters: FilterState) =>
+    Object.entries(nextFilters).reduce((acc, [k, v]) => {
       if (v && v !== '') acc[k] = v
       return acc
     }, {} as Record<string, string>)
 
-    onFilterChange(cleanFilters)
+  const applyFilters = (nextFilters: FilterState) => {
+    setFilters(nextFilters)
+    onFilterChange(buildCleanFilters(nextFilters))
+  }
+
+  const handleChange = (key: keyof FilterState, value: string) => {
+    setActiveQuickFilter(null)
+    const nextFilters = { ...filters, [key]: value }
+    if ((key === 'dateFrom' || key === 'dateTo') && nextFilters.month) {
+      nextFilters.month = ''
+    }
+    applyFilters(nextFilters)
   }
 
   const handleReset = () => {
     setFilters({})
+    setActiveQuickFilter(null)
     onReset()
   }
 
   const activeFilterCount = Object.values(filters).filter(v => v && v !== '').length
+
+  const now = new Date()
+  const today = formatDateInput(now)
+  const last7Days = new Date(now)
+  last7Days.setDate(now.getDate() - 6)
+  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+  const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0)
+
+  const quickFilters = [
+    { id: 'expense-all', label: 'Tum Giderler', filters: { type: 'expense' } },
+    { id: 'expense-this-month', label: 'Bu Ay Gider', filters: { type: 'expense', dateFrom: formatDateInput(thisMonthStart), dateTo: today } },
+    { id: 'expense-last-month', label: 'Gecen Ay Gider', filters: { type: 'expense', dateFrom: formatDateInput(lastMonthStart), dateTo: formatDateInput(lastMonthEnd) } },
+    { id: 'expense-last-7', label: 'Son 7 Gun', filters: { type: 'expense', dateFrom: formatDateInput(last7Days), dateTo: today } },
+    { id: 'expense-big', label: 'Buyuk Gider (>=1000)', filters: { type: 'expense', minAmount: '1000' } },
+    { id: 'expense-pdf', label: 'PDF Gider', filters: { type: 'expense', source: 'pdf' } },
+    { id: 'expense-subscription', label: 'Abonelik', filters: { type: 'expense', categoryId: 'subscription' } },
+  ]
+
+  const applyQuickFilter = (id: string, nextFilters: FilterState) => {
+    setActiveQuickFilter(id)
+    applyFilters(nextFilters)
+  }
 
   return (
     <Card>
@@ -103,6 +138,22 @@ export function TransactionFilters({ onFilterChange, onReset }: TransactionFilte
               >
                 {isExpanded ? 'Gizle' : 'Goster'}
               </Button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">Hizli Gider Filtreleri</p>
+            <div className="flex flex-wrap gap-2">
+              {quickFilters.map((filter) => (
+                <Button
+                  key={filter.id}
+                  variant={activeQuickFilter === filter.id ? 'primary' : 'outline'}
+                  size="sm"
+                  onClick={() => applyQuickFilter(filter.id, filter.filters)}
+                >
+                  {filter.label}
+                </Button>
+              ))}
             </div>
           </div>
 
@@ -147,35 +198,29 @@ export function TransactionFilters({ onFilterChange, onReset }: TransactionFilte
                   ]}
                 />
 
-                <Select
-                  label="Ay Secimi"
-                  value={filters.month || ''}
-                  onChange={(e) => {
-                    const month = e.target.value
-                    if (month) {
-                      const [year, monthNum] = month.split('-')
-                      const firstDay = `${year}-${monthNum}-01`
-                      const lastDay = new Date(parseInt(year), parseInt(monthNum), 0)
-                        .toISOString()
-                        .split('T')[0]
+            <Select
+              label="Ay Secimi"
+              value={filters.month || ''}
+              onChange={(e) => {
+                setActiveQuickFilter(null)
+                const month = e.target.value
+                if (month) {
+                  const [year, monthNum] = month.split('-')
+                  const firstDay = `${year}-${monthNum}-01`
+                  const lastDay = new Date(parseInt(year), parseInt(monthNum), 0)
+                    .toISOString()
+                    .split('T')[0]
 
-                      setFilters({
-                        ...filters,
-                        month,
-                        dateFrom: firstDay,
-                        dateTo: lastDay
-                      })
-
-                      onFilterChange({
-                        ...filters,
-                        month,
-                        dateFrom: firstDay,
-                        dateTo: lastDay
-                      })
-                    } else {
-                      handleChange('month', '')
-                    }
-                  }}
+                  applyFilters({
+                    ...filters,
+                    month,
+                    dateFrom: firstDay,
+                    dateTo: lastDay,
+                  })
+                } else {
+                  handleChange('month', '')
+                }
+              }}
                   options={getMonthOptions()}
                 />
 
@@ -185,9 +230,6 @@ export function TransactionFilters({ onFilterChange, onReset }: TransactionFilte
                   value={filters.dateFrom || ''}
                   onChange={(e) => {
                     handleChange('dateFrom', e.target.value)
-                    if (filters.month) {
-                      setFilters({ ...filters, month: '', dateFrom: e.target.value })
-                    }
                   }}
                 />
 
@@ -197,9 +239,6 @@ export function TransactionFilters({ onFilterChange, onReset }: TransactionFilte
                   value={filters.dateTo || ''}
                   onChange={(e) => {
                     handleChange('dateTo', e.target.value)
-                    if (filters.month) {
-                      setFilters({ ...filters, month: '', dateTo: e.target.value })
-                    }
                   }}
                 />
 

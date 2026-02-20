@@ -36,6 +36,7 @@ model User {
   telegramChatId String? @unique
 
   transactions      Transaction[]
+  pdfUploads        PdfUpload[]
   savingsGoals      SavingsGoal[]
   budgets           Budget[]
   preferences       UserPreference?
@@ -115,6 +116,24 @@ model Transaction {
   @@index([userId, type])           // Filter by transaction type (income/expense)
   @@index([userId, categoryId])     // Filter by category
   @@index([type])                   // Global type filter
+}
+
+model PdfUpload {
+  id               String   @id @default(uuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  filename         String
+  fileHash         String
+  fileSize         Int
+  uploadedAt       DateTime @default(now())
+  totalParsed      Int
+  totalSaved       Int
+  lowConfidenceCount Int
+
+  @@unique([userId, fileHash])
+  @@index([userId])
+  @@index([uploadedAt])
 }
 
 model SavingsGoal {

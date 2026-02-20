@@ -107,6 +107,16 @@ export function PdfUpload({ onSuccess }: PdfUploadProps) {
                   </ul>
                 </div>
               )}
+              {result.suggestions && result.suggestions.length > 0 && (
+                <div className="mt-3">
+                  <p className="text-sm font-medium text-foreground dark:text-white mb-1">Oneriler:</p>
+                  <ul className="text-xs text-muted-foreground dark:text-gray-400 space-y-1">
+                    {result.suggestions.map((suggestion, idx) => (
+                      <li key={idx}>• {suggestion}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           )}
         </div>

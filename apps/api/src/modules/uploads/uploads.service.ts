@@ -1,5 +1,6 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
+import * as crypto from 'crypto';
 import {
   TransactionEntity,
   UploadResult,
@@ -64,6 +65,28 @@ export class UploadsService {
 
     const errors: string[] = [];
     const transactions: TransactionEntity[] = [];
+    const fileHash = this.calculateFileHash(file);
+
+    const existingUpload = await this.prisma.pdfUpload.findFirst({
+      where: { userId, fileHash },
+      select: { uploadedAt: true, filename: true },
+    });
+
+    if (existingUpload) {
+      return {
+        success: false,
+        duplicate: true,
+        filename: file.originalname,
+        totalParsed: 0,
+        totalSaved: 0,
+        lowConfidenceCount: 0,
+        errors: [
+          `Bu PDF daha once ${this.formatDate(existingUpload.uploadedAt)} tarihinde yuklenmis gorunuyor.`,
+        ],
+        suggestions: this.buildDuplicateSuggestions(file.originalname, existingUpload.filename),
+        transactions: [],
+      };
+    }
 
     try {
       // Call PDF parser service
@@ -135,6 +158,18 @@ export class UploadsService {
 
       const lowConfidenceCount = transactions.filter(tx => tx.confidence < 60).length;
 
+      await this.prisma.pdfUpload.create({
+        data: {
+          userId,
+          filename: file.originalname,
+          fileHash,
+          fileSize: file.size,
+          totalParsed: parsedTransactions.length,
+          totalSaved: transactions.length,
+          lowConfidenceCount,
+        },
+      });
+
       if (transactions.length > 0) {
         await this.cache.invalidateTransactions(userId);
       }
@@ -146,6 +181,7 @@ export class UploadsService {
         totalSaved: transactions.length,
         lowConfidenceCount,
         errors,
+        suggestions: [],
         transactions,
       };
     } catch (error) {
@@ -164,6 +200,7 @@ export class UploadsService {
             'PDF Parser service is not available. Please start the service with: npm run dev:parser',
             error.message,
           ],
+          suggestions: [],
           transactions: [],
         };
       }
@@ -246,5 +283,30 @@ export class UploadsService {
       .replace(/ö/g, 'o')
       .replace(/ş/g, 's')
       .replace(/ü/g, 'u');
+  }
+
+  private calculateFileHash(file: Express.Multer.File): string {
+    return crypto.createHash('sha256').update(file.buffer).digest('hex');
+  }
+
+  private formatDate(date: Date): string {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}.${month}.${year}`;
+  }
+
+  private buildDuplicateSuggestions(originalName: string, previousName: string): string[] {
+    const suggestions = [
+      'Ayni ekstreyi tekrar yuklemek yerine onceki yuklemeyi kullanin.',
+      'Yeni bir donemse, dosya adini degistirip tekrar deneyin.',
+      'Tekrar yuklemeniz gerekiyorsa, eski kayitlari silip yeniden yukleyin.',
+    ];
+
+    if (previousName && previousName !== originalName) {
+      suggestions.unshift(`Onceki yukleme dosya adi: ${previousName}`);
+    }
+
+    return suggestions;
   }
 }

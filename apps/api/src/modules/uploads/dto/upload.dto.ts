@@ -35,6 +35,7 @@ export class ParsedTransactionFromPdfDto {
 
 export class UploadResultDto {
   success: boolean;
+  duplicate?: boolean;
   filename: string;
   totalParsed: number;
   totalSaved: number;
@@ -42,6 +43,9 @@ export class UploadResultDto {
 
   @IsArray()
   errors: string[];
+
+  @IsArray()
+  suggestions?: string[];
 
   @IsArray()
   @ValidateNested({ each: true })

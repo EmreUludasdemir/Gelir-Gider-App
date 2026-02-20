@@ -600,10 +600,15 @@ export interface ImportResult {
 }
 
 export interface UploadResult {
-  transactions: Transaction[];
+  success: boolean;
+  duplicate?: boolean;
   filename: string;
-  totalTransactions: number;
-  processedCount: number;
+  totalParsed: number;
+  totalSaved: number;
+  lowConfidenceCount: number;
+  errors: string[];
+  suggestions?: string[];
+  transactions: Transaction[];
 }
 
 export interface SavingsGoal {

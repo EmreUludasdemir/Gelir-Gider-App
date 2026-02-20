@@ -122,11 +122,13 @@ export interface Suggestion {
 
 export interface UploadResult {
   success: boolean;
+  duplicate?: boolean;
   filename: string;
   totalParsed: number;
   totalSaved: number;
   lowConfidenceCount: number;
   errors: string[];
+  suggestions?: string[];
   transactions: TransactionEntity[];
 }
 
