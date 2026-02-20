@@ -10,6 +10,7 @@ import { TransactionsService } from './transactions.service';
 import { PrismaService } from '../../prisma.service';
 import { CacheService } from '../../shared/cache';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
+import { AutoCategorizerService } from '../ai/auto-categorizer.service';
 import {
   createMockTransaction,
   createMockPrismaService,
@@ -49,11 +50,21 @@ const createMockRealtimeGateway = () => ({
   notifyBudgetUpdated: jest.fn(),
 });
 
+// Mock AutoCategorizerService
+const createMockAutoCategorizer = () => ({
+  categorize: jest.fn().mockResolvedValue({
+    categoryId: 'other',
+    categoryLabel: 'Other',
+    confidence: 10,
+  }),
+});
+
 describe('TransactionsService', () => {
   let service: TransactionsService;
   let prisma: ReturnType<typeof createMockPrismaService>;
   let cache: ReturnType<typeof createMockCacheService>;
   let realtime: ReturnType<typeof createMockRealtimeGateway>;
+  let autoCategorizer: ReturnType<typeof createMockAutoCategorizer>;
 
   const userId = 'user-test-123';
   const mockTransaction = createMockTransaction();
@@ -62,6 +73,7 @@ describe('TransactionsService', () => {
     prisma = createMockPrismaService();
     cache = createMockCacheService();
     realtime = createMockRealtimeGateway();
+    autoCategorizer = createMockAutoCategorizer();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -69,6 +81,7 @@ describe('TransactionsService', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: CacheService, useValue: cache },
         { provide: RealtimeGateway, useValue: realtime },
+        { provide: AutoCategorizerService, useValue: autoCategorizer },
         { provide: WINSTON_MODULE_NEST_PROVIDER, useValue: createMockLogger() },
       ],
     }).compile();

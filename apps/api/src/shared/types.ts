@@ -132,6 +132,19 @@ export interface UploadResult {
   transactions: TransactionEntity[];
 }
 
+export interface DuplicateGroup {
+  id: string;
+  reason: string;
+  description: string;
+  amount: number;
+  currency: Currency;
+  type: TransactionType;
+  dateFrom: string;
+  dateTo: string;
+  count: number;
+  transactions: TransactionEntity[];
+}
+
 // Query parameters
 export interface TransactionQuery {
   type?: TransactionType;

@@ -1,7 +1,7 @@
-'use client';
+﻿'use client';
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { Transaction } from './api';
+import { Transaction, chatWithAssistant } from './api';
 import { FinancialInsight, SmartParseResult, TransactionType, Language } from './types';
 
 // Initialize Gemini client - API key should be in environment variable
@@ -18,7 +18,7 @@ const MODEL_ID = 'gemini-1.5-flash';
 
 /**
  * Parses natural language input into a structured transaction object.
- * Example: "Bugün markette 250 TL harcadım" -> { description: "Market alışverişi", amount: 250, type: "expense", category: "Alışveriş" }
+ * Example: "BugÃ¼n markette 250 TL harcadÄ±m" -> { description: "Market alÄ±ÅŸveriÅŸi", amount: 250, type: "expense", category: "AlÄ±ÅŸveriÅŸ" }
  */
 export async function parseTransactionNaturalLanguage(
   input: string,
@@ -40,7 +40,7 @@ Return ONLY a valid JSON object with these fields:
   "description": "A concise description of the transaction",
   "amount": numeric value (always positive),
   "type": "income" or "expense",
-  "category": "Best fit category from: Maaş, Freelance, Yatırım, Hediye, Yemek, Ulaşım, Konut, Faturalar, Eğlence, Sağlık, Alışveriş, Diğer",
+  "category": "Best fit category from: MaaÅŸ, Freelance, YatÄ±rÄ±m, Hediye, Yemek, UlaÅŸÄ±m, Konut, Faturalar, EÄŸlence, SaÄŸlÄ±k, AlÄ±ÅŸveriÅŸ, DiÄŸer",
   "date": "YYYY-MM-DD format, default to today if not specified"
 }
 
@@ -90,7 +90,7 @@ export async function generateFinancialInsights(
     const model = ai.getGenerativeModel({ model: MODEL_ID });
 
     const prompt = `Analyze these transactions and provide 3 helpful, specific financial insights. 
-User Language: ${language === 'tr' ? 'Turkish (Türkçe)' : 'English'}.
+User Language: ${language === 'tr' ? 'Turkish (TÃ¼rkÃ§e)' : 'English'}.
 CRITICAL: Write the 'title' and 'advice' strictly in ${language === 'tr' ? 'Turkish' : 'English'}.
 Focus on spending habits, potential savings, or kudos.
 
@@ -123,8 +123,8 @@ Return ONLY the JSON array, no additional text.`;
     console.error('Error generating insights:', error);
     return [
       {
-        title: language === 'tr' ? 'Analiz Başarısız' : 'Analysis Failed',
-        advice: language === 'tr' ? 'Şu anda içgörü oluşturulamadı.' : 'Could not generate AI insights at this time.',
+        title: language === 'tr' ? 'Analiz BaÅŸarÄ±sÄ±z' : 'Analysis Failed',
+        advice: language === 'tr' ? 'Åu anda iÃ§gÃ¶rÃ¼ oluÅŸturulamadÄ±.' : 'Could not generate AI insights at this time.',
         color: 'red',
       },
     ];
@@ -139,16 +139,25 @@ export async function askFinancialAdvisor(
   transactions: Transaction[],
   language: Language = 'tr'
 ): Promise<string> {
+  try {
+    const response = await chatWithAssistant(query);
+    if (response?.message) {
+      return response.message;
+    }
+  } catch (error) {
+    console.warn('AI chat fallback to client model:', error);
+  }
+
   const ai = getAI();
   if (!ai) {
     return language === 'tr'
-      ? 'AI servisi şu anda kullanılamıyor. Lütfen API anahtarını kontrol edin.'
+      ? 'AI servisi ÅŸu anda kullanÄ±lamÄ±yor. LÃ¼tfen API anahtarÄ±nÄ± kontrol edin.'
       : 'AI service is currently unavailable. Please check the API key.';
   }
 
   if (transactions.length === 0) {
     return language === 'tr'
-      ? 'Henüz analiz edilecek işlem verisi yok. Lütfen önce bazı işlemler ekleyin.'
+      ? 'HenÃ¼z analiz edilecek iÅŸlem verisi yok. LÃ¼tfen Ã¶nce bazÄ± iÅŸlemler ekleyin.'
       : "I don't have any transaction data to analyze yet. Please add some transactions first.";
   }
 
@@ -161,7 +170,7 @@ export async function askFinancialAdvisor(
     const model = ai.getGenerativeModel({ model: MODEL_ID });
 
     const prompt = `You are a smart, encouraging, and professional personal finance assistant named Lumina.
-User Language: ${language === 'tr' ? 'Turkish (Türkçe)' : 'English'}.
+User Language: ${language === 'tr' ? 'Turkish (TÃ¼rkÃ§e)' : 'English'}.
 
 DATA:
 Here is the user's recent financial transaction history (last 100 items):
@@ -172,7 +181,7 @@ USER QUESTION: "${query}"
 INSTRUCTIONS:
 1. Answer ONLY in ${language === 'tr' ? 'Turkish' : 'English'}.
 2. Base your answer STRICTLY on the provided data. Do not make up numbers.
-3. When mentioning money, format it nicely (e.g., 1.200,50 ₺ for Turkish or $1,200.50 for English).
+3. When mentioning money, format it nicely (e.g., 1.200,50 â‚º for Turkish or $1,200.50 for English).
 4. Be concise but helpful. If the user asks for a total, calculate it.
 5. If the data implies a problem (e.g., spending more than earning), gently point it out.
 6. Be friendly and supportive in your tone.`;
@@ -181,11 +190,11 @@ INSTRUCTIONS:
     const response = await result.response;
     const text = response.text();
 
-    return text || (language === 'tr' ? 'Cevap oluşturulamadı.' : "I couldn't generate a response.");
+    return text || (language === 'tr' ? 'Cevap oluÅŸturulamadÄ±.' : "I couldn't generate a response.");
   } catch (error) {
     console.error('Chat error:', error);
     return language === 'tr'
-      ? 'Üzgünüm, verilerinizi analiz ederken bir hata oluştu.'
+      ? 'ÃœzgÃ¼nÃ¼m, verilerinizi analiz ederken bir hata oluÅŸtu.'
       : 'Sorry, I encountered an error while analyzing your data.';
   }
 }
@@ -194,5 +203,6 @@ INSTRUCTIONS:
  * Check if AI features are available (API key is set)
  */
 export function isAIAvailable(): boolean {
-  return !!process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+  return true;
 }
+

@@ -220,6 +220,17 @@ export const api = {
   },
 
   // ====================
+  // AI API
+  // ====================
+  ai: {
+    chat: (message: string) =>
+      fetchApi<{ message: string }>('/ai/chat', {
+        method: 'POST',
+        body: JSON.stringify({ message }),
+      }),
+  },
+
+  // ====================
   // BILLS API
   // ====================
   bills: {
@@ -473,11 +484,15 @@ export interface Suggestion {
 }
 
 export interface RecurringPayment {
+  id: string;
   description: string;
   amount: number;
-  frequency: string;
+  currency: Currency;
+  frequency: 'weekly' | 'monthly' | 'yearly';
+  categoryLabel: string;
   lastDate: string;
-  count: number;
+  nextDate: string;
+  isActive: boolean;
 }
 
 export interface Bill {

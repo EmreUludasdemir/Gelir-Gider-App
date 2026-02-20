@@ -1,6 +1,7 @@
 import {
   Injectable,
   NotFoundException,
+  BadRequestException,
   Inject,
   LoggerService,
 } from "@nestjs/common";
@@ -12,6 +13,7 @@ import {
   UpdateTransactionDto,
   TransactionQuery,
   DashboardSummary,
+  DuplicateGroup,
   Suggestion,
   RecurringPayment,
   CategorySummary,
@@ -25,6 +27,7 @@ import { classifyTransaction } from "../../shared/categories";
 import { PrismaService } from "../../prisma.service";
 import { CacheService, CachePrefix, CacheTTL } from "../../shared/cache";
 import { RealtimeGateway } from "../realtime/realtime.gateway";
+import { AutoCategorizerService } from "../ai/auto-categorizer.service";
 import { Prisma } from "@prisma/client";
 
 @Injectable()
@@ -33,6 +36,7 @@ export class TransactionsService {
     private readonly prisma: PrismaService,
     private readonly cache: CacheService,
     private readonly realtime: RealtimeGateway,
+    private readonly autoCategorizer: AutoCategorizerService,
     @Inject(WINSTON_MODULE_NEST_PROVIDER)
     private readonly logger: LoggerService
   ) {}
@@ -111,7 +115,11 @@ export class TransactionsService {
     let confidence = 100;
 
     if (!categoryId || !categoryLabel) {
-      const classification = classifyTransaction(dto.description, dto.type);
+      const classification = await this.resolveCategory(
+        dto.description,
+        dto.type,
+        userId
+      );
       categoryId = classification.categoryId;
       categoryLabel = classification.categoryLabel;
       confidence = classification.confidence;
@@ -247,8 +255,8 @@ export class TransactionsService {
       cacheKey,
       async () => {
         const anchorDate = await this.resolveSummaryAnchorDate(userId, query);
-        let currentMonth = anchorDate.getMonth();
-        let currentYear = anchorDate.getFullYear();
+        const currentMonth = anchorDate.getMonth();
+        const currentYear = anchorDate.getFullYear();
 
         const startOfMonth = new Date(currentYear, currentMonth, 1);
         const endOfMonth = new Date(
@@ -410,48 +418,59 @@ export class TransactionsService {
   }
 
   async getRecurringPayments(userId: string): Promise<RecurringPayment[]> {
-    // Simplified logic: fetch all, group by description in memory
-    // Proper DB way: groupBy description, having count > 1 (Prisma supports basic groupBy)
-
-    type PrismaTransactionResult = Awaited<
-      ReturnType<typeof this.prisma.transaction.findMany>
-    >[number];
-    const transactions = await this.prisma.transaction.findMany({
-      where: { userId },
-    });
-    const recurringMap = new Map<string, PrismaTransactionResult[]>();
-
-    transactions.forEach((tx) => {
-      const key = tx.description.toLowerCase().trim();
-      const existing = recurringMap.get(key) || [];
-      existing.push(tx);
-      recurringMap.set(key, existing);
-    });
+    const [subscriptions, bills] = await Promise.all([
+      this.prisma.subscription.findMany({
+        where: { userId, isActive: true },
+      }),
+      this.prisma.bill.findMany({
+        where: { userId, isPaid: false, frequency: { not: "once" } },
+      }),
+    ]);
 
     const recurring: RecurringPayment[] = [];
-    recurringMap.forEach((txs) => {
-      if (txs.length >= 2) {
-        const latest = txs.sort(
-          (a, b) => b.date.getTime() - a.date.getTime()
-        )[0];
-        const nextDate = new Date(latest.date);
-        nextDate.setMonth(nextDate.getMonth() + 1);
 
-        recurring.push({
-          id: uuidv4(),
-          description: latest.description,
-          amount: Math.abs(latest.amount),
-          currency: latest.currency as Currency,
-          frequency: "monthly",
-          categoryLabel: latest.categoryLabel,
-          lastDate: latest.date.toISOString(),
-          nextDate: nextDate.toISOString(),
-          isActive: true,
-        });
-      }
+    subscriptions.forEach((sub) => {
+      const frequency = this.normalizeFrequency(sub.billingCycle);
+      const nextDate = sub.nextBillingDate;
+      const lastDate = this.subtractFrequency(nextDate, frequency);
+
+      recurring.push({
+        id: `sub-${sub.id}`,
+        description: sub.name,
+        amount: Math.abs(sub.amount),
+        currency: sub.currency as Currency,
+        frequency,
+        categoryLabel: sub.categoryLabel,
+        lastDate: lastDate.toISOString(),
+        nextDate: nextDate.toISOString(),
+        isActive: sub.isActive,
+      });
     });
 
-    return recurring.slice(0, 5);
+    bills.forEach((bill) => {
+      const frequency = this.normalizeFrequency(bill.frequency);
+      const nextDate = bill.dueDate;
+      const lastDate = this.subtractFrequency(nextDate, frequency);
+
+      recurring.push({
+        id: `bill-${bill.id}`,
+        description: bill.name,
+        amount: Math.abs(bill.amount),
+        currency: bill.currency as Currency,
+        frequency,
+        categoryLabel: bill.categoryLabel,
+        lastDate: lastDate.toISOString(),
+        nextDate: nextDate.toISOString(),
+        isActive: !bill.isPaid,
+      });
+    });
+
+    return recurring
+      .sort(
+        (a, b) =>
+          new Date(a.nextDate).getTime() - new Date(b.nextDate).getTime()
+      )
+      .slice(0, 5);
   }
 
   // ============ EXPORT METHODS ============
@@ -566,6 +585,74 @@ export class TransactionsService {
     return Buffer.from(await workbook.xlsx.writeBuffer());
   }
 
+  async getDuplicateGroups(
+    userId: string,
+    days: number = 90,
+    windowDays: number = 1,
+    amountTolerance: number = 0
+  ): Promise<DuplicateGroup[]> {
+    const endDate = new Date();
+    const startDate = new Date(endDate);
+    startDate.setDate(endDate.getDate() - days);
+
+    const transactions = await this.prisma.transaction.findMany({
+      where: { userId, date: { gte: startDate } },
+      orderBy: { date: "asc" },
+      take: 2000,
+    });
+
+    const entities = transactions.map(this.mapToEntity);
+    const groups = this.buildDuplicateGroups(
+      entities,
+      windowDays,
+      amountTolerance
+    );
+
+    return groups.sort(
+      (a, b) => new Date(b.dateFrom).getTime() - new Date(a.dateFrom).getTime()
+    );
+  }
+
+  async resolveDuplicateGroup(
+    userId: string,
+    keepId: string,
+    transactionIds: string[]
+  ): Promise<{ keptId: string; deleted: number }> {
+    if (!keepId || !transactionIds || transactionIds.length < 2) {
+      throw new BadRequestException("En az 2 islem secilmeli");
+    }
+
+    if (!transactionIds.includes(keepId)) {
+      throw new BadRequestException("Koru islemi secilenler arasinda olmali");
+    }
+
+    const keep = await this.prisma.transaction.findFirst({
+      where: { id: keepId, userId },
+      select: { id: true },
+    });
+
+    if (!keep) {
+      throw new NotFoundException("Koru islemi bulunamadi");
+    }
+
+    const deleteIds = transactionIds.filter((id) => id !== keepId);
+    if (deleteIds.length === 0) {
+      return { keptId: keepId, deleted: 0 };
+    }
+
+    const result = await this.prisma.transaction.deleteMany({
+      where: { userId, id: { in: deleteIds } },
+    });
+
+    await this.cache.invalidateTransactions(userId);
+
+    deleteIds.forEach((id) =>
+      this.realtime.notifyTransactionDeleted(userId, id)
+    );
+
+    return { keptId: keepId, deleted: result.count };
+  }
+
   private async resolveSummaryAnchorDate(
     userId: string,
     query?: TransactionQuery
@@ -608,5 +695,181 @@ export class TransactionsService {
       createdAt: prismaTx.createdAt.toISOString(),
       updatedAt: prismaTx.updatedAt.toISOString(),
     };
+  }
+
+  private async resolveCategory(
+    description: string,
+    type: TransactionType,
+    userId: string
+  ): Promise<{ categoryId: string; categoryLabel: string; confidence: number }> {
+    const auto = await this.autoCategorizer.categorize(description, userId);
+    const fallback = classifyTransaction(description, type);
+
+    if (fallback.confidence >= auto.confidence) {
+      return fallback;
+    }
+
+    return {
+      categoryId: auto.categoryId,
+      categoryLabel: auto.categoryLabel,
+      confidence: auto.confidence,
+    };
+  }
+
+  private buildDuplicateGroups(
+    transactions: TransactionEntity[],
+    windowDays: number,
+    amountTolerance: number
+  ): DuplicateGroup[] {
+    const byKey = new Map<string, TransactionEntity[]>();
+
+    for (const tx of transactions) {
+      const key = this.buildDuplicateKey(tx);
+      const list = byKey.get(key) || [];
+      list.push(tx);
+      byKey.set(key, list);
+    }
+
+    const groups: DuplicateGroup[] = [];
+
+    for (const list of byKey.values()) {
+      if (list.length < 2) continue;
+
+      const sorted = [...list].sort(
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+      );
+
+      const clusters: Array<{
+        amount: number;
+        lastDate: string;
+        transactions: TransactionEntity[];
+      }> = [];
+
+      for (const tx of sorted) {
+        const txAmount = Math.abs(tx.amount);
+        let matched = false;
+
+        for (const cluster of clusters) {
+          if (
+            this.isWithinDays(cluster.lastDate, tx.date, windowDays) &&
+            this.isAmountWithinTolerance(
+              cluster.amount,
+              txAmount,
+              amountTolerance
+            )
+          ) {
+            cluster.transactions.push(tx);
+            cluster.lastDate = tx.date;
+            matched = true;
+            break;
+          }
+        }
+
+        if (!matched) {
+          clusters.push({
+            amount: txAmount,
+            lastDate: tx.date,
+            transactions: [tx],
+          });
+        }
+      }
+
+      for (const cluster of clusters) {
+        if (cluster.transactions.length > 1) {
+          groups.push(
+            this.buildDuplicateGroup(
+              cluster.transactions,
+              windowDays,
+              amountTolerance
+            )
+          );
+        }
+      }
+    }
+
+    return groups;
+  }
+
+  private buildDuplicateGroup(
+    cluster: TransactionEntity[],
+    windowDays: number,
+    amountTolerance: number
+  ): DuplicateGroup {
+    const sorted = [...cluster].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+    const first = sorted[0];
+    const last = sorted[sorted.length - 1];
+
+    return {
+      id: uuidv4(),
+      reason: `Ayni aciklama ile ${windowDays} gun icinde tekrar eden islemler (tolerans: ${amountTolerance})`,
+      description: first.description,
+      amount: Math.abs(first.amount),
+      currency: first.currency,
+      type: first.type,
+      dateFrom: first.date,
+      dateTo: last.date,
+      count: sorted.length,
+      transactions: sorted,
+    };
+  }
+
+  private buildDuplicateKey(tx: TransactionEntity): string {
+    const normalized = this.normalizeDuplicateText(tx.description || "");
+    return `${normalized}|${tx.currency}|${tx.type}`;
+  }
+
+  private normalizeDuplicateText(input: string): string {
+    return input
+      .toLowerCase()
+      .replace(/Ã§/g, "c")
+      .replace(/ÄŸ/g, "g")
+      .replace(/Ä±/g, "i")
+      .replace(/Ã¶/g, "o")
+      .replace(/ÅŸ/g, "s")
+      .replace(/Ã¼/g, "u")
+      .replace(/\d+/g, "")
+      .replace(/[^a-z\s]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  private isWithinDays(a: string, b: string, days: number): boolean {
+    const diff = Math.abs(
+      new Date(a).getTime() - new Date(b).getTime()
+    );
+    return diff <= days * 24 * 60 * 60 * 1000;
+  }
+
+  private isAmountWithinTolerance(
+    a: number,
+    b: number,
+    tolerance: number
+  ): boolean {
+    return Math.abs(a - b) <= tolerance;
+  }
+
+  private normalizeFrequency(
+    value: string
+  ): "weekly" | "monthly" | "yearly" {
+    if (value === "weekly" || value === "monthly" || value === "yearly") {
+      return value;
+    }
+    return "monthly";
+  }
+
+  private subtractFrequency(date: Date, frequency: "weekly" | "monthly" | "yearly"): Date {
+    const result = new Date(date);
+    if (frequency === "weekly") {
+      result.setDate(result.getDate() - 7);
+      return result;
+    }
+    if (frequency === "yearly") {
+      result.setFullYear(result.getFullYear() - 1);
+      return result;
+    }
+    result.setMonth(result.getMonth() - 1);
+    return result;
   }
 }

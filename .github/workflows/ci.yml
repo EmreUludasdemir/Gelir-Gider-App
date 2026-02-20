@@ -140,6 +140,11 @@ jobs:
           cd apps/web
           npm run lint
 
+      - name: Run unit tests
+        run: |
+          cd apps/web
+          npm test -- --runInBand
+
       - name: TypeScript type check
         run: |
           cd apps/web

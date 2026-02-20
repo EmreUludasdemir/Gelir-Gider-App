@@ -1,4 +1,4 @@
-import { Language } from './types';
+﻿import { Language } from './types';
 
 export const translations: Record<Language, Record<string, string>> = {
   tr: {
@@ -18,6 +18,7 @@ export const translations: Record<Language, Record<string, string>> = {
     
     // Transactions
     transactions: 'İşlemler',
+    duplicates: 'Kopya Inceleme',
     add_transaction: 'İşlem Ekle',
     edit_transaction: 'İşlem Düzenle',
     delete_transaction: 'İşlemi Sil',
@@ -107,6 +108,7 @@ export const translations: Record<Language, Record<string, string>> = {
     
     // Transactions
     transactions: 'Transactions',
+    duplicates: 'Duplicate Review',
     add_transaction: 'Add Transaction',
     edit_transaction: 'Edit Transaction',
     delete_transaction: 'Delete Transaction',

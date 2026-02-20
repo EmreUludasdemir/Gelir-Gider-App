@@ -1,146 +1,148 @@
-<p align="center">
+﻿<p align="center">
   <img src="https://img.shields.io/badge/version-2.5-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/node-20+-brightgreen.svg" alt="Node.js">
   <img src="https://img.shields.io/badge/typescript-5.0-blue.svg" alt="TypeScript">
-  <img src="https://img.shields.io/badge/tests-444%20passing-success.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-447%20passing-success.svg" alt="Tests">
   <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome">
 </p>
 
-<h1 align="center">💰 Gelir-Gider Takip Uygulaması</h1>
+<h1 align="center">ğŸ’° Gelir-Gider Takip UygulamasÄ±</h1>
 
 <p align="center">
-  <strong>Modern, full-stack finans yönetim uygulaması</strong><br>
-  PDF banka ekstrelerini otomatik parse eder, akıllı kategorilendirme yapar ve <strong>Gemini AI</strong> ile finansal tavsiyeler sunar.
+  <strong>Modern, full-stack finans yÃ¶netim uygulamasÄ±</strong><br>
+  PDF banka ekstrelerini otomatik parse eder, akilli kategorilendirme yapar ve <strong>Gemini AI</strong> ile PII maskeli finansal sohbet sunar.
 </p>
 
 <p align="center">
-  <a href="#-özellikler">Özellikler</a> •
-  <a href="#-hızlı-başlangıç">Kurulum</a> •
-  <a href="#-mimari">Mimari</a> •
-  <a href="#-api-endpoints">API</a> •
-  <a href="#-ekran-görüntüleri">Ekran Görüntüleri</a>
+  <a href="#-Ã¶zellikler">Ã–zellikler</a> â€¢
+  <a href="#-hÄ±zlÄ±-baÅŸlangÄ±Ã§">Kurulum</a> â€¢
+  <a href="#-mimari">Mimari</a> â€¢
+  <a href="#-api-endpoints">API</a> â€¢
+  <a href="#-ekran-gÃ¶rÃ¼ntÃ¼leri">Ekran GÃ¶rÃ¼ntÃ¼leri</a>
 </p>
 
 ---
 
-## ✨ Özellikler
+## âœ¨ Ã–zellikler
 
-### 🤖 AI Destekli Özellikler
-| Özellik | Açıklama |
+### ğŸ¤– AI Destekli Ã–zellikler
+| Ã–zellik | AÃ§Ä±klama |
 |---------|----------|
-| **Akıllı İşlem Ekleme** | "Bugün markette 250 TL harcadım" → otomatik parse |
-| **Finansal İçgörüler** | AI tabanlı harcama analizi ve tavsiyeler |
-| **Finansal Asistan** | Harcamalarınız hakkında sohbet edin |
-| **Anomali Tespiti** | Beklenmedik harcama uyarıları |
+| **AkÄ±llÄ± Ä°ÅŸlem Ekleme** | "BugÃ¼n markette 250 TL harcadÄ±m" â†’ otomatik parse |
+| **Finansal Ä°Ã§gÃ¶rÃ¼ler** | AI tabanlÄ± harcama analizi ve tavsiyeler |
+| **Finansal Asistan (PII maskeli)** | Harcamalariniz hakkinda guvenli sohbet |
+| **Anomali Tespiti** | Beklenmedik harcama uyarÄ±larÄ± |
 
-### 💳 Finans Yönetimi
-- ✅ PDF banka ekstresi yükleme (13+ banka desteği)
-- ✅ Akıllı kategori sınıflandırması (19+ kategori)
-- ✅ Bütçe yönetimi ve uyarılar
-- ✅ Tasarruf hedefleri takibi
-- ✅ Fatura ve abonelik yönetimi
-- ✅ Borç takibi
-- ✅ Tekrarlayan ödeme tespiti
+### ğŸ’³ Finans YÃ¶netimi
+- âœ… PDF banka ekstresi yÃ¼kleme (13+ banka desteÄŸi)
+- âœ… AkÄ±llÄ± kategori sÄ±nÄ±flandÄ±rmasÄ± (19+ kategori)
+- âœ… BÃ¼tÃ§e yÃ¶netimi ve uyarÄ±lar
+- âœ… Tasarruf hedefleri takibi
+- âœ… Fatura ve abonelik yÃ¶netimi
+- âœ… BorÃ§ takibi
+- ✅ Tekrarlayan odemeler: sadece abonelikler + faturalar
 
-### 📊 Raporlama & Analitik
-- ✅ Dashboard özet kartları
-- ✅ Kategori bazlı analiz ve grafikler
-- ✅ PDF & Excel rapor oluşturma
-- ✅ Haftalık/aylık trend analizi
+### ğŸ“Š Raporlama & Analitik
+- âœ… Dashboard Ã¶zet kartlarÄ±
+- âœ… Kategori bazlÄ± analiz ve grafikler
+- âœ… PDF & Excel rapor oluÅŸturma
+- âœ… HaftalÄ±k/aylÄ±k trend analizi
 
-### 🎨 Kullanıcı Deneyimi
-- 🌙 Dark mode desteği
-- 🌍 Türkçe/İngilizce dil seçeneği
-- 💱 Çoklu para birimi (TRY/USD/EUR)
-- 📱 Mobil uyumlu tasarım
-- 🔐 2FA güvenlik
+### ğŸ¨ KullanÄ±cÄ± Deneyimi
+- ğŸŒ™ Dark mode desteÄŸi
+- ğŸŒ TÃ¼rkÃ§e/Ä°ngilizce dil seÃ§eneÄŸi
+- ğŸ’± Ã‡oklu para birimi (TRY/USD/EUR)
+- ğŸ“± Mobil uyumlu tasarÄ±m
+- ğŸ” 2FA gÃ¼venlik
 
 ---
 
-## 🏗️ Mimari
+## ğŸ—ï¸ Mimari
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    FRONTEND (Next.js 14)                    │
-│                    http://localhost:3000                    │
-│        TypeScript • Tailwind CSS • React Query              │
-└────────────────────────────┬────────────────────────────────┘
-                             │ REST API
-                             ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    BACKEND (NestJS 10)                      │
-│                    http://localhost:3001                    │
-│          TypeScript • Prisma ORM • JWT Auth                 │
-└────────────────────────────┬────────────────────────────────┘
-                             │
-         ┌───────────────────┼───────────────────┐
-         ▼                   ▼                   ▼
-   ┌───────────┐       ┌───────────┐       ┌───────────┐
-   │PostgreSQL │       │   Redis   │       │PDF Parser │
-   │   :5432   │       │   :6379   │       │  :8001    │
-   │   (DB)    │       │  (Cache)  │       │ (FastAPI) │
-   └───────────┘       └───────────┘       └───────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚                    FRONTEND (Next.js 14)                    â”‚
+â”‚                    http://localhost:3000                    â”‚
+â”‚        TypeScript â€¢ Tailwind CSS â€¢ React Query              â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                             â”‚ REST API
+                             â–¼
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚                    BACKEND (NestJS 10)                      â”‚
+â”‚                    http://localhost:3001                    â”‚
+â”‚          TypeScript â€¢ Prisma ORM â€¢ JWT Auth                 â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                             â”‚
+         â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+         â–¼                   â–¼                   â–¼
+   â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”       â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”       â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+   â”‚PostgreSQL â”‚       â”‚   Redis   â”‚       â”‚PDF Parser â”‚
+   â”‚   :5432   â”‚       â”‚   :6379   â”‚       â”‚  :8001    â”‚
+   â”‚   (DB)    â”‚       â”‚  (Cache)  â”‚       â”‚ (FastAPI) â”‚
+   â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜       â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜       â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
-| Servis | Teknoloji | Port | Açıklama |
+| Servis | Teknoloji | Port | AÃ§Ä±klama |
 |--------|-----------|------|----------|
-| **Frontend** | Next.js 14 + TypeScript + Tailwind | 3000 | Modern web arayüzü |
+| **Frontend** | Next.js 14 + TypeScript + Tailwind | 3000 | Modern web arayÃ¼zÃ¼ |
 | **Backend** | NestJS 10 + TypeScript + Prisma | 3001 | REST API servisi |
-| **Database** | PostgreSQL 16 | 5432 | Ana veritabanı |
+| **Database** | PostgreSQL 16 | 5432 | Ana veritabanÄ± |
 | **Cache** | Redis 7 | 6379 | Cache & session |
 | **PDF Parser** | Python FastAPI + pdfplumber | 8001 | PDF parsing mikroservisi |
 
 ---
 
-## 🚀 Hızlı Başlangıç
+## ğŸš€ HÄ±zlÄ± BaÅŸlangÄ±Ã§
 
 ### Gereksinimler
 - Node.js 20+
 - Python 3.11+
-- Docker (önerilen)
+- Docker (Ã¶nerilen)
 - Gemini API Key ([al](https://aistudio.google.com/app/apikey))
 
-### Docker ile Kurulum (Önerilen)
+### Docker ile Kurulum (Ã–nerilen)
 
 ```bash
 # 1. Repository'yi klonla
 git clone https://github.com/EmreUludasdemir/Gelir-Gider-App.git
 cd Gelir-Gider-App
 
-# 2. Environment dosyasını oluştur
+# 2. Environment dosyasÄ±nÄ± oluÅŸtur
 cp apps/api/.env.example apps/api/.env
 
-# 3. .env dosyasını düzenle - GEMINI_API_KEY zorunlu!
+# 3. .env dosyasÄ±nÄ± dÃ¼zenle - GEMINI_API_KEY zorunlu!
+# Optional: NEXT_PUBLIC_GEMINI_API_KEY for client-side AI features
 # Gemini API Key al: https://aistudio.google.com/app/apikey
 nano apps/api/.env
 
-# 4. Tüm servisleri başlat
+# 4. TÃ¼m servisleri baÅŸlat
 docker-compose up -d
 
-# 5. Migration'ları çalıştır (container içinde)
+# 5. Migration'larÄ± Ã§alÄ±ÅŸtÄ±r (container iÃ§inde)
 docker exec -it finance-api npx prisma migrate deploy
 
-# 6. Uygulamayı aç
+# 6. UygulamayÄ± aÃ§
 # Frontend: http://localhost:3000
 # Backend:  http://localhost:3001
 ```
 
-### Sadece DB + Redis ile Kurulum (Geliştirme)
+### Sadece DB + Redis ile Kurulum (GeliÅŸtirme)
 
 ```bash
-# 1. Sadece veritabanlarını başlat
+# 1. Sadece veritabanlarÄ±nÄ± baÅŸlat
 docker-compose up -d postgres redis
 
-# 2. Bağımlılıkları yükle
+# 2. BaÄŸÄ±mlÄ±lÄ±klarÄ± yÃ¼kle
 npm install
 
 # 3. Backend kurulumu
 cd apps/api
 cp .env.example .env
-# .env dosyasını düzenle: GEMINI_API_KEY ekle
+# .env dosyasÄ±nÄ± dÃ¼zenle: GEMINI_API_KEY ekle
+# Optional: NEXT_PUBLIC_GEMINI_API_KEY for client-side AI features
 npx prisma generate
-npx prisma migrate dev  # Development için
+npx prisma migrate dev  # Development iÃ§in
 cd ../..
 
 # 4. Frontend kurulumu
@@ -154,7 +156,7 @@ source .venv/bin/activate  # Linux/Mac
 pip install -r requirements.txt
 cd ../..
 
-# 6. Tüm servisleri başlat
+# 6. TÃ¼m servisleri baÅŸlat
 npm run dev
 ```
 
@@ -168,55 +170,64 @@ npm run dev
 
 ---
 
-## 📡 API Endpoints
+## ğŸ“¡ API Endpoints
 
-### 🔐 Authentication
+### ğŸ” Authentication
 ```http
-POST /auth/register     # Kayıt ol
-POST /auth/login        # Giriş yap
+POST /auth/register     # KayÄ±t ol
+POST /auth/login        # GiriÅŸ yap
 POST /auth/refresh      # Token yenile
 GET  /auth/profile      # Profil bilgisi
-POST /auth/2fa/enable   # 2FA aktifleştir
+POST /auth/2fa/enable   # 2FA aktifleÅŸtir
 ```
 
-### 💳 Transactions
+### ğŸ’³ Transactions
 ```http
-GET    /transactions           # Tüm işlemler (pagination, filter)
-POST   /transactions           # Yeni işlem
-GET    /transactions/:id       # İşlem detay
-PATCH  /transactions/:id       # Güncelle
+GET    /transactions           # TÃ¼m iÅŸlemler (pagination, filter)
+POST   /transactions           # Yeni iÅŸlem
+GET    /transactions/:id       # Ä°ÅŸlem detay
+PATCH  /transactions/:id       # GÃ¼ncelle
 DELETE /transactions/:id       # Sil
-GET    /transactions/summary   # Dashboard özeti
+GET    /transactions/summary   # Dashboard Ã¶zeti
 ```
 
-### 📊 Budgets & Goals
+### ğŸ“Š Budgets & Goals
 ```http
-GET  /budgets              # Tüm bütçeler
-POST /budgets              # Yeni bütçe
-GET  /budgets/alerts       # Bütçe uyarıları
+GET  /budgets              # TÃ¼m bÃ¼tÃ§eler
+POST /budgets              # Yeni bÃ¼tÃ§e
+GET  /budgets/alerts       # BÃ¼tÃ§e uyarÄ±larÄ±
 GET  /savings-goals        # Tasarruf hedefleri
 POST /savings-goals        # Yeni hedef
 ```
 
-### 📈 Reports
+### ğŸ“ˆ Reports
 ```http
 GET /reports/generate?format=pdf&startDate=X&endDate=Y
 GET /reports/generate?format=excel&startDate=X&endDate=Y
 ```
 
-### ❤️ Health Checks
+
+
+### AI
 ```http
-GET /health          # Genel sağlık durumu
+GET /ai/insights
+GET /ai/predictions
+GET /ai/anomalies
+POST /ai/chat
+```
+### â¤ï¸ Health Checks
+```http
+GET /health          # Genel saÄŸlÄ±k durumu
 GET /health/ready    # Readiness probe
 GET /health/live     # Liveness probe
 ```
 
 ---
 
-## 🧪 Test
+## ğŸ§ª Test
 
 ```bash
-# Backend testleri (141 test)
+# Backend testleri (447 test)
 cd apps/api && npm test
 
 # Coverage raporu
@@ -226,24 +237,24 @@ npm run test:cov
 npm run test:e2e
 ```
 
-**Test Durumu:** 444 test ✅ | 25 test suite | ~27s
+**Test Durumu:** 447 test âœ… | 26 test suite | ~27s
 
 ---
 
-## 🛡️ Güvenlik
+## ğŸ›¡ï¸ GÃ¼venlik
 
-- ✅ JWT tabanlı kimlik doğrulama
-- ✅ İki faktörlü doğrulama (2FA)
-- ✅ Rate limiting
-- ✅ CORS yapılandırması
-- ✅ Helmet security headers
-- ✅ Input sanitization
-- ✅ SQL injection koruması
-- ✅ XSS koruması
+- âœ… JWT tabanlÄ± kimlik doÄŸrulama
+- âœ… Ä°ki faktÃ¶rlÃ¼ doÄŸrulama (2FA)
+- âœ… Rate limiting
+- âœ… CORS yapÄ±landÄ±rmasÄ±
+- âœ… Helmet security headers
+- âœ… Input sanitization
+- âœ… SQL injection korumasÄ±
+- âœ… XSS korumasÄ±
 
 ---
 
-## 📦 Teknoloji Stack
+## ğŸ“¦ Teknoloji Stack
 
 <table>
 <tr>
@@ -283,66 +294,102 @@ npm run test:e2e
 
 ---
 
-## 🗂️ Proje Yapısı
+## ğŸ—‚ï¸ Proje YapÄ±sÄ±
 
 ```
 .
-├── 📁 apps/
-│   ├── 📁 api/               # NestJS Backend
-│   │   ├── prisma/           # Database schema
-│   │   ├── src/
-│   │   │   ├── modules/      # Feature modules
-│   │   │   └── shared/       # Shared utilities
-│   │   └── test/             # Tests
-│   │
-│   ├── 📁 web/               # Next.js Frontend
-│   │   ├── app/              # App Router pages
-│   │   ├── components/       # React components
-│   │   └── lib/              # Utilities
-│   │
-│   └── 📁 mobile/            # React Native (Expo)
-│
-├── 📁 services/
-│   └── 📁 pdf-parser/        # Python FastAPI
-│
-├── 📁 .github/
-│   ├── workflows/            # CI/CD pipelines
-│   └── ISSUE_TEMPLATE/       # Issue templates
-│
-├── 📄 docker-compose.yml     # Docker orchestration
-├── 📄 CLAUDE.md              # Project memory file
-└── 📄 README.md
+â”œâ”€â”€ ğŸ“ apps/
+â”‚   â”œâ”€â”€ ğŸ“ api/               # NestJS Backend
+â”‚   â”‚   â”œâ”€â”€ prisma/           # Database schema
+â”‚   â”‚   â”œâ”€â”€ src/
+â”‚   â”‚   â”‚   â”œâ”€â”€ modules/      # Feature modules
+â”‚   â”‚   â”‚   â””â”€â”€ shared/       # Shared utilities
+â”‚   â”‚   â””â”€â”€ test/             # Tests
+â”‚   â”‚
+â”‚   â”œâ”€â”€ ğŸ“ web/               # Next.js Frontend
+â”‚   â”‚   â”œâ”€â”€ app/              # App Router pages
+â”‚   â”‚   â”œâ”€â”€ components/       # React components
+â”‚   â”‚   â””â”€â”€ lib/              # Utilities
+â”‚   â”‚
+â”‚   â””â”€â”€ ğŸ“ mobile/            # React Native (Expo)
+â”‚
+â”œâ”€â”€ ğŸ“ services/
+â”‚   â””â”€â”€ ğŸ“ pdf-parser/        # Python FastAPI
+â”‚
+â”œâ”€â”€ ğŸ“ .github/
+â”‚   â”œâ”€â”€ workflows/            # CI/CD pipelines
+â”‚   â””â”€â”€ ISSUE_TEMPLATE/       # Issue templates
+â”‚
+â”œâ”€â”€ ğŸ“„ docker-compose.yml     # Docker orchestration
+â”œâ”€â”€ ğŸ“„ CLAUDE.md              # Project memory file
+â””â”€â”€ ğŸ“„ README.md
 ```
 
 ---
 
-## 🤝 Katkıda Bulunma
+## Production Checklist
 
-Katkılarınızı memnuniyetle karşılıyoruz! Lütfen şu adımları izleyin:
+Run these commands before deploying:
 
-1. Fork yapın
-2. Feature branch oluşturun (`git checkout -b feature/amazing-feature`)
-3. Değişikliklerinizi commit edin (`git commit -m 'feat: Add amazing feature'`)
+```bash
+npm ci --workspaces --include-workspace-root
+npm run lint
+npm run test -w @app/api
+npm run test -w @app/web
+npm run build
+npm run verify
+```
+
+Environment contract (required for production):
+
+- `PORT` (or `API_PORT` fallback)
+- `DATABASE_URL`
+- `REDIS_URL`
+- `JWT_SECRET`
+- `SESSION_SECRET`
+- `ENCRYPTION_KEY`
+- `FRONTEND_URL`
+- `CORS_ORIGINS`
+
+Notes:
+
+- `apps/web` unit tests and Playwright e2e tests are split (`npm test -w @app/web` vs `npm run test:e2e -w @app/web`).
+- API unit and e2e tests are split (`npm run test:unit -w @app/api` vs `npm run test:e2e -w @app/api`).
+- `npm run verify` is cross-platform and works on Windows/Linux/macOS.
+
+---
+
+## ğŸ¤ KatkÄ±da Bulunma
+
+KatkÄ±larÄ±nÄ±zÄ± memnuniyetle karÅŸÄ±lÄ±yoruz! LÃ¼tfen ÅŸu adÄ±mlarÄ± izleyin:
+
+1. Fork yapÄ±n
+2. Feature branch oluÅŸturun (`git checkout -b feature/amazing-feature`)
+3. DeÄŸiÅŸikliklerinizi commit edin (`git commit -m 'feat: Add amazing feature'`)
 4. Branch'i push edin (`git push origin feature/amazing-feature`)
-5. Pull Request açın
+5. Pull Request aÃ§Ä±n
 
 ---
 
-## 📄 Lisans
+## ğŸ“„ Lisans
 
-Bu proje [MIT](LICENSE) lisansı altında lisanslanmıştır.
+Bu proje [MIT](LICENSE) lisansÄ± altÄ±nda lisanslanmÄ±ÅŸtÄ±r.
 
 ---
 
-## 👨‍💻 Geliştirici
+## ğŸ‘¨â€ğŸ’» GeliÅŸtirici
 
 <p align="center">
-  <strong>Emre Uludaşdemir</strong><br>
+  <strong>Emre UludaÅŸdemir</strong><br>
   <a href="https://github.com/EmreUludasdemir">@EmreUludasdemir</a>
 </p>
 
 ---
 
 <p align="center">
-  ⭐ Bu projeyi beğendiyseniz yıldız vermeyi unutmayın!
+  â­ Bu projeyi beÄŸendiyseniz yÄ±ldÄ±z vermeyi unutmayÄ±n!
 </p>
+
+
+
+

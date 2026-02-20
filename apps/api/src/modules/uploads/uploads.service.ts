@@ -12,6 +12,7 @@ import {
 import { CATEGORIES, classifyTransaction } from '../../shared/categories';
 import { PrismaService } from '../../prisma.service';
 import { CacheService } from '../../shared/cache';
+import { AutoCategorizerService } from '../ai/auto-categorizer.service';
 import { Prisma } from '@prisma/client';
 
 interface ParsedTransaction {
@@ -43,6 +44,7 @@ export class UploadsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cache: CacheService,
+    private readonly autoCategorizer: AutoCategorizerService,
   ) { }
 
   async processPdf(userId: string, file: Express.Multer.File): Promise<UploadResult> {
@@ -126,9 +128,17 @@ export class UploadsService {
       for (const [index, parsed] of parsedTransactions.entries()) {
         try {
           // Classify transaction
-          // TODO: Use userId for personalized classification if needed
           const type = this.inferTransactionType(parsed);
-          const classification = classifyTransaction(parsed.description, type);
+          const auto = await this.autoCategorizer.categorize(parsed.description, userId);
+          const fallback = classifyTransaction(parsed.description, type);
+          const classification =
+            fallback.confidence >= auto.confidence
+              ? fallback
+              : {
+                categoryId: auto.categoryId,
+                categoryLabel: auto.categoryLabel,
+                confidence: auto.confidence,
+              };
           const normalizedAmount = Math.abs(parsed.amount);
 
           // Save to database

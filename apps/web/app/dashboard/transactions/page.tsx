@@ -1,7 +1,7 @@
 ﻿'use client'
 
-import { useState } from 'react'
-import { useTransactions, useRefreshAll } from '@/lib/hooks'
+import { useMemo, useState } from 'react'
+import { useTransactions, useRefreshAll, useDuplicateGroups } from '@/lib/hooks'
 import { TransactionTable } from '@/components/dashboard/TransactionTable'
 import { ManualTransactionForm } from '@/components/forms/ManualTransactionForm'
 import { TransactionFilters } from '@/components/forms/TransactionFilters'
@@ -13,7 +13,13 @@ export default function TransactionsPage() {
   const [showForm, setShowForm] = useState(false)
   const [filters, setFilters] = useState<Record<string, string>>({})
   const { data: transactions, error, isLoading } = useTransactions(filters)
+  const { data: duplicateGroups } = useDuplicateGroups({ days: 90, windowDays: 1, amountTolerance: 0 })
   const refreshAll = useRefreshAll()
+
+  const duplicateIds = useMemo(() => {
+    if (!duplicateGroups) return new Set<string>()
+    return new Set(duplicateGroups.flatMap((group) => group.transactions.map((tx) => tx.id)))
+  }, [duplicateGroups])
 
   const handleSuccess = async () => {
     setShowForm(false)
@@ -72,7 +78,11 @@ export default function TransactionsPage() {
       )}
 
       {transactions && transactions.length > 0 ? (
-        <TransactionTable transactions={transactions} title="Tüm İşlemler" />
+        <TransactionTable
+          transactions={transactions}
+          title="Tüm İşlemler"
+          duplicateIds={duplicateIds}
+        />
       ) : (
         <div className="p-8 text-center bg-card rounded-2xl border border-border">
           <p className="text-muted-foreground">Henüz işlem yok. Yeni işlem ekleyin veya PDF yükleyin.</p>

@@ -11,6 +11,7 @@ interface TransactionMobileCardProps {
   transaction: Transaction
   isSelected: boolean
   hasPdfTransactions: boolean
+  isDuplicate: boolean
   onSelect: (id: string, checked: boolean) => void
   onEdit: (transaction: Transaction) => void
 }
@@ -19,6 +20,7 @@ export const TransactionMobileCard = memo(function TransactionMobileCard({
   transaction,
   isSelected,
   hasPdfTransactions,
+  isDuplicate,
   onSelect,
   onEdit,
 }: TransactionMobileCardProps) {
@@ -56,6 +58,9 @@ export const TransactionMobileCard = memo(function TransactionMobileCard({
             <Badge variant={transaction.source === 'pdf' ? 'success' : 'default'}>
               {transaction.source === 'pdf' ? 'PDF' : 'Manuel'}
             </Badge>
+            {isDuplicate && (
+              <Badge variant="warning">Kopya</Badge>
+            )}
           </div>
 
           <div className="flex items-center justify-between">

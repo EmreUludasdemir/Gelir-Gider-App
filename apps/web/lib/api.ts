@@ -63,6 +63,30 @@ export const getTransactions = (query?: Record<string, string>) => {
   return fetchApi<Transaction[]>(`/transactions${params ? `?${params}` : ''}`);
 };
 
+export const getDuplicateGroups = (options?: {
+  days?: number;
+  windowDays?: number;
+  amountTolerance?: number;
+}) => {
+  const params = new URLSearchParams();
+  if (options?.days) params.set('days', options.days.toString());
+  if (options?.windowDays) params.set('windowDays', options.windowDays.toString());
+  if (options?.amountTolerance !== undefined) {
+    params.set('amountTolerance', options.amountTolerance.toString());
+  }
+
+  const query = params.toString();
+  return fetchApi<DuplicateGroup[]>(
+    `/transactions/duplicates${query ? `?${query}` : ''}`
+  );
+};
+
+export const resolveDuplicateGroup = (keepId: string, transactionIds: string[]) =>
+  fetchApi<{ keptId: string; deleted: number }>(`/transactions/duplicates/resolve`, {
+    method: 'POST',
+    body: JSON.stringify({ keepId, transactionIds }),
+  });
+
 export const createTransaction = (data: CreateTransactionDto) =>
   fetchApi<Transaction>('/transactions/manual', {
     method: 'POST',
@@ -84,6 +108,11 @@ export const deleteTransaction = (id: string) =>
 export const getSummary = () => fetchApi<DashboardSummary>('/transactions/summary');
 export const getSuggestions = () => fetchApi<Suggestion[]>('/transactions/suggestions');
 export const getRecurring = () => fetchApi<RecurringPayment[]>('/transactions/recurring');
+export const chatWithAssistant = (message: string) =>
+  fetchApi<{ message: string }>('/ai/chat', {
+    method: 'POST',
+    body: JSON.stringify({ message }),
+  });
 
 // Upload
 export const uploadPdf = async (file: File): Promise<UploadResult> => {
@@ -228,6 +257,19 @@ export interface UploadResult {
   lowConfidenceCount: number;
   errors: string[];
   suggestions?: string[];
+  transactions: Transaction[];
+}
+
+export interface DuplicateGroup {
+  id: string;
+  reason: string;
+  description: string;
+  amount: number;
+  currency: Currency;
+  type: TransactionType;
+  dateFrom: string;
+  dateTo: string;
+  count: number;
   transactions: Transaction[];
 }
 

@@ -15,6 +15,7 @@ interface TransactionTableProps {
   title?: string
   limit?: number
   onRefresh?: () => void
+  duplicateIds?: Set<string>
 }
 
 export function TransactionTable({
@@ -22,6 +23,7 @@ export function TransactionTable({
   title = 'Son Islemler',
   limit,
   onRefresh,
+  duplicateIds,
 }: TransactionTableProps) {
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
 
@@ -81,6 +83,7 @@ export function TransactionTable({
                   transaction={transaction}
                   isSelected={selectedIds.has(transaction.id)}
                   hasPdfTransactions={hasPdfTransactions}
+                  isDuplicate={duplicateIds?.has(transaction.id) ?? false}
                   onSelect={handleSelectOne}
                   onEdit={handleEdit}
                 />
@@ -133,6 +136,7 @@ export function TransactionTable({
                       transaction={transaction}
                       isSelected={selectedIds.has(transaction.id)}
                       hasPdfTransactions={hasPdfTransactions}
+                      isDuplicate={duplicateIds?.has(transaction.id) ?? false}
                       onSelect={handleSelectOne}
                       onEdit={handleEdit}
                     />

@@ -2,7 +2,7 @@
 
 import useSWR from 'swr'
 import { useEffect, useState } from 'react'
-import { fetcher, DashboardSummary, Transaction, Suggestion, RecurringPayment } from './api'
+import { fetcher, DashboardSummary, Transaction, Suggestion, RecurringPayment, DuplicateGroup } from './api'
 
 // Hook to get token reactively
 function useToken() {
@@ -61,6 +61,26 @@ export function useSuggestions() {
 export function useRecurring() {
   const token = useToken()
   return useSWR<RecurringPayment[]>(token ? '/transactions/recurring' : null, fetcher)
+}
+
+export function useDuplicateGroups(options?: {
+  days?: number
+  windowDays?: number
+  amountTolerance?: number
+}) {
+  const token = useToken()
+  const params = new URLSearchParams()
+  if (options?.days) params.set('days', options.days.toString())
+  if (options?.windowDays) params.set('windowDays', options.windowDays.toString())
+  if (options?.amountTolerance !== undefined) {
+    params.set('amountTolerance', options.amountTolerance.toString())
+  }
+  const query = params.toString()
+  return useSWR<DuplicateGroup[]>(
+    token ? `/transactions/duplicates${query ? `?${query}` : ''}` : null,
+    fetcher,
+    { refreshInterval: 60000 }
+  )
 }
 
 export function useRefreshAll() {

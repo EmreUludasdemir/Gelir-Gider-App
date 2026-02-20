@@ -45,6 +45,52 @@ export class TransactionsController {
     return this.transactionsService.getSuggestions(user.id);
   }
 
+  @Get("duplicates")
+  getDuplicateGroups(
+    @User() user: JwtPayload,
+    @Query("days") days?: string,
+    @Query("windowDays") windowDays?: string,
+    @Query("amountTolerance") amountTolerance?: string
+  ) {
+    const parsedDays = days ? parseInt(days, 10) : undefined;
+    const safeDays =
+      parsedDays && Number.isFinite(parsedDays) && parsedDays > 0
+        ? parsedDays
+        : 90;
+    const parsedWindow = windowDays ? parseInt(windowDays, 10) : undefined;
+    const safeWindow =
+      parsedWindow && Number.isFinite(parsedWindow) && parsedWindow > 0
+        ? parsedWindow
+        : 1;
+    const parsedTolerance = amountTolerance
+      ? parseFloat(amountTolerance)
+      : undefined;
+    const safeTolerance =
+      parsedTolerance !== undefined && Number.isFinite(parsedTolerance) && parsedTolerance >= 0
+        ? parsedTolerance
+        : 0;
+
+    return this.transactionsService.getDuplicateGroups(
+      user.id,
+      safeDays,
+      safeWindow,
+      safeTolerance
+    );
+  }
+
+  @Post("duplicates/resolve")
+  @HttpCode(HttpStatus.OK)
+  resolveDuplicateGroup(
+    @User() user: JwtPayload,
+    @Body() body: { keepId: string; transactionIds: string[] }
+  ) {
+    return this.transactionsService.resolveDuplicateGroup(
+      user.id,
+      body.keepId,
+      body.transactionIds
+    );
+  }
+
   @Get("recurring")
   getRecurringPayments(@User() user: JwtPayload) {
     return this.transactionsService.getRecurringPayments(user.id);

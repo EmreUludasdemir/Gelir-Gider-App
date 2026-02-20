@@ -292,3 +292,34 @@ Artık tüm servisler çalışıyor olmalı. Hoş geldiniz! 🚀
 - [ ] Dashboard'da finansal durumunuzu görün
 
 **Sorunuz mu var?** [GitHub Issues](https://github.com/your-repo/issues) açın.
+
+## Production Readiness Commands
+
+Run from repository root:
+
+```bash
+npm ci --workspaces --include-workspace-root
+npm run lint
+npm run test -w @app/api
+npm run test -w @app/web
+npm run build
+npm run verify
+```
+
+## Test Split
+
+- API unit tests: `npm run test:unit -w @app/api`
+- API e2e tests: `npm run test:e2e -w @app/api`
+- Web unit tests: `npm test -w @app/web`
+- Web Playwright e2e: `npm run test:e2e -w @app/web`
+
+## Required Production Environment
+
+- `PORT` (or `API_PORT` fallback)
+- `DATABASE_URL`
+- `REDIS_URL`
+- `JWT_SECRET`
+- `SESSION_SECRET`
+- `ENCRYPTION_KEY`
+- `FRONTEND_URL`
+- `CORS_ORIGINS`

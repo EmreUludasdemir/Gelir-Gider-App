@@ -38,7 +38,7 @@ async function bootstrap() {
     }),
   );
 
-  const port = process.env.API_PORT || 3001;
+  const port = Number(process.env.PORT || process.env.API_PORT || 3001);
   await app.listen(port);
 
   logger.log(`🚀 Gelir-Gider API is running on http://localhost:${port}`, 'Bootstrap');

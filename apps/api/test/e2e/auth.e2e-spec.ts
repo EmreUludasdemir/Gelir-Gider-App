@@ -140,10 +140,11 @@ describe('Auth Controller (e2e)', () => {
     });
   });
 
-  describe('/auth/me (GET)', () => {
+  describe('/auth/change-password (POST)', () => {
     it('should reject unauthenticated requests', async () => {
       await request(app.getHttpServer())
-        .get('/auth/me')
+        .post('/auth/change-password')
+        .send({ oldPassword: 'old-pass', newPassword: 'NewPass123!' })
         .expect(401);
     });
 
@@ -152,7 +153,8 @@ describe('Auth Controller (e2e)', () => {
 
       // This would need a valid JWT - in real tests, you'd mock the guard
       const response = await request(app.getHttpServer())
-        .get('/auth/me')
+        .post('/auth/change-password')
+        .send({ oldPassword: 'old-pass', newPassword: 'NewPass123!' })
         .set('Authorization', 'Bearer mock-token');
 
       // Auth guard will reject this, which is expected behavior

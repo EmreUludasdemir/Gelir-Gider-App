@@ -11,6 +11,7 @@ interface TransactionTableRowProps {
   transaction: Transaction
   isSelected: boolean
   hasPdfTransactions: boolean
+  isDuplicate: boolean
   onSelect: (id: string, checked: boolean) => void
   onEdit: (transaction: Transaction) => void
 }
@@ -19,6 +20,7 @@ export const TransactionTableRow = memo(function TransactionTableRow({
   transaction,
   isSelected,
   hasPdfTransactions,
+  isDuplicate,
   onSelect,
   onEdit,
 }: TransactionTableRowProps) {
@@ -64,9 +66,14 @@ export const TransactionTableRow = memo(function TransactionTableRow({
         </span>
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
-        <Badge variant={transaction.source === 'pdf' ? 'success' : 'default'}>
-          {transaction.source === 'pdf' ? 'PDF' : 'Manuel'}
-        </Badge>
+        <div className="inline-flex items-center gap-2">
+          <Badge variant={transaction.source === 'pdf' ? 'success' : 'default'}>
+            {transaction.source === 'pdf' ? 'PDF' : 'Manuel'}
+          </Badge>
+          {isDuplicate && (
+            <Badge variant="warning">Kopya</Badge>
+          )}
+        </div>
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
         <Button

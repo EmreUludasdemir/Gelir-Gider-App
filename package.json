@@ -14,7 +14,7 @@
     "build:desktop": "npm run electron:build -w @app/desktop",
     "lint": "npm run lint --workspaces --if-present",
     "clean": "rm -rf node_modules apps/*/node_modules apps/*/.next apps/*/dist",
-    "verify": "bash scripts/verify.sh"
+    "verify": "node scripts/verify.mjs"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",

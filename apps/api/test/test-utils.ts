@@ -274,11 +274,20 @@ export const createMockPrismaService = () => ({
   },
   subscription: {
     findUnique: jest.fn(),
-    findMany: jest.fn(),
+    findMany: jest.fn().mockResolvedValue([]),
     findFirst: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
+  },
+  bill: {
+    findUnique: jest.fn(),
+    findMany: jest.fn().mockResolvedValue([]),
+    findFirst: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    count: jest.fn(),
   },
   notification: {
     findUnique: jest.fn(),
