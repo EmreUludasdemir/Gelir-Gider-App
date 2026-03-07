@@ -93,7 +93,7 @@ export function TransactionTable({
             {/* Desktop View */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-muted/40 border-b border-border">
+                <thead className="sticky top-0 z-10 border-b border-border bg-card/90 backdrop-blur-sm">
                   <tr>
                     {hasPdfTransactions && (
                       <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider w-12">
@@ -129,7 +129,7 @@ export function TransactionTable({
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-card divide-y divide-border">
+                <tbody className="divide-y divide-border/70">
                   {displayedTransactions.map((transaction) => (
                     <TransactionTableRow
                       key={transaction.id}

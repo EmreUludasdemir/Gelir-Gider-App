@@ -360,6 +360,16 @@ export const createMockRedisService = () => ({
   }),
 });
 
+/**
+ * Create Mock Email Service
+ */
+export const createMockEmailService = () => ({
+  sendEmail: jest.fn().mockResolvedValue(true),
+  sendWeeklyReport: jest.fn().mockResolvedValue(true),
+  sendBudgetAlert: jest.fn().mockResolvedValue(true),
+  sendWelcomeEmail: jest.fn().mockResolvedValue(true),
+});
+
 // ============================================
 // TEST MODULE BUILDER
 // ============================================

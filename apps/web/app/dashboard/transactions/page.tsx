@@ -1,13 +1,30 @@
 ﻿'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { Keyboard } from 'lucide-react'
 import { useTransactions, useRefreshAll, useDuplicateGroups } from '@/lib/hooks'
 import { TransactionTable } from '@/components/dashboard/TransactionTable'
+import { TransactionInsightsPanel } from '@/components/dashboard/transactions/TransactionInsightsPanel'
 import { ManualTransactionForm } from '@/components/forms/ManualTransactionForm'
 import { TransactionFilters } from '@/components/forms/TransactionFilters'
 import { ExportButton } from '@/components/ui/ExportButton'
 import { Spinner } from '@/components/ui/Spinner'
 import { Button } from '@/components/ui/Button'
+
+const SEARCH_INPUT_ID = 'transactions-search-input'
+
+function isTypingTarget(target: EventTarget | null) {
+  const element = target as HTMLElement | null
+  if (!element) return false
+
+  const tagName = element.tagName.toLowerCase()
+  return (
+    element.isContentEditable ||
+    tagName === 'input' ||
+    tagName === 'textarea' ||
+    tagName === 'select'
+  )
+}
 
 export default function TransactionsPage() {
   const [showForm, setShowForm] = useState(false)
@@ -20,6 +37,42 @@ export default function TransactionsPage() {
     if (!duplicateGroups) return new Set<string>()
     return new Set(duplicateGroups.flatMap((group) => group.transactions.map((tx) => tx.id)))
   }, [duplicateGroups])
+  const duplicateCount = duplicateIds.size
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        document.getElementById(SEARCH_INPUT_ID)?.focus()
+        return
+      }
+
+      if (isTypingTarget(event.target)) {
+        if (event.key === 'Escape' && showForm) {
+          setShowForm(false)
+        }
+        return
+      }
+
+      if (event.key.toLowerCase() === 'n') {
+        event.preventDefault()
+        setShowForm((prev) => !prev)
+      }
+
+      if (event.key === '/' || event.key.toLowerCase() === 'f') {
+        event.preventDefault()
+        document.getElementById(SEARCH_INPUT_ID)?.focus()
+      }
+
+      if (event.key === 'Escape' && showForm) {
+        event.preventDefault()
+        setShowForm(false)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [showForm])
 
   const handleSuccess = async () => {
     setShowForm(false)
@@ -66,7 +119,26 @@ export default function TransactionsPage() {
         </div>
       </div>
 
+      <div className="rounded-2xl border border-border/70 bg-card/70 px-4 py-3 text-xs text-muted-foreground backdrop-blur-sm">
+        <p className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
+          <Keyboard className="h-3.5 w-3.5 text-primary" />
+          Kısayollar:
+          <span className="rounded-md border border-border bg-background px-2 py-0.5 text-foreground">N</span> yeni işlem
+          <span className="rounded-md border border-border bg-background px-2 py-0.5 text-foreground">/</span> filtre arama
+          <span className="rounded-md border border-border bg-background px-2 py-0.5 text-foreground">Ctrl/Cmd + K</span> arama odakla
+          <span className="rounded-md border border-border bg-background px-2 py-0.5 text-foreground">Esc</span> form kapat
+        </p>
+      </div>
+
+      {transactions && transactions.length > 0 && (
+        <TransactionInsightsPanel
+          transactions={transactions}
+          duplicateCount={duplicateCount}
+        />
+      )}
+
       <TransactionFilters
+        searchInputId={SEARCH_INPUT_ID}
         onFilterChange={setFilters}
         onReset={() => setFilters({})}
       />
@@ -91,4 +163,3 @@ export default function TransactionsPage() {
     </div>
   )
 }
-

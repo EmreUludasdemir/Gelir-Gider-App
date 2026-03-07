@@ -24,9 +24,9 @@ export const TransactionTableHeader = memo(function TransactionTableHeader({
   onBulkDelete,
 }: TransactionTableHeaderProps) {
   return (
-    <div className="flex flex-row items-center justify-between">
+    <div className="flex flex-row flex-wrap items-center justify-between gap-3">
       <h3 className="text-lg font-semibold text-foreground">{title}</h3>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         {selectedCount > 0 && (
           <Button
             variant="outline"
@@ -41,6 +41,7 @@ export const TransactionTableHeader = memo(function TransactionTableHeader({
         <Button
           variant="ghost"
           size="sm"
+          className="border border-border/70 bg-card/60"
           onClick={() => onSort('date')}
         >
           Tarih {sortBy === 'date' && (sortOrder === 'asc' ? '\u2191' : '\u2193')}
@@ -48,6 +49,7 @@ export const TransactionTableHeader = memo(function TransactionTableHeader({
         <Button
           variant="ghost"
           size="sm"
+          className="border border-border/70 bg-card/60"
           onClick={() => onSort('amount')}
         >
           Tutar {sortBy === 'amount' && (sortOrder === 'asc' ? '\u2191' : '\u2193')}

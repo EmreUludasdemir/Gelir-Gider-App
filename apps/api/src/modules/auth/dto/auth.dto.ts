@@ -1,49 +1,80 @@
-import { IsEmail, IsNotEmpty, MinLength, IsOptional, Matches, IsString, MaxLength } from 'class-validator';
+﻿import { IsEmail, IsNotEmpty, MinLength, IsOptional, Matches, IsString, MaxLength } from 'class-validator'
+
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/
 
 export class LoginDto {
-    @IsEmail({}, { message: 'Geçerli bir e-posta adresi giriniz' })
-    email!: string;
+    @IsEmail({}, { message: 'Gecerli bir e-posta adresi giriniz' })
+    email!: string
 
-    @IsNotEmpty({ message: 'Şifre zorunludur' })
-    password!: string;
+    @IsNotEmpty({ message: 'Sifre zorunludur' })
+    password!: string
 
     @IsOptional()
     @IsString()
-    twoFactorCode?: string;
+    twoFactorCode?: string
 }
 
 export class RegisterDto {
-    @IsEmail({}, { message: 'Geçerli bir e-posta adresi giriniz' })
-    email!: string;
+    @IsEmail({}, { message: 'Gecerli bir e-posta adresi giriniz' })
+    email!: string
 
-    @IsNotEmpty({ message: 'Şifre zorunludur' })
-    @MinLength(8, { message: 'Şifre en az 8 karakter olmalıdır' })
-    @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, {
-        message: 'Şifre en az 1 büyük harf, 1 küçük harf, 1 rakam ve 1 özel karakter içermelidir'
+    @IsNotEmpty({ message: 'Sifre zorunludur' })
+    @MinLength(8, { message: 'Sifre en az 8 karakter olmalidir' })
+    @Matches(PASSWORD_REGEX, {
+        message: 'Sifre en az 1 buyuk harf, 1 kucuk harf, 1 rakam ve 1 ozel karakter icermelidir'
     })
-    password!: string;
+    password!: string
 
     @IsOptional()
     @IsString()
     @MaxLength(100)
-    name?: string;
+    name?: string
 }
 
 export class RefreshTokenDto {
     @IsNotEmpty({ message: 'Refresh token zorunludur' })
-    refreshToken!: string;
+    refreshToken!: string
 }
 
 export class ChangePasswordDto {
-    @IsNotEmpty({ message: 'Eski şifre zorunludur' })
-    oldPassword!: string;
+    @IsNotEmpty({ message: 'Eski sifre zorunludur' })
+    oldPassword!: string
 
-    @IsNotEmpty({ message: 'Yeni şifre zorunludur' })
-    @MinLength(8, { message: 'Şifre en az 8 karakter olmalıdır' })
-    @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, {
-        message: 'Şifre en az 1 büyük harf, 1 küçük harf, 1 rakam ve 1 özel karakter içermelidir'
+    @IsNotEmpty({ message: 'Yeni sifre zorunludur' })
+    @MinLength(8, { message: 'Sifre en az 8 karakter olmalidir' })
+    @Matches(PASSWORD_REGEX, {
+        message: 'Sifre en az 1 buyuk harf, 1 kucuk harf, 1 rakam ve 1 ozel karakter icermelidir'
     })
-    newPassword!: string;
+    newPassword!: string
+}
+
+export class RequestPasswordResetDto {
+    @IsEmail({}, { message: 'Gecerli bir e-posta adresi giriniz' })
+    email!: string
+}
+
+export class ConfirmPasswordResetDto {
+    @IsNotEmpty({ message: 'Token zorunludur' })
+    @IsString()
+    token!: string
+
+    @IsNotEmpty({ message: 'Yeni sifre zorunludur' })
+    @MinLength(8, { message: 'Sifre en az 8 karakter olmalidir' })
+    @Matches(PASSWORD_REGEX, {
+        message: 'Sifre en az 1 buyuk harf, 1 kucuk harf, 1 rakam ve 1 ozel karakter icermelidir'
+    })
+    newPassword!: string
+}
+
+export class RequestEmailVerificationDto {
+    @IsEmail({}, { message: 'Gecerli bir e-posta adresi giriniz' })
+    email!: string
+}
+
+export class ConfirmEmailVerificationDto {
+    @IsNotEmpty({ message: 'Token zorunludur' })
+    @IsString()
+    token!: string
 }
 
 export class Enable2FADto {
@@ -51,9 +82,9 @@ export class Enable2FADto {
     @IsString()
     @MinLength(6)
     @MaxLength(6)
-    code!: string;
+    code!: string
 
     @IsNotEmpty({ message: 'Secret zorunludur' })
     @IsString()
-    secret!: string;
+    secret!: string
 }

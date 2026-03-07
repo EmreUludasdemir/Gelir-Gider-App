@@ -25,7 +25,7 @@ export const TransactionTableRow = memo(function TransactionTableRow({
   onEdit,
 }: TransactionTableRowProps) {
   return (
-    <tr className="hover:bg-muted/40 transition-colors">
+    <tr className="odd:bg-card even:bg-muted/[0.18] hover:bg-primary/[0.08] transition-colors">
       {hasPdfTransactions && (
         <td className="px-4 py-4 text-center">
           {transaction.source === 'pdf' ? (
@@ -79,6 +79,7 @@ export const TransactionTableRow = memo(function TransactionTableRow({
         <Button
           size="sm"
           variant="outline"
+          className="font-semibold"
           onClick={() => onEdit(transaction)}
         >
           Duzenle

@@ -6,7 +6,6 @@ import {
     HttpCode,
     HttpStatus,
     UseGuards,
-    Req,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import {
@@ -14,6 +13,10 @@ import {
     RegisterDto,
     RefreshTokenDto,
     ChangePasswordDto,
+    RequestPasswordResetDto,
+    ConfirmPasswordResetDto,
+    RequestEmailVerificationDto,
+    ConfirmEmailVerificationDto,
 } from './dto/auth.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { User } from './user.decorator';
@@ -37,6 +40,30 @@ export class AuthController {
     @Post('refresh')
     refresh(@Body() dto: RefreshTokenDto) {
         return this.authService.refreshToken(dto);
+    }
+
+    @HttpCode(HttpStatus.OK)
+    @Post('password-reset/request')
+    requestPasswordReset(@Body() dto: RequestPasswordResetDto) {
+        return this.authService.requestPasswordReset(dto);
+    }
+
+    @HttpCode(HttpStatus.OK)
+    @Post('password-reset/confirm')
+    confirmPasswordReset(@Body() dto: ConfirmPasswordResetDto) {
+        return this.authService.confirmPasswordReset(dto);
+    }
+
+    @HttpCode(HttpStatus.OK)
+    @Post('email-verification/request')
+    requestEmailVerification(@Body() dto: RequestEmailVerificationDto) {
+        return this.authService.requestEmailVerification(dto);
+    }
+
+    @HttpCode(HttpStatus.OK)
+    @Post('email-verification/confirm')
+    confirmEmailVerification(@Body() dto: ConfirmEmailVerificationDto) {
+        return this.authService.confirmEmailVerification(dto);
     }
 
     @UseGuards(JwtAuthGuard)

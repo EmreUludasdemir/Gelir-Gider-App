@@ -19,6 +19,7 @@ interface FilterState {
 }
 
 interface TransactionFiltersProps {
+  searchInputId?: string
   onFilterChange: (filters: Record<string, string>) => void
   onReset: () => void
 }
@@ -63,7 +64,7 @@ const getMonthOptions = () => {
 
 const formatDateInput = (date: Date) => date.toISOString().split('T')[0]
 
-export function TransactionFilters({ onFilterChange, onReset }: TransactionFiltersProps) {
+export function TransactionFilters({ searchInputId, onFilterChange, onReset }: TransactionFiltersProps) {
   const [filters, setFilters] = useState<FilterState>({})
   const [isExpanded, setIsExpanded] = useState(false)
   const [activeQuickFilter, setActiveQuickFilter] = useState<string | null>(null)
@@ -159,6 +160,7 @@ export function TransactionFilters({ onFilterChange, onReset }: TransactionFilte
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <Input
+              id={searchInputId}
               label="Arama"
               placeholder="Aciklama ara..."
               value={filters.search || ''}

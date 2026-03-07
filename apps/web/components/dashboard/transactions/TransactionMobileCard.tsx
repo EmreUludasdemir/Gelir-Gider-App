@@ -25,7 +25,7 @@ export const TransactionMobileCard = memo(function TransactionMobileCard({
   onEdit,
 }: TransactionMobileCardProps) {
   return (
-    <div className="p-4 hover:bg-muted/40 transition-colors">
+    <div className="p-4 transition-colors hover:bg-primary/[0.07]">
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 space-y-2">
           <div className="flex items-center gap-2">
@@ -71,6 +71,7 @@ export const TransactionMobileCard = memo(function TransactionMobileCard({
             <Button
               size="sm"
               variant="outline"
+              className="font-semibold"
               onClick={() => onEdit(transaction)}
             >
               Duzenle

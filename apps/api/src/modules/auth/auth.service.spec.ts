@@ -8,9 +8,10 @@ import { AuthService } from './auth.service';
 import { PrismaService } from '../../prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { UnauthorizedException, ConflictException, BadRequestException, NotFoundException } from '@nestjs/common';
+import { EmailService } from '../notifications/email.service';
 import * as bcrypt from 'bcrypt';
 import * as speakeasy from 'speakeasy';
-import { createMockUser, createMockPrismaService, createMockJwtService } from '../../../test/test-utils';
+import { createMockUser, createMockPrismaService, createMockJwtService, createMockEmailService } from '../../../test/test-utils';
 
 jest.mock('bcrypt');
 jest.mock('speakeasy');
@@ -19,18 +20,21 @@ describe('AuthService', () => {
   let service: AuthService;
   let prisma: ReturnType<typeof createMockPrismaService>;
   let jwtService: ReturnType<typeof createMockJwtService>;
+  let emailService: ReturnType<typeof createMockEmailService>;
 
   const mockUser = createMockUser();
 
   beforeEach(async () => {
     prisma = createMockPrismaService();
     jwtService = createMockJwtService();
+    emailService = createMockEmailService();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
         { provide: PrismaService, useValue: prisma },
         { provide: JwtService, useValue: jwtService },
+        { provide: EmailService, useValue: emailService },
       ],
     }).compile();
 
@@ -374,6 +378,118 @@ describe('AuthService', () => {
           BadRequestException,
         );
       });
+    });
+  });
+
+  // ============================================
+  // PASSWORD RESET TESTS
+  // ============================================
+  describe('password reset', () => {
+    it('should request password reset without revealing user existence', async () => {
+      prisma.user.findUnique.mockResolvedValue(mockUser);
+      jwtService.sign.mockReturnValue('reset-token');
+
+      const result = await service.requestPasswordReset({ email: mockUser.email });
+
+      expect(result).toHaveProperty('message');
+      expect(emailService.sendEmail).toHaveBeenCalled();
+      expect(prisma.auditLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            userId: mockUser.id,
+            action: 'password_reset_requested',
+          }),
+        }),
+      );
+    });
+
+    it('should not fail password reset request for unknown email', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+
+      const result = await service.requestPasswordReset({ email: 'unknown@example.com' });
+
+      expect(result).toHaveProperty('message');
+      expect(emailService.sendEmail).not.toHaveBeenCalled();
+    });
+
+    it('should confirm password reset with valid token', async () => {
+      jwtService.decode.mockReturnValue({
+        sub: mockUser.id,
+        email: mockUser.email,
+        type: 'password_reset',
+      });
+      prisma.user.findUnique.mockResolvedValue(mockUser);
+      jwtService.verify.mockReturnValue({
+        sub: mockUser.id,
+        email: mockUser.email,
+        type: 'password_reset',
+      });
+      (bcrypt.compare as jest.Mock).mockResolvedValue(false);
+      (bcrypt.genSalt as jest.Mock).mockResolvedValue('salt');
+      (bcrypt.hash as jest.Mock).mockResolvedValue('updated-hash');
+      prisma.user.update.mockResolvedValue({ ...mockUser, password: 'updated-hash' });
+
+      const result = await service.confirmPasswordReset({
+        token: 'valid-reset-token',
+        newPassword: 'NewSecurePass123!',
+      });
+
+      expect(result).toEqual({ message: 'Password reset successful' });
+      expect(prisma.user.update).toHaveBeenCalled();
+      expect(prisma.auditLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            userId: mockUser.id,
+            action: 'password_reset_completed',
+          }),
+        }),
+      );
+    });
+  });
+
+  // ============================================
+  // EMAIL VERIFICATION TESTS
+  // ============================================
+  describe('email verification', () => {
+    it('should request email verification without revealing user existence', async () => {
+      prisma.user.findUnique.mockResolvedValue(mockUser);
+      prisma.auditLog.findFirst.mockResolvedValue(null);
+      jwtService.sign.mockReturnValue('verify-token');
+
+      const result = await service.requestEmailVerification({ email: mockUser.email });
+
+      expect(result).toHaveProperty('message');
+      expect(emailService.sendEmail).toHaveBeenCalled();
+      expect(prisma.auditLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            userId: mockUser.id,
+            action: 'email_verification_requested',
+          }),
+        }),
+      );
+    });
+
+    it('should confirm email verification with valid token', async () => {
+      jwtService.verify.mockReturnValue({
+        sub: mockUser.id,
+        email: mockUser.email,
+        type: 'email_verification',
+      });
+      prisma.user.findUnique.mockResolvedValue(mockUser);
+      prisma.auditLog.findFirst.mockResolvedValue(null);
+
+      const result = await service.confirmEmailVerification({ token: 'valid-token' });
+
+      expect(result).toHaveProperty('message');
+      expect(prisma.auditLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            userId: mockUser.id,
+            action: 'email_verified',
+          }),
+        }),
+      );
     });
   });
 

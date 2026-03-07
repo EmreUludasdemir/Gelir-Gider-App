@@ -174,9 +174,14 @@ export default function LoginPage() {
                                 <input type="checkbox" className="w-4 h-4 rounded border-border text-primary focus:ring-primary" />
                                 <span className="ml-2 text-sm text-muted-foreground">Beni hatırla</span>
                             </label>
-                            <Link href="/auth/forgot-password" className="text-sm text-primary hover:text-primary/80 transition-colors">
-                                Şifremi unuttum
-                            </Link>
+                            <div className="text-right space-y-1">
+                                <Link href="/auth/forgot-password" className="block text-sm text-primary hover:text-primary/80 transition-colors">
+                                    Şifremi unuttum
+                                </Link>
+                                <Link href="/auth/resend-verification" className="block text-xs text-muted-foreground hover:text-foreground transition-colors">
+                                    Dogrulama e-postasi gonder
+                                </Link>
+                            </div>
                         </div>
 
                         {/* Error */}

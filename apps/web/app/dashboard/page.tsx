@@ -4,6 +4,7 @@ import { Suspense } from 'react'
 import dynamic from 'next/dynamic'
 import { useSummary, useTransactions } from '@/lib/hooks'
 import { StatCard } from '@/components/dashboard/StatCard'
+import { DashboardHero } from '@/components/dashboard/DashboardHero'
 import { Spinner } from '@/components/ui/Spinner'
 import { usePreferences } from '@/lib/PreferencesContext'
 import { useTranslation } from '@/lib/translations'
@@ -128,6 +129,8 @@ export default function DashboardPage() {
           {summary.period.month} {summary.period.year} - {t('overview')}
         </p>
       </div>
+
+      <DashboardHero summary={summary} />
 
       {/* Smart Transaction Input - Lazy loaded */}
       <Suspense fallback={<SmartInputSkeleton />}>
