@@ -14,7 +14,6 @@ import { AutoCategorizerService } from '../ai/auto-categorizer.service';
 import {
   createMockTransaction,
   createMockPrismaService,
-  DateHelpers,
 } from '../../../test/test-utils';
 
 // Mock CacheService

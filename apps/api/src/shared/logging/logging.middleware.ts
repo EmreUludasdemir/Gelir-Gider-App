@@ -40,10 +40,7 @@ export class LoggingMiddleware implements NestMiddleware {
 
     // Response'u dinle
     const originalSend = res.send.bind(res);
-    let responseBody: unknown;
-
     res.send = (body: unknown) => {
-      responseBody = body;
       return originalSend(body as string | Buffer);
     };
 

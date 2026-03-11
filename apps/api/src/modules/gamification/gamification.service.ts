@@ -333,15 +333,15 @@ export class GamificationService {
 
   // Unlock achievement and add XP
   private async unlockAchievement(
-    userId: string,
-    achievement: Achievement
+    _userId: string,
+    _achievement: Achievement
   ): Promise<void> {
     // In a real implementation, you'd have a UserAchievements table
     // Achievement unlock is handled silently
   }
 
   // Get user progress
-  async getUserProgress(userId: string): Promise<UserStats> {
+  async getUserProgress(_userId: string): Promise<UserStats> {
     // Mock implementation - in real app, fetch from database
     return {
       totalXP: 450,
@@ -367,7 +367,7 @@ export class GamificationService {
 
   // Get leaderboard
   async getLeaderboard(
-    limit = 10
+    _limit = 10
   ): Promise<
     Array<{ userId: string; name: string; xp: number; level: number }>
   > {

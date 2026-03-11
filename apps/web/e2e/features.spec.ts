@@ -1,105 +1,67 @@
-import { test, expect } from "@playwright/test";
+﻿import { test, expect } from '@playwright/test'
+import { mockAppRoutes, seedAuthenticatedSession } from './helpers'
 
-test.describe("Export Feature", () => {
+test.describe('Export Feature', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/auth/login");
-    await page.fill('input[type="email"]', "test@example.com");
-    await page.fill('input[type="password"]', "Test123!@#");
-    await page.click('button[type="submit"]');
-    await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
-  });
+    await seedAuthenticatedSession(page)
+    await mockAppRoutes(page)
+    await page.goto('/dashboard/transactions')
+  })
 
-  test("should display export button", async ({ page }) => {
-    // Look for export button
-    await expect(
-      page
-        .locator('button:has-text("Dışa Aktar")')
-        .or(page.locator('[data-testid="export-btn"]'))
-    ).toBeVisible();
-  });
+  test('shows export button', async ({ page }) => {
+    await expect(page.getByTestId('export-button')).toBeVisible()
+  })
 
-  test("should open export dropdown", async ({ page }) => {
-    // Click export button
-    await page
-      .click('button:has-text("Dışa Aktar")')
-      .catch(() => page.click('[data-testid="export-btn"]'));
+  test('opens export menu', async ({ page }) => {
+    await page.getByTestId('export-button').click()
 
-    // Check dropdown options
-    await expect(
-      page.locator("text=/CSV/i").or(page.locator("text=/Excel/i"))
-    ).toBeVisible();
-  });
+    await expect(page.getByTestId('export-csv')).toBeVisible()
+    await expect(page.getByTestId('export-json')).toBeVisible()
+  })
 
-  test("should download CSV file", async ({ page }) => {
-    // Click export button
-    await page
-      .click('button:has-text("Dışa Aktar")')
-      .catch(() => page.click('[data-testid="export-btn"]'));
+  test('downloads CSV file', async ({ page }) => {
+    await page.getByTestId('export-button').click()
 
-    // Click CSV option
     const [download] = await Promise.all([
-      page.waitForEvent("download", { timeout: 10000 }).catch(() => null),
-      page.click("text=/CSV/i"),
-    ]);
+      page.waitForEvent('download'),
+      page.getByTestId('export-csv').click(),
+    ])
 
-    if (download) {
-      expect(download.suggestedFilename()).toContain(".csv");
-    }
-  });
+    expect(download.suggestedFilename()).toMatch(/\.csv$/)
+  })
 
-  test("should download Excel file", async ({ page }) => {
-    // Click export button
-    await page
-      .click('button:has-text("Dışa Aktar")')
-      .catch(() => page.click('[data-testid="export-btn"]'));
+  test('downloads JSON file', async ({ page }) => {
+    await page.getByTestId('export-button').click()
 
-    // Click Excel option
     const [download] = await Promise.all([
-      page.waitForEvent("download", { timeout: 10000 }).catch(() => null),
-      page.click("text=/Excel/i"),
-    ]);
+      page.waitForEvent('download'),
+      page.getByTestId('export-json').click(),
+    ])
 
-    if (download) {
-      expect(download.suggestedFilename()).toMatch(/\.xlsx?$/);
-    }
-  });
-});
+    expect(download.suggestedFilename()).toMatch(/\.json$/)
+  })
+})
 
-test.describe("Bank Connections", () => {
+test.describe('Bank Connections', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/auth/login");
-    await page.fill('input[type="email"]', "test@example.com");
-    await page.fill('input[type="password"]', "Test123!@#");
-    await page.click('button[type="submit"]');
-    await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
-  });
+    await seedAuthenticatedSession(page)
+    await mockAppRoutes(page)
+    await page.goto('/bank-connections')
+  })
 
-  test("should navigate to bank connections", async ({ page }) => {
-    // Navigate to bank connections page
-    await page
-      .click('a[href*="bank"]')
-      .catch(() =>
-        page
-          .click("text=/Banka Bağlantıları/i")
-          .catch(() => page.goto("/bank-connections"))
-      );
+  test('renders existing bank connections', async ({ page }) => {
+    await expect(page.getByRole('heading', { name: /Banka Bağlantıları/i })).toBeVisible()
+    await expect(page.getByText('Akbank')).toBeVisible()
+    await expect(page.getByText('Ana Hesap')).toBeVisible()
+  })
 
-    await expect(page.locator("text=/Banka/i").first()).toBeVisible();
-  });
+  test('adds a new bank connection', async ({ page }) => {
+    await page.getByRole('button', { name: /Banka Ekle/i }).click()
+    await page.selectOption('select', 'garanti')
+    await page.fill('input[placeholder="Ana Hesap"]', 'Yedek Hesap')
+    await page.getByRole('button', { name: /^Bağlan$/i }).click()
 
-  test("should display available banks", async ({ page }) => {
-    await page.goto("/bank-connections");
-
-    // Check for bank list
-    await expect(
-      page
-        .locator("text=/Akbank/i")
-        .or(page.locator("text=/Garanti/i").or(page.locator("text=/İşbank/i")))
-    )
-      .toBeVisible({ timeout: 5000 })
-      .catch(() => {
-        // API might not be running, just check page loaded
-        expect(page.locator("text=/Banka/i")).toBeVisible();
-      });
-  });
-});
+    await expect(page.getByText('Garanti BBVA')).toBeVisible()
+    await expect(page.getByText('Yedek Hesap')).toBeVisible()
+  })
+})

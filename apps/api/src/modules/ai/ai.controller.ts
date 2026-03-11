@@ -123,6 +123,14 @@ export class AiController {
     return this.aiChat.chat(this.getUserId(req), body.message);
   }
 
+  @Post('parse')
+  async parseTransaction(
+    @Request() req: { user?: { id?: string; userId?: string } },
+    @Body() body: { input: string }
+  ) {
+    return this.aiChat.parseTransaction(this.getUserId(req), body.input);
+  }
+
   private getUserId(req: { user?: { id?: string; userId?: string } }): string {
     const userId = req.user?.id || req.user?.userId;
     if (!userId) {

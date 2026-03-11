@@ -1,110 +1,127 @@
-﻿'use client';
+'use client'
 
-import React from 'react';
-import Link from 'next/link';
+import Link from 'next/link'
+import type { ComponentType } from 'react'
+import {
+  ArrowRight,
+  BadgePlus,
+  CopyCheck,
+  FileUp,
+  PiggyBank,
+  TrendingDown,
+  WalletCards,
+} from 'lucide-react'
 
 interface QuickAction {
-    icon: React.ReactNode;
-    label: string;
-    href: string;
-    color: string;
-    bgColor: string;
+  href: string
+  title: string
+  description: string
+  icon: ComponentType<{ className?: string }>
+  accentClass: string
+  surfaceClass: string
 }
 
 const QUICK_ACTIONS: QuickAction[] = [
-    {
-        icon: (
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-        ),
-        label: 'Gelir Ekle',
-        href: '/dashboard/transactions?type=income',
-        color: 'text-success',
-        bgColor: 'bg-success/15 hover:bg-success/25',
-    },
-    {
-        icon: (
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-            </svg>
-        ),
-        label: 'Gider Ekle',
-        href: '/dashboard/transactions?type=expense',
-        color: 'text-destructive',
-        bgColor: 'bg-destructive/15 hover:bg-destructive/25',
-    },
-    {
-        icon: (
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-        ),
-        label: 'PDF Yukle',
-        href: '/dashboard/upload',
-        color: 'text-primary-600',
-        bgColor: 'bg-primary-100 hover:bg-primary-200',
-    },
-    {
-        icon: (
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
-            </svg>
-        ),
-        label: 'Hedef Koy',
-        href: '/dashboard/goals',
-        color: 'text-amber-700',
-        bgColor: 'bg-amber-100 hover:bg-amber-200',
-    },
-    {
-        icon: (
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
-        ),
-        label: 'Butce Ayarla',
-        href: '/dashboard/budgets',
-        color: 'text-sky-700',
-        bgColor: 'bg-sky-100 hover:bg-sky-200',
-    },
-    {
-        icon: (
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-        ),
-        label: 'Rapor Al',
-        href: '/dashboard?action=report',
-        color: 'text-teal-700',
-        bgColor: 'bg-teal-100 hover:bg-teal-200',
-    },
-];
+  {
+    href: '/dashboard/transactions?type=income',
+    title: 'Gelir ekle',
+    description: 'Yeni maas, prim veya tahsilat gir',
+    icon: BadgePlus,
+    accentClass: 'text-success',
+    surfaceClass: 'from-success/16 via-success/8 to-transparent',
+  },
+  {
+    href: '/dashboard/transactions?type=expense',
+    title: 'Gider kaydet',
+    description: 'Harcamayi aninda isleyip kategori ata',
+    icon: TrendingDown,
+    accentClass: 'text-destructive',
+    surfaceClass: 'from-destructive/16 via-destructive/8 to-transparent',
+  },
+  {
+    href: '/dashboard/upload',
+    title: 'PDF yukle',
+    description: 'Ekstreyi iceri alip islem listesi olustur',
+    icon: FileUp,
+    accentClass: 'text-primary',
+    surfaceClass: 'from-primary/18 via-primary/10 to-transparent',
+  },
+  {
+    href: '/dashboard/goals',
+    title: 'Hedef kur',
+    description: 'Bir sonraki birikim hedefini olustur',
+    icon: PiggyBank,
+    accentClass: 'text-warning',
+    surfaceClass: 'from-warning/20 via-warning/8 to-transparent',
+  },
+  {
+    href: '/dashboard/budgets',
+    title: 'Butce ayarla',
+    description: 'Kategori limitlerini guncelle',
+    icon: WalletCards,
+    accentClass: 'text-sky-700 dark:text-sky-300',
+    surfaceClass: 'from-sky-500/18 via-sky-500/8 to-transparent',
+  },
+  {
+    href: '/dashboard/duplicates',
+    title: 'Kopyalari temizle',
+    description: 'Tekrarlanan kayitlari tek panelde coz',
+    icon: CopyCheck,
+    accentClass: 'text-teal-700 dark:text-teal-300',
+    surfaceClass: 'from-teal-500/18 via-teal-500/8 to-transparent',
+  },
+]
 
 export function QuickActionsGrid() {
-    return (
-        <div className="bg-card rounded-2xl p-6 shadow-sm border border-border">
-            <h3 className="text-lg font-semibold text-foreground mb-4">
-                Hizli Islemler
-            </h3>
-
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-                {QUICK_ACTIONS.map((action, index) => (
-                    <Link
-                        key={index}
-                        href={action.href}
-                        className={`${action.bgColor} rounded-xl p-4 flex flex-col items-center gap-2 transition-all duration-200 transform hover:scale-105`}
-                    >
-                        <div className={action.color}>
-                            {action.icon}
-                        </div>
-                        <span className="text-xs text-muted-foreground font-medium text-center">
-                            {action.label}
-                        </span>
-                    </Link>
-                ))}
-            </div>
+  return (
+    <section className="glass-card rounded-[28px] p-6">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.26em] text-primary/80">
+            Hizli Islemler
+          </p>
+          <h3 className="mt-2 text-xl font-display font-semibold text-foreground">
+            Bir sonraki finans aksiyonunu sec
+          </h3>
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+            Giris, yukleme ve duzenleme akislari tek yerden erisilebilir durumda.
+          </p>
         </div>
-    );
+        <p className="text-xs font-medium text-muted-foreground">
+          6 kisayol, mobil ve masaustu hizli kullanim icin optimize edildi.
+        </p>
+      </div>
+
+      <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {QUICK_ACTIONS.map((action) => {
+          const Icon = action.icon
+
+          return (
+            <Link
+              key={action.href}
+              href={action.href}
+              className="group relative overflow-hidden rounded-[24px] border border-border/70 bg-card/80 p-4 transition-all duration-200 hover:-translate-y-1 hover:border-primary/35 hover:shadow-[0_20px_35px_rgba(15,76,92,0.12)]"
+            >
+              <div
+                className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${action.surfaceClass} opacity-80`}
+              />
+              <div className="relative flex h-full flex-col">
+                <div className="flex items-start justify-between gap-3">
+                  <div className={`flex h-11 w-11 items-center justify-center rounded-2xl bg-background/80 ${action.accentClass}`}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
+                </div>
+
+                <div className="mt-4 space-y-1">
+                  <p className="text-base font-semibold text-foreground">{action.title}</p>
+                  <p className="text-sm leading-6 text-muted-foreground">{action.description}</p>
+                </div>
+              </div>
+            </Link>
+          )
+        })}
+      </div>
+    </section>
+  )
 }
-
-

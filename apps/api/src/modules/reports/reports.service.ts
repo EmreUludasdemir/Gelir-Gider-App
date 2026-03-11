@@ -42,7 +42,7 @@ export class ReportsService {
     constructor(private prisma: PrismaService) { }
 
     async generateReport(userId: string, options: ReportOptions) {
-        const { startDate, endDate, type = 'summary', format = 'pdf' } = options;
+        const { startDate, endDate, format = 'pdf' } = options;
 
         // Fetch data
         const transactions = await this.prisma.transaction.findMany({

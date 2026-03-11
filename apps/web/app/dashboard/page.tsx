@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic'
 import { useSummary, useTransactions } from '@/lib/hooks'
 import { StatCard } from '@/components/dashboard/StatCard'
 import { DashboardHero } from '@/components/dashboard/DashboardHero'
+import { DashboardCommandCenter } from '@/components/dashboard/DashboardCommandCenter'
 import { Spinner } from '@/components/ui/Spinner'
 import { usePreferences } from '@/lib/PreferencesContext'
 import { useTranslation } from '@/lib/translations'
@@ -131,6 +132,8 @@ export default function DashboardPage() {
       </div>
 
       <DashboardHero summary={summary} />
+
+      <DashboardCommandCenter />
 
       {/* Smart Transaction Input - Lazy loaded */}
       <Suspense fallback={<SmartInputSkeleton />}>

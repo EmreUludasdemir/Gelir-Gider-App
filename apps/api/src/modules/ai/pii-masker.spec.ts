@@ -200,6 +200,12 @@ describe('PII Masker', () => {
     it('should return false for clean text', () => {
       expect(containsPII('This is a normal description')).toBe(false);
     });
+
+    it('should not leak regex state across repeated calls', () => {
+      const text = 'Transfer to TR330006100519786457841326';
+      expect(containsPII(text)).toBe(true);
+      expect(containsPII(text)).toBe(true);
+    });
   });
 
   describe('extractAndMaskPII', () => {

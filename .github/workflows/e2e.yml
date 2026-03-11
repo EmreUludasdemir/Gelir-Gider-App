@@ -2,9 +2,12 @@ name: E2E Tests
 
 on:
     push:
-        branches: [main, develop]
+        branches: [main, develop, 'claude/**']
     pull_request:
-        branches: [main]
+        branches: [main, develop, 'claude/**']
+
+permissions:
+    contents: read
 
 env:
     NODE_VERSION: "20"

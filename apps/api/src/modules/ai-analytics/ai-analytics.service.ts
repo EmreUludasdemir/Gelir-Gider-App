@@ -63,7 +63,6 @@ export class AiAnalyticsService {
 
     // Get last 3 months of transactions for baseline
     const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
-    const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
     const [historicalTransactions, recentTransactions] = await Promise.all([
@@ -287,16 +286,11 @@ export class AiAnalyticsService {
     // Calculate income and expenses
     let totalIncome = 0;
     let totalExpense = 0;
-    let currentMonthExpense = 0;
-
     for (const tx of transactions) {
       if (tx.type === 'income') {
         totalIncome += tx.amount;
       } else {
         totalExpense += Math.abs(tx.amount);
-        if (tx.date >= startOfMonth) {
-          currentMonthExpense += Math.abs(tx.amount);
-        }
       }
     }
 

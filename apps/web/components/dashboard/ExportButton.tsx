@@ -1,8 +1,7 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
 import { Button } from '../ui/Button';
-import { getAuthToken } from '@/lib/api';
 import { getApiBaseUrl } from '@/lib/api-base';
 
 interface ExportButtonProps {
@@ -23,10 +22,6 @@ export function ExportButton({ startDate, endDate, className }: ExportButtonProp
 
         try {
             const apiBase = getApiBaseUrl();
-            const token = getAuthToken();
-            if (!token) {
-                throw new Error('Missing auth token');
-            }
             const params = new URLSearchParams({ format });
             if (startDate) params.append('startDate', startDate.toISOString());
             if (endDate) params.append('endDate', endDate.toISOString());
@@ -34,17 +29,14 @@ export function ExportButton({ startDate, endDate, className }: ExportButtonProp
             const response = await fetch(
                 `${apiBase}/transactions/export?${params}`,
                 {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
+                    credentials: 'include',
                 }
             );
 
             if (!response.ok) {
-                throw new Error('Export hatası');
+                throw new Error('Export hatasi');
             }
 
-            // Get filename from header or use default
             const contentDisposition = response.headers.get('content-disposition');
             let filename = format === 'csv' ? 'islemler.csv' : 'islemler.xlsx';
             if (contentDisposition) {
@@ -52,7 +44,6 @@ export function ExportButton({ startDate, endDate, className }: ExportButtonProp
                 if (match) filename = match[1];
             }
 
-            // Download the file
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -64,7 +55,7 @@ export function ExportButton({ startDate, endDate, className }: ExportButtonProp
             document.body.removeChild(a);
         } catch (error) {
             console.error('Export error:', error);
-            alert('Dışa aktarma sırasında bir hata oluştu.');
+            alert('Disa aktarma sirasinda bir hata olustu.');
         } finally {
             setIsExporting(false);
         }
@@ -96,7 +87,7 @@ export function ExportButton({ startDate, endDate, className }: ExportButtonProp
                                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
                             />
                         </svg>
-                        Dışa Aktarılıyor...
+                        Disa Aktariliyor...
                     </>
                 ) : (
                     <>
@@ -113,7 +104,7 @@ export function ExportButton({ startDate, endDate, className }: ExportButtonProp
                                 d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                             />
                         </svg>
-                        Dışa Aktar
+                        Disa Aktar
                     </>
                 )}
             </Button>
@@ -143,7 +134,6 @@ export function ExportButton({ startDate, endDate, className }: ExportButtonProp
                 </div>
             )}
 
-            {/* Click outside to close */}
             {showDropdown && (
                 <div
                     className="fixed inset-0 z-0"
@@ -153,5 +143,3 @@ export function ExportButton({ startDate, endDate, className }: ExportButtonProp
         </div>
     );
 }
-
-

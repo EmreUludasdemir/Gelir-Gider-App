@@ -11,10 +11,12 @@ import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { getAllowedOrigins } from '../../shared';
+import { AUTH_ACCESS_COOKIE, getCookieValue } from '../../shared/cookies';
 
 interface JwtPayload {
-  userId: string;
+  sub: string;
   email: string;
+  type?: 'access' | 'refresh';
 }
 
 interface TransactionNotification {
@@ -67,7 +69,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
 
   async handleConnection(client: Socket) {
     try {
-      const token = client.handshake.auth.token || client.handshake.headers.authorization?.replace('Bearer ', '');
+      const token = this.extractToken(client)
 
       if (!token) {
         this.logger.warn(`Client ${client.id} connected without token`);
@@ -76,7 +78,10 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
       }
 
       const payload = this.jwtService.verify<JwtPayload>(token);
-      const userId = payload.userId;
+      if (payload.type && payload.type !== 'access') {
+        throw new Error('Invalid token type')
+      }
+      const userId = payload.sub;
 
       // Store user-socket mapping
       client.data.userId = userId;
@@ -115,8 +120,8 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
   // ==================== Client Messages ====================
 
   @SubscribeMessage('ping')
-  handlePing(@ConnectedSocket() client: Socket) {
-    return { event: 'pong', data: { timestamp: Date.now() } };
+  handlePing(@ConnectedSocket() _client: Socket) {
+    return { timestamp: Date.now() };
   }
 
   @SubscribeMessage('subscribe')
@@ -244,5 +249,19 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
       data,
       timestamp: Date.now(),
     });
+  }
+
+  private extractToken(client: Socket): string | undefined {
+    const authToken = client.handshake.auth.token
+    if (typeof authToken === 'string' && authToken.trim()) {
+      return authToken.trim()
+    }
+
+    const authorizationHeader = client.handshake.headers.authorization
+    if (typeof authorizationHeader === 'string' && authorizationHeader.startsWith('Bearer ')) {
+      return authorizationHeader.slice('Bearer '.length).trim()
+    }
+
+    return getCookieValue(client.handshake.headers.cookie, AUTH_ACCESS_COOKIE)
   }
 }

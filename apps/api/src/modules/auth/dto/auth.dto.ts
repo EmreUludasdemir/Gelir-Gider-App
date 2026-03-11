@@ -32,8 +32,9 @@ export class RegisterDto {
 }
 
 export class RefreshTokenDto {
-    @IsNotEmpty({ message: 'Refresh token zorunludur' })
-    refreshToken!: string
+    @IsOptional()
+    @IsString()
+    refreshToken?: string
 }
 
 export class ChangePasswordDto {

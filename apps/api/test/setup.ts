@@ -3,8 +3,6 @@
  * Global test configuration and mocks
  */
 
-import { PrismaClient } from "@prisma/client";
-
 // ============================================
 // ENVIRONMENT SETUP
 // ============================================

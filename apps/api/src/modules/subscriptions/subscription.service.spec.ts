@@ -4,7 +4,6 @@ import { PrismaService } from '../../prisma.service';
 
 describe('SubscriptionService', () => {
   let service: SubscriptionService;
-  let prisma: PrismaService;
 
   const mockUserId = 'user-123';
 
@@ -37,7 +36,6 @@ describe('SubscriptionService', () => {
     }).compile();
 
     service = module.get<SubscriptionService>(SubscriptionService);
-    prisma = module.get<PrismaService>(PrismaService);
 
     jest.clearAllMocks();
   });

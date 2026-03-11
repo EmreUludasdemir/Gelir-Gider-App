@@ -166,6 +166,8 @@ export function Header() {
                 </div>
                 <button
                   onClick={logout}
+                  data-testid="logout-button"
+                  aria-label={t('logout')}
                   className="p-2 rounded-xl hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
                   title={t('logout')}
                 >
@@ -228,6 +230,7 @@ export function Header() {
               <hr className="my-2 border-border" />
               <button
                 onClick={logout}
+                data-testid="mobile-logout-button"
                 className="flex items-center gap-3 w-full px-4 py-3 rounded-xl hover:bg-destructive/10 text-destructive transition-colors"
               >
                 <LogOut className="w-5 h-5" />

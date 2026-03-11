@@ -1,66 +1,45 @@
 'use client'
 
 import useSWR from 'swr'
-import { useEffect, useState } from 'react'
-import { fetcher, DashboardSummary, Transaction, Suggestion, RecurringPayment, DuplicateGroup } from './api'
+import { useAuth } from '@/components/auth-provider'
+import {
+  fetcher,
+  DashboardSummary,
+  Transaction,
+  Suggestion,
+  RecurringPayment,
+  DuplicateGroup,
+  Budget,
+  SavingsGoal,
+  Bill,
+} from './api'
 
-// Hook to get token reactively
-function useToken() {
-  const [token, setToken] = useState<string | null>(null)
-  
-  useEffect(() => {
-    // Check token immediately and on storage changes
-    const checkToken = () => {
-      const t = localStorage.getItem('token')
-      setToken(t)
-    }
-    
-    checkToken()
-    
-    // Listen for storage changes (in case token is set after mount)
-    window.addEventListener('storage', checkToken)
-    
-    // Also check periodically for the first few seconds (handles race conditions)
-    const interval = setInterval(checkToken, 500)
-    setTimeout(() => clearInterval(interval), 3000)
-    
-    return () => {
-      window.removeEventListener('storage', checkToken)
-      clearInterval(interval)
-    }
-  }, [])
-  
-  return token
+function useProtectedKey(path: string | null) {
+  const { isAuthenticated, loading } = useAuth()
+  if (loading || !isAuthenticated) {
+    return null
+  }
+  return path
 }
 
 export function useTransactions(query?: Record<string, string>) {
   const params = new URLSearchParams(query).toString()
-  const token = useToken()
-  return useSWR<Transaction[]>(
-    token ? `/transactions${params ? `?${params}` : ''}` : null,
-    fetcher,
-    { refreshInterval: 30000 }
-  )
+  const key = useProtectedKey(`/transactions${params ? `?${params}` : ''}`)
+  return useSWR<Transaction[]>(key, fetcher, { refreshInterval: 30000 })
 }
 
 export function useSummary(query?: Record<string, string>) {
   const params = new URLSearchParams(query).toString()
-  const token = useToken()
-  return useSWR<DashboardSummary>(
-    token ? `/transactions/summary${params ? `?${params}` : ''}` : null,
-    fetcher,
-    { refreshInterval: 60000 }
-  )
+  const key = useProtectedKey(`/transactions/summary${params ? `?${params}` : ''}`)
+  return useSWR<DashboardSummary>(key, fetcher, { refreshInterval: 60000 })
 }
 
 export function useSuggestions() {
-  const token = useToken()
-  return useSWR<Suggestion[]>(token ? '/transactions/suggestions' : null, fetcher)
+  return useSWR<Suggestion[]>(useProtectedKey('/transactions/suggestions'), fetcher)
 }
 
 export function useRecurring() {
-  const token = useToken()
-  return useSWR<RecurringPayment[]>(token ? '/transactions/recurring' : null, fetcher)
+  return useSWR<RecurringPayment[]>(useProtectedKey('/transactions/recurring'), fetcher)
 }
 
 export function useDuplicateGroups(options?: {
@@ -68,7 +47,6 @@ export function useDuplicateGroups(options?: {
   windowDays?: number
   amountTolerance?: number
 }) {
-  const token = useToken()
   const params = new URLSearchParams()
   if (options?.days) params.set('days', options.days.toString())
   if (options?.windowDays) params.set('windowDays', options.windowDays.toString())
@@ -76,11 +54,26 @@ export function useDuplicateGroups(options?: {
     params.set('amountTolerance', options.amountTolerance.toString())
   }
   const query = params.toString()
-  return useSWR<DuplicateGroup[]>(
-    token ? `/transactions/duplicates${query ? `?${query}` : ''}` : null,
-    fetcher,
-    { refreshInterval: 60000 }
-  )
+  const key = useProtectedKey(`/transactions/duplicates${query ? `?${query}` : ''}`)
+  return useSWR<DuplicateGroup[]>(key, fetcher, { refreshInterval: 60000 })
+}
+
+export function useBudgetStatus() {
+  return useSWR<Budget[]>(useProtectedKey('/budgets/status'), fetcher, {
+    refreshInterval: 60000,
+  })
+}
+
+export function useSavingsGoals() {
+  return useSWR<SavingsGoal[]>(useProtectedKey('/savings-goals'), fetcher, {
+    refreshInterval: 60000,
+  })
+}
+
+export function useUpcomingBills(days = 14) {
+  return useSWR<Bill[]>(useProtectedKey(`/bills/upcoming?days=${days}`), fetcher, {
+    refreshInterval: 60000,
+  })
 }
 
 export function useRefreshAll() {

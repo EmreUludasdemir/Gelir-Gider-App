@@ -187,7 +187,6 @@ export class SpendingAnalyzerService {
    */
   async predictSpending(userId: string): Promise<SpendingPrediction[]> {
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
 
     const transactions = await this.prisma.transaction.findMany({

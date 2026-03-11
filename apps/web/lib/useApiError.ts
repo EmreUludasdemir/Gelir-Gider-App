@@ -197,8 +197,6 @@ export function useApiError() {
       if (apiError instanceof ApiError && apiError.isAuthError()) {
         // Redirect to login
         if (typeof window !== 'undefined') {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
           window.location.href = '/auth/login';
         }
       }
@@ -255,14 +253,12 @@ export async function apiFetch<T>(
   const API_BASE = getApiBaseUrl();
   const fullUrl = url.startsWith('http') ? url : `${API_BASE}${url}`;
 
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-
   try {
     const response = await fetch(fullUrl, {
       ...options,
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...options?.headers,
       },
     });

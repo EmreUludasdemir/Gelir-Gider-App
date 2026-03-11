@@ -1,50 +1,23 @@
 import { api, ApiError, setAuthToken, clearAuthToken } from '../api-enhanced'
 
-// Mock fetch
 global.fetch = jest.fn()
-
-// Mock localStorage
-const localStorageMock = (() => {
-  let store: Record<string, string> = {}
-  return {
-    getItem: jest.fn((key: string) => store[key] || null),
-    setItem: jest.fn((key: string, value: string) => { store[key] = value }),
-    removeItem: jest.fn((key: string) => { delete store[key] }),
-    clear: jest.fn(() => { store = {} }),
-  }
-})()
-
-Object.defineProperty(window, 'localStorage', {
-  value: localStorageMock,
-})
 
 describe('API Client', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    localStorageMock.clear()
   })
 
   describe('setAuthToken and clearAuthToken', () => {
-    it('should store tokens in localStorage', () => {
-      const mockTokens = {
-        accessToken: 'test-access-token',
-        refreshToken: 'test-refresh-token',
-        expiresIn: 900,
-      }
+    it('should keep compatibility helpers as no-ops', () => {
+      expect(() =>
+        setAuthToken({
+          accessToken: 'test-access-token',
+          refreshToken: 'test-refresh-token',
+          expiresIn: 900,
+        })
+      ).not.toThrow()
 
-      setAuthToken(mockTokens)
-
-      expect(localStorage.setItem).toHaveBeenCalledWith('accessToken', mockTokens.accessToken)
-      expect(localStorage.setItem).toHaveBeenCalledWith('refreshToken', mockTokens.refreshToken)
-      expect(localStorage.setItem).toHaveBeenCalled()
-    })
-
-    it('should clear tokens from localStorage', () => {
-      clearAuthToken()
-
-      expect(localStorage.removeItem).toHaveBeenCalledWith('accessToken')
-      expect(localStorage.removeItem).toHaveBeenCalledWith('refreshToken')
-      expect(localStorage.removeItem).toHaveBeenCalledWith('tokenExpiry')
+      expect(() => clearAuthToken()).not.toThrow()
     })
   })
 
@@ -97,6 +70,7 @@ describe('API Client', () => {
         expect.stringContaining('/auth/login'),
         expect.objectContaining({
           method: 'POST',
+          credentials: 'include',
           body: JSON.stringify({
             email: 'test@example.com',
             password: 'password123',
@@ -123,16 +97,7 @@ describe('API Client', () => {
   })
 
   describe('transactions.getAll', () => {
-    beforeEach(() => {
-      // Set a token for authenticated requests
-      setAuthToken({
-        accessToken: 'test-token',
-        refreshToken: 'refresh-token',
-        expiresIn: 900,
-      })
-    })
-
-    it('should fetch transactions with pagination', async () => {
+    it('should fetch transactions with pagination using cookies', async () => {
       const mockResponse = {
         data: [
           {
@@ -164,52 +129,43 @@ describe('API Client', () => {
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining('/transactions?page=1&limit=20'),
         expect.objectContaining({
-          headers: expect.objectContaining({
-            Authorization: 'Bearer test-token',
-          }),
+          credentials: 'include',
         })
       )
     })
   })
 
   describe('Token refresh', () => {
-    it('should refresh token when access token expires', async () => {
-      // Set expired token using mock
-      localStorageMock.getItem.mockImplementation((key: string) => {
-        if (key === 'accessToken') return 'expired-token'
-        if (key === 'refreshToken') return 'refresh-token'
-        if (key === 'tokenExpiry') return (Date.now() - 1000).toString()
-        return null
-      })
-
-      const mockRefreshResponse = {
-        accessToken: 'new-token',
-        refreshToken: 'new-refresh',
-        expiresIn: 900,
-      }
-
-      // First call: refresh token
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => mockRefreshResponse,
-        headers: new Headers(),
-      })
-
-      // Second call: actual request
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({ data: [] }),
-        headers: new Headers(),
-      })
+    it('should refresh the cookie session after a 401 and retry the request', async () => {
+      ;(global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 401,
+          json: async () => ({ message: 'Unauthorized' }),
+          headers: new Headers(),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({ accessToken: 'new-token', refreshToken: 'new-refresh', expiresIn: 900 }),
+          headers: new Headers(),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({ data: [] }),
+          headers: new Headers(),
+        })
 
       await api.transactions.getAll()
 
-      // Should have called refresh endpoint
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(global.fetch).toHaveBeenNthCalledWith(
+        2,
         expect.stringContaining('/auth/refresh'),
-        expect.any(Object)
+        expect.objectContaining({
+          method: 'POST',
+          credentials: 'include',
+        })
       )
     })
   })

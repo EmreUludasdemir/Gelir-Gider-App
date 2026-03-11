@@ -101,7 +101,7 @@ export function UpcomingBillsWidget({
   const totalAmount = unpaidBills.reduce((sum, b) => sum + b.amount, 0)
 
   return (
-    <div className="bg-card rounded-lg shadow p-6">
+    <div className="glass-card rounded-[28px] p-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold flex items-center gap-2">
           <Receipt className="w-5 h-5 text-primary-600" />
@@ -171,7 +171,7 @@ export function UpcomingBillsWidget({
                       e.stopPropagation()
                       onPayBill(bill.id)
                     }}
-                    className="w-full mt-2 px-3 py-1.5 text-xs bg-card border border-border text-gray-700 rounded hover:bg-muted/40 transition-colors"
+                    className="mt-2 w-full rounded-xl border border-border bg-card px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted/40"
                   >
                     Ödendi Olarak İşaretle
                   </button>

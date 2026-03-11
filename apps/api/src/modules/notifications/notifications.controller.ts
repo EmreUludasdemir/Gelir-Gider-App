@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Body, Query, Res, UseGuards } from "@nestjs/common";
+import { Controller, Get, Post, Delete, Body, Res, UseGuards } from "@nestjs/common";
 import { Response } from "express";
 import { CalendarService } from "./calendar.service";
 import { TelegramService } from "./telegram.service";

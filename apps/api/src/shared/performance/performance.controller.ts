@@ -137,7 +137,7 @@ export class PerformanceController {
     try {
       await this.prisma.$queryRaw`SELECT 1`;
       return Date.now() - start;
-    } catch (error) {
+    } catch {
       return -1;
     }
   }
@@ -146,7 +146,7 @@ export class PerformanceController {
     try {
       await this.prisma.$queryRaw`SELECT 1`;
       return true;
-    } catch (error) {
+    } catch {
       return false;
     }
   }

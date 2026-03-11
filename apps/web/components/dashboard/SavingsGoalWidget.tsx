@@ -44,7 +44,7 @@ export function SavingsGoalWidget({ goals, onAddGoal, onGoalClick }: SavingsGoal
   const completedGoals = goals.filter(g => g.isCompleted)
 
   return (
-    <div className="bg-card rounded-lg shadow p-6">
+    <div className="glass-card rounded-[28px] p-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold flex items-center gap-2">
           <Target className="w-5 h-5 text-blue-600" />
@@ -86,7 +86,7 @@ export function SavingsGoalWidget({ goals, onAddGoal, onGoalClick }: SavingsGoal
               <div
                 key={goal.id}
                 onClick={() => onGoalClick?.(goal)}
-                className="border border-border rounded-lg p-4 hover:border-blue-300 transition-colors cursor-pointer"
+                className="cursor-pointer rounded-2xl border border-border p-4 transition-colors hover:border-blue-300"
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex-1">

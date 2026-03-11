@@ -1,93 +1,57 @@
-import { test, expect } from '@playwright/test';
+﻿import { test, expect } from '@playwright/test'
+import { mockAppRoutes, seedAuthenticatedSession } from './helpers'
 
 test.describe('Dashboard', () => {
-  // Login before each test
   test.beforeEach(async ({ page }) => {
-    // Use stored auth state or login
-    await page.goto('/auth/login');
-    await page.fill('input[type="email"]', 'test@example.com');
-    await page.fill('input[type="password"]', 'Test123!@#');
-    await page.click('button[type="submit"]');
-    await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
-  });
+    await seedAuthenticatedSession(page)
+    await mockAppRoutes(page)
+  })
 
-  test('should display dashboard with stats', async ({ page }) => {
-    // Check main elements
-    await expect(page.locator('text=/Gelir/i').first()).toBeVisible();
-    await expect(page.locator('text=/Gider/i').first()).toBeVisible();
-    await expect(page.locator('text=/Bakiye/i').first()).toBeVisible();
-  });
+  test('renders dashboard summary and recent transactions', async ({ page }) => {
+    await page.goto('/dashboard')
 
-  test('should display transaction list', async ({ page }) => {
-    // Check transaction table/list exists
-    await expect(page.locator('[data-testid="transaction-list"]').or(
-      page.locator('table').or(page.locator('text=/İşlem/i'))
-    )).toBeVisible();
-  });
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+    await expect(page.getByText('Finans Nabzi')).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Bu ayki para akisini netlestir/i })).toBeVisible()
+    await expect(page.getByTestId('dashboard-command-center')).toBeVisible()
+    await expect(page.getByText('Hizli Islemler')).toBeVisible()
+    await expect(page.getByText('Komuta Paneli')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Finansal Sağlık' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Tasarruf Hedefleri' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Yaklaşan Faturalar' })).toBeVisible()
+    await expect(page.getByTitle('Mart Maasi')).toBeVisible()
+    await expect(page.getByTitle('Migros Market')).toBeVisible()
+  })
 
-  test('should open add transaction modal', async ({ page }) => {
-    // Click add transaction button
-    await page.click('[data-testid="add-transaction-btn"]').catch(() => {
-      // Fallback to text-based selector
-      return page.click('button:has-text("İşlem Ekle")');
-    });
+  test('marks an upcoming bill as paid from command center', async ({ page }) => {
+    await page.goto('/dashboard')
 
-    // Check modal is visible
-    await expect(page.locator('[role="dialog"]').or(
-      page.locator('.modal')
-    ).or(page.locator('text=/Yeni İşlem/i'))).toBeVisible({ timeout: 5000 });
-  });
+    await page.getByRole('button', { name: /Odendi Olarak Isaretle|Ödendi Olarak İşaretle/i }).first().click()
 
-  test('should add a new expense transaction', async ({ page }) => {
-    // Open add transaction
-    await page.click('button:has-text("İşlem Ekle")').catch(() => 
-      page.click('[data-testid="add-transaction-btn"]')
-    );
+    await expect(page.getByText('Fatura odendi olarak isaretlendi.')).toBeVisible()
+  })
 
-    // Fill form
-    await page.fill('input[name="description"]', 'E2E Test - Market Alışverişi');
-    await page.fill('input[name="amount"]', '150.50');
-    
-    // Select expense type
-    await page.click('text=/Gider/i').catch(() => {});
-    
-    // Submit
-    await page.click('button[type="submit"]');
+  test('submits a manual transaction from transactions page', async ({ page }) => {
+    await page.goto('/dashboard/transactions')
 
-    // Verify success - wait for toast or list update
-    await expect(page.locator('text=/başarıyla/i').or(
-      page.locator('text=/E2E Test - Market/')
-    )).toBeVisible({ timeout: 5000 });
-  });
+    await page.getByTestId('add-transaction-toggle').click()
+    await page.fill('input[name="description"]', 'E2E Kahve Harcamasi')
+    await page.fill('input[name="amount"]', '245')
+    await page.selectOption('select[name="type"]', 'expense')
+    await page.fill('input[name="date"]', '2026-03-07')
+    await page.locator('form button[type="submit"]').click()
 
-  test('should filter transactions by type', async ({ page }) => {
-    // Click on filter/type selector if exists
-    const filterBtn = page.locator('[data-testid="filter-type"]').or(
-      page.locator('select[name="type"]')
-    );
-    
-    if (await filterBtn.isVisible()) {
-      await filterBtn.selectOption('expense');
-      // Verify filter applied
-      await page.waitForTimeout(500);
-    }
-  });
+    await expect(page.getByText(/İşlem başarıyla eklendi!/i)).toBeVisible()
+    await expect(page.getByTitle('E2E Kahve Harcamasi')).toBeVisible()
+  })
 
-  test('should display budget section', async ({ page }) => {
-    await expect(page.locator('text=/Bütçe/i').first()).toBeVisible();
-  });
+  test('applies quick expense filter', async ({ page }) => {
+    await page.goto('/dashboard/transactions')
 
-  test('should navigate to settings', async ({ page }) => {
-    // Click on settings link/button
-    await page.click('[data-testid="settings-link"]').catch(() =>
-      page.click('a[href="/settings"]').catch(() =>
-        page.click('text=/Ayarlar/i')
-      )
-    );
+    await page.getByRole('button', { name: 'Tum Giderler' }).click()
 
-    await expect(page).toHaveURL(/\/settings/, { timeout: 5000 }).catch(() => {
-      // Settings might be modal or inline
-      expect(page.locator('text=/Ayarlar/i')).toBeVisible();
-    });
-  });
-});
+    await expect(page.getByTitle('Kira Odemesi')).toBeVisible()
+    await expect(page.getByTitle('Migros Market')).toBeVisible()
+    await expect(page.getByTitle('Mart Maasi')).toHaveCount(0)
+  })
+})

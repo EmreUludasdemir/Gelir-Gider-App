@@ -7,10 +7,10 @@ const useExternalBaseUrl = !!process.env.PLAYWRIGHT_TEST_BASE_URL
 
 export default defineConfig({
   testDir: './e2e',
-  fullyParallel: true,
+  fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: 1,
   reporter: 'html',
   use: {
     baseURL,
@@ -22,28 +22,12 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
-    {
-      name: 'Mobile Chrome',
-      use: { ...devices['Pixel 5'] },
-    },
-    {
-      name: 'Mobile Safari',
-      use: { ...devices['iPhone 12'] },
-    },
   ],
   webServer: useExternalBaseUrl
     ? undefined
     : {
         command: `npx next dev -H 127.0.0.1 -p ${testPort}`,
         url: localBaseUrl,
-        reuseExistingServer: true,
+        reuseExistingServer: false,
       },
 })

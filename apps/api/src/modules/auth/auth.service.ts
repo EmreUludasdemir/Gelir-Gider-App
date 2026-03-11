@@ -51,6 +51,14 @@ interface UserForToken {
   twoFactorEnabled: boolean
 }
 
+export interface AuthenticatedUserProfile {
+  id: string
+  email: string
+  name?: string
+  twoFactorEnabled: boolean
+  emailVerified: boolean
+}
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name)
@@ -132,9 +140,14 @@ export class AuthService {
     return this.generateTokens(user)
   }
 
-  async refreshToken(dto: RefreshTokenDto): Promise<TokenResponse> {
+  async refreshToken(dto: RefreshTokenDto = {}, cookieRefreshToken?: string): Promise<TokenResponse> {
+    const refreshToken = dto.refreshToken?.trim() || cookieRefreshToken?.trim()
+    if (!refreshToken) {
+      throw new UnauthorizedException('Refresh token is required')
+    }
+
     try {
-      const payload = this.jwtService.verify<TokenPayload>(dto.refreshToken, {
+      const payload = this.jwtService.verify<TokenPayload>(refreshToken, {
         secret: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
       })
 
@@ -153,6 +166,30 @@ export class AuthService {
       return this.generateTokens(user)
     } catch {
       throw new UnauthorizedException('Invalid refresh token')
+    }
+  }
+
+  async getProfile(userId: string): Promise<AuthenticatedUserProfile> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        twoFactorEnabled: true,
+      },
+    })
+
+    if (!user) {
+      throw new UnauthorizedException('User not found')
+    }
+
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name || undefined,
+      twoFactorEnabled: user.twoFactorEnabled || false,
+      emailVerified: await this.isEmailVerified(user.id),
     }
   }
 

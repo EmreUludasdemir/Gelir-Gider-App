@@ -50,10 +50,12 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-finance_user}:${POSTGRES_PASSWORD:-finance_secret_2024}@postgres:5432/${POSTGRES_DB:-finance_db}?schema=public
       - REDIS_URL=redis://redis:6379
       - JWT_SECRET=${JWT_SECRET:-dev-only-jwt-secret-minimum-32-chars-long}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-dev-only-refresh-secret-minimum-32}
       - SESSION_SECRET=${SESSION_SECRET:-dev-only-session-secret-minimum-32}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
+      - APP_URL=${APP_URL:-http://localhost:3000}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000}
     depends_on:
       postgres:
@@ -91,6 +93,8 @@ services:
     restart: unless-stopped
     ports:
       - "8001:8001"
+    environment:
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
       interval: 30s

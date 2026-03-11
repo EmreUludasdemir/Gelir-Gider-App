@@ -258,7 +258,6 @@ describe('PreferencesService', () => {
     });
 
     it('should reset from dark theme to light', async () => {
-      const darkPrefs = { ...mockPreference, theme: 'dark' };
       const lightPrefs = { ...mockPreference, theme: 'light' };
 
       prisma.userPreference.upsert.mockResolvedValue(lightPrefs);

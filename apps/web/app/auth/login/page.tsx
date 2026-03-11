@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/components/auth-provider';
 import { Eye, EyeOff, Mail, Lock, ArrowRight, LineChart, Landmark, FileText } from 'lucide-react';
-import { getApiBaseUrl } from '@/lib/api-base';
+import { loginUser } from '@/lib/api';
 
 export default function LoginPage() {
     const { login } = useAuth();
@@ -20,25 +20,11 @@ export default function LoginPage() {
         setError('');
 
         try {
-            const apiBase = getApiBaseUrl();
-            const res = await fetch(`${apiBase}/auth/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
-            });
-
-            if (!res.ok) {
-                throw new Error('Login failed');
-            }
-
-            const data = await res.json();
-            const token = data.accessToken || data.access_token;
-            if (!token) {
-                throw new Error('Missing access token');
-            }
-            login(token, data.user);
+            const data = await loginUser({ email, password });
+            await login(data.user);
         } catch (err) {
-            setError('E-posta veya şifre hatalı');
+            const message = err instanceof Error ? err.message : 'Login failed';
+            setError(message.includes('401') ? 'E-posta veya şifre hatalı' : 'Giris yapilamadi');
         } finally {
             setLoading(false);
         }

@@ -192,7 +192,6 @@ Kalan: ₺${(target - current).toLocaleString("tr-TR")}
   async handleWebhook(update: TelegramWebhookDto): Promise<{ response: string } | null> {
     if (!update.message?.text) return null;
 
-    const chatId = update.message.chat.id.toString();
     const text = update.message.text;
 
     // Handle commands

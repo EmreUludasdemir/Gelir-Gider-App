@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import {
@@ -11,16 +11,12 @@ import {
   AlertCircle,
   AlertTriangle,
   Shield,
-  Target,
   PiggyBank,
   Activity
 } from 'lucide-react';
-import { generateFinancialInsights, isAIAvailable } from '@/lib/gemini';
+import { ApiError, getAiAnomalies, getAiInsights } from '@/lib/api';
 import { usePreferences } from '@/lib/PreferencesContext';
 import { useTranslation } from '@/lib/translations';
-import { useTransactions } from '@/lib/hooks';
-import { FinancialInsight } from '@/lib/types';
-import { getApiBaseUrl } from '@/lib/api-base';
 
 type Color = 'green' | 'yellow' | 'red' | 'blue';
 
@@ -56,14 +52,14 @@ interface AnomalySummary {
   }[];
 }
 
-const getIcon = (color: string) => {
-  switch (color) {
-    case 'green':
-      return TrendingUp;
-    case 'yellow':
-      return AlertCircle;
-    case 'red':
+const getIcon = (impact: SpendingInsight['impact']) => {
+  switch (impact) {
+    case 'high':
       return TrendingDown;
+    case 'medium':
+      return AlertCircle;
+    case 'low':
+      return TrendingUp;
     default:
       return Lightbulb;
   }
@@ -79,65 +75,54 @@ const getSeverityColor = (severity: string): string => {
   }
 };
 
+function impactToColor(impact: SpendingInsight['impact']): Color {
+  switch (impact) {
+    case 'high':
+      return 'red';
+    case 'medium':
+      return 'yellow';
+    default:
+      return 'blue';
+  }
+}
+
 export function AIInsights() {
   const { language } = usePreferences();
   const { t } = useTranslation(language);
-  const { data: transactions } = useTransactions();
-  const [insights, setInsights] = useState<FinancialInsight[]>([]);
   const [spendingInsights, setSpendingInsights] = useState<SpendingInsight[]>([]);
   const [anomalySummary, setAnomalySummary] = useState<AnomalySummary | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [hasAnalyzed, setHasAnalyzed] = useState(false);
   const [activeTab, setActiveTab] = useState<'insights' | 'anomalies' | 'savings'>('insights');
+  const [serviceUnavailable, setServiceUnavailable] = useState(false);
 
-  // Load AI insights from API
   const loadAIInsights = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-
-      const apiUrl = getApiBaseUrl();
-
-      const [insightsRes, anomaliesRes] = await Promise.all([
-        fetch(`${apiUrl}/ai/insights`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch(`${apiUrl}/ai/anomalies`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
+      const [insights, anomalies] = await Promise.all([
+        getAiInsights(),
+        getAiAnomalies(),
       ]);
-
-      if (insightsRes.ok) {
-        const data = await insightsRes.json();
-        setSpendingInsights(data);
-      }
-
-      if (anomaliesRes.ok) {
-        const data = await anomaliesRes.json();
-        setAnomalySummary(data);
-      }
+      setSpendingInsights(insights);
+      setAnomalySummary(anomalies);
+      setServiceUnavailable(false);
     } catch (error) {
-      console.error('Error loading AI insights:', error);
+      if (error instanceof ApiError && error.status === 503) {
+        setServiceUnavailable(true);
+      } else {
+        console.error('Error loading AI insights:', error);
+      }
     }
   }, []);
 
   useEffect(() => {
-    loadAIInsights();
+    void loadAIInsights();
   }, [loadAIInsights]);
 
   const handleAnalyze = async () => {
-    if (!transactions || transactions.length === 0) return;
-
     setIsLoading(true);
     try {
-      const [geminiResult] = await Promise.all([
-        isAIAvailable() ? generateFinancialInsights(transactions, language) : Promise.resolve([]),
-        loadAIInsights(),
-      ]);
-      setInsights(geminiResult);
+      await loadAIInsights();
       setHasAnalyzed(true);
-    } catch (error) {
-      console.error('Error generating insights:', error);
     } finally {
       setIsLoading(false);
     }
@@ -145,7 +130,6 @@ export function AIInsights() {
 
   return (
     <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
-      {/* Header */}
       <div className="p-4 border-b border-border dark:border-gray-700">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
@@ -154,7 +138,7 @@ export function AIInsights() {
           </div>
           <button
             onClick={handleAnalyze}
-            disabled={isLoading || !transactions?.length}
+            disabled={isLoading}
             className="px-3 py-1.5 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
           >
             {isLoading ? (
@@ -166,7 +150,6 @@ export function AIInsights() {
           </button>
         </div>
 
-        {/* Tabs */}
         <div className="flex gap-1 p-1 bg-muted rounded-lg">
           <button
             onClick={() => setActiveTab('insights')}
@@ -177,7 +160,7 @@ export function AIInsights() {
             }`}
           >
             <Activity className="w-4 h-4" />
-            {language === 'tr' ? 'Öneriler' : 'Insights'}
+            {language === 'tr' ? 'Oneriler' : 'Insights'}
           </button>
           <button
             onClick={() => setActiveTab('anomalies')}
@@ -188,7 +171,7 @@ export function AIInsights() {
             }`}
           >
             <Shield className="w-4 h-4" />
-            {language === 'tr' ? 'Uyarılar' : 'Alerts'}
+            {language === 'tr' ? 'Uyarilar' : 'Alerts'}
             {anomalySummary && anomalySummary.totalAnomalies > 0 && (
               <span className="ml-1 px-1.5 py-0.5 text-xs bg-red-500 text-white rounded-full">
                 {anomalySummary.totalAnomalies}
@@ -209,82 +192,56 @@ export function AIInsights() {
         </div>
       </div>
 
-      {/* Content */}
       <div className="p-4">
-        {/* Insights Tab */}
+        {serviceUnavailable && (
+          <div className="mb-4 rounded-lg border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
+            {language === 'tr'
+              ? 'AI servisi su anda hazir degil. GEMINI_API_KEY ayari eksik olabilir.'
+              : 'AI service is currently unavailable. GEMINI_API_KEY may be missing.'}
+          </div>
+        )}
+
         {activeTab === 'insights' && (
           <>
             {!hasAnalyzed && spendingInsights.length === 0 ? (
               <p className="text-muted-foreground text-center py-4">
                 {language === 'tr'
-                  ? 'Harcama alışkanlıklarınıza göre tavsiye almak için butona tıklayın.'
-                  : 'Click Analyze to get personalized advice based on your spending habits.'}
+                  ? 'Sunucu tarafli analizleri yenilemek icin butona tiklayin.'
+                  : 'Click Analyze to refresh server-side insights.'}
               </p>
             ) : (
               <div className="space-y-3">
-                {/* Spending Insights from API */}
-                {spendingInsights.map((insight, index) => (
-                  <div
-                    key={`spending-${index}`}
-                    className={`p-4 rounded-lg border ${
-                      insight.impact === 'high'
-                        ? colorClasses.red
-                        : insight.impact === 'medium'
-                        ? colorClasses.yellow
-                        : colorClasses.blue
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <Target className={`w-5 h-5 mt-0.5 ${
-                        insight.impact === 'high'
-                          ? iconClasses.red
-                          : insight.impact === 'medium'
-                          ? iconClasses.yellow
-                          : iconClasses.blue
-                      }`} />
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <h4 className="font-semibold text-foreground mb-1">
-                            {insight.title}
-                          </h4>
-                          {insight.potentialSavings && insight.potentialSavings > 0 && (
-                            <span className="text-sm font-medium text-green-600 bg-green-100 dark:bg-green-900/30 px-2 py-0.5 rounded">
-                              +{insight.potentialSavings.toLocaleString('tr-TR')} ₺
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          {insight.description}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-
-                {/* Gemini Insights */}
-                {insights.map((insight, index) => {
-                  const Icon = getIcon(insight.color);
+                {spendingInsights.map((insight, index) => {
+                  const color = impactToColor(insight.impact);
+                  const Icon = getIcon(insight.impact);
                   return (
                     <div
-                      key={`gemini-${index}`}
-                      className={`p-4 rounded-lg border ${colorClasses[insight.color as Color] || colorClasses.blue}`}
+                      key={`insight-${index}`}
+                      className={`p-4 rounded-lg border ${colorClasses[color]}`}
                     >
                       <div className="flex items-start gap-3">
-                        <Icon className={`w-5 h-5 mt-0.5 ${iconClasses[insight.color as Color] || iconClasses.blue}`} />
-                        <div>
-                          <h4 className="font-semibold text-foreground mb-1">
-                            {insight.title}
-                          </h4>
+                        <Icon className={`w-5 h-5 mt-0.5 ${iconClasses[color]}`} />
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-semibold text-foreground mb-1">
+                              {insight.title}
+                            </h4>
+                            {insight.potentialSavings && insight.potentialSavings > 0 && (
+                              <span className="text-sm font-medium text-green-600 bg-green-100 dark:bg-green-900/30 px-2 py-0.5 rounded">
+                                +{insight.potentialSavings.toLocaleString('tr-TR')} ?
+                              </span>
+                            )}
+                          </div>
                           <p className="text-sm text-muted-foreground">
-                            {insight.advice}
+                            {insight.description}
                           </p>
                         </div>
                       </div>
                     </div>
-                  );
+                  )
                 })}
 
-                {spendingInsights.length === 0 && insights.length === 0 && (
+                {spendingInsights.length === 0 && (
                   <p className="text-muted-foreground text-center py-4">
                     {t('no_insights')}
                   </p>
@@ -294,12 +251,10 @@ export function AIInsights() {
           </>
         )}
 
-        {/* Anomalies Tab */}
         {activeTab === 'anomalies' && (
           <div className="space-y-4">
             {anomalySummary ? (
               <>
-                {/* Risk Score */}
                 <div className="flex items-center justify-between p-4 bg-muted/40/50 rounded-lg">
                   <div>
                     <p className="text-sm text-muted-foreground">
@@ -320,7 +275,6 @@ export function AIInsights() {
                   </div>
                 </div>
 
-                {/* Anomaly List */}
                 {anomalySummary.recentAnomalies.length > 0 ? (
                   <div className="space-y-2">
                     {anomalySummary.recentAnomalies.map((anomaly, index) => (
@@ -356,7 +310,7 @@ export function AIInsights() {
                 ) : (
                   <p className="text-muted-foreground text-center py-4">
                     {language === 'tr'
-                      ? 'Şüpheli işlem tespit edilmedi.'
+                      ? 'Supheli islem tespit edilmedi.'
                       : 'No suspicious transactions detected.'}
                   </p>
                 )}
@@ -364,37 +318,34 @@ export function AIInsights() {
             ) : (
               <p className="text-muted-foreground text-center py-4">
                 {language === 'tr'
-                  ? 'Analiz için yeterli veri yok.'
+                  ? 'Analiz icin yeterli veri yok.'
                   : 'Not enough data for analysis.'}
               </p>
             )}
           </div>
         )}
 
-        {/* Savings Tab */}
         {activeTab === 'savings' && (
           <div className="space-y-4">
             {spendingInsights.filter(i => i.potentialSavings && i.potentialSavings > 0).length > 0 ? (
               <>
-                {/* Total Potential Savings */}
                 <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-green-600 dark:text-green-400">
-                        {language === 'tr' ? 'Potansiyel Aylık Tasarruf' : 'Potential Monthly Savings'}
+                        {language === 'tr' ? 'Potansiyel Aylik Tasarruf' : 'Potential Monthly Savings'}
                       </p>
                       <p className="text-2xl font-bold text-green-700 dark:text-green-300">
                         {spendingInsights
                           .filter(i => i.potentialSavings)
                           .reduce((sum, i) => sum + (i.potentialSavings || 0), 0)
-                          .toLocaleString('tr-TR')} ₺
+                          .toLocaleString('tr-TR')} ?
                       </p>
                     </div>
                     <PiggyBank className="w-10 h-10 text-green-500" />
                   </div>
                 </div>
 
-                {/* Savings Tips */}
                 <div className="space-y-2">
                   {spendingInsights
                     .filter(i => i.potentialSavings && i.potentialSavings > 0)
@@ -409,7 +360,7 @@ export function AIInsights() {
                             {insight.title}
                           </span>
                           <span className="text-sm font-semibold text-green-600">
-                            +{insight.potentialSavings?.toLocaleString('tr-TR')} ₺
+                            +{insight.potentialSavings?.toLocaleString('tr-TR')} ?
                           </span>
                         </div>
                         <p className="text-sm text-muted-foreground">
@@ -424,8 +375,8 @@ export function AIInsights() {
                 <PiggyBank className="w-12 h-12 text-gray-300 dark:text-muted-foreground mx-auto mb-3" />
                 <p className="text-muted-foreground">
                   {language === 'tr'
-                    ? 'Tasarruf fırsatları bulmak için Analiz\'e tıklayın.'
-                    : 'Click Analyze to find savings opportunities.'}
+                    ? "Tasarruf firsatlarini yuklemek icin Analiz'e tiklayin."
+                    : 'Click Analyze to load savings opportunities.'}
                 </p>
               </div>
             )}
@@ -435,6 +386,3 @@ export function AIInsights() {
     </div>
   );
 }
-
-
-

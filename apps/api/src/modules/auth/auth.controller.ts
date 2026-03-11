@@ -6,7 +6,10 @@ import {
     HttpCode,
     HttpStatus,
     UseGuards,
+    Req,
+    Res,
 } from '@nestjs/common';
+import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import {
     LoginDto,
@@ -20,6 +23,12 @@ import {
 } from './dto/auth.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { User } from './user.decorator';
+import {
+    AUTH_REFRESH_COOKIE,
+    clearAuthCookies,
+    getCookieValue,
+    setAuthCookies,
+} from '../../shared/cookies';
 
 @Controller('auth')
 export class AuthController {
@@ -32,14 +41,39 @@ export class AuthController {
 
     @HttpCode(HttpStatus.OK)
     @Post('login')
-    login(@Body() dto: LoginDto) {
-        return this.authService.login(dto);
+    async login(
+        @Body() dto: LoginDto,
+        @Res({ passthrough: true }) response: Response,
+    ) {
+        const tokens = await this.authService.login(dto);
+        setAuthCookies(response, tokens);
+        return tokens;
     }
 
     @HttpCode(HttpStatus.OK)
     @Post('refresh')
-    refresh(@Body() dto: RefreshTokenDto) {
-        return this.authService.refreshToken(dto);
+    async refresh(
+        @Body() dto: RefreshTokenDto,
+        @Req() request: Request,
+        @Res({ passthrough: true }) response: Response,
+    ) {
+        const refreshToken = getCookieValue(request.headers.cookie, AUTH_REFRESH_COOKIE);
+        const tokens = await this.authService.refreshToken(dto, refreshToken);
+        setAuthCookies(response, tokens);
+        return tokens;
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('me')
+    me(@User('id') userId: string) {
+        return this.authService.getProfile(userId);
+    }
+
+    @HttpCode(HttpStatus.OK)
+    @Post('logout')
+    logout(@Res({ passthrough: true }) response: Response) {
+        clearAuthCookies(response);
+        return { message: 'Logout successful' };
     }
 
     @HttpCode(HttpStatus.OK)

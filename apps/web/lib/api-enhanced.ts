@@ -2,11 +2,6 @@ import { getApiBaseUrl } from './api-base';
 
 const API_BASE = getApiBaseUrl();
 
-// Token storage keys
-const ACCESS_TOKEN_KEY = 'accessToken';
-const REFRESH_TOKEN_KEY = 'refreshToken';
-const TOKEN_EXPIRY_KEY = 'tokenExpiry';
-
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -23,90 +18,54 @@ export class ApiError extends Error {
   }
 }
 
-// Token management
-export function setAuthToken(tokens: { accessToken: string; refreshToken: string; expiresIn: number }) {
-  if (typeof window === 'undefined') return;
-
-  localStorage.setItem(ACCESS_TOKEN_KEY, tokens.accessToken);
-  localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken);
-
-  const expiryTime = Date.now() + tokens.expiresIn * 1000;
-  localStorage.setItem(TOKEN_EXPIRY_KEY, expiryTime.toString());
-}
-
+// Legacy auth helpers kept as compatibility no-ops while web uses cookie sessions.
+export function setAuthToken(_tokens: { accessToken: string; refreshToken: string; expiresIn: number }) {}
 export function getAccessToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem(ACCESS_TOKEN_KEY);
+  return null;
 }
-
 export function getRefreshToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem(REFRESH_TOKEN_KEY);
+  return null;
 }
-
-export function clearAuthToken() {
-  if (typeof window === 'undefined') return;
-
-  localStorage.removeItem(ACCESS_TOKEN_KEY);
-  localStorage.removeItem(REFRESH_TOKEN_KEY);
-  localStorage.removeItem(TOKEN_EXPIRY_KEY);
-}
-
-function isTokenExpired(): boolean {
-  if (typeof window === 'undefined') return true;
-
-  const expiry = localStorage.getItem(TOKEN_EXPIRY_KEY);
-  if (!expiry) return true;
-
-  return Date.now() >= parseInt(expiry, 10) - 60000; // Refresh 1 min before expiry
-}
+export function clearAuthToken() {}
 
 async function refreshAccessToken(): Promise<boolean> {
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) return false;
-
   try {
     const response = await fetch(`${API_BASE}/auth/refresh`, {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken }),
+      body: JSON.stringify({}),
     });
 
     if (!response.ok) {
-      clearAuthToken();
       return false;
     }
 
-    const data = await response.json();
-    setAuthToken(data);
     return true;
   } catch (error) {
-    clearAuthToken();
     return false;
   }
 }
 
-async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> {
+async function fetchApi<T>(endpoint: string, options?: RequestInit, skipRefresh = false): Promise<T> {
   const url = `${API_BASE}${endpoint}`;
-
-  // Check if token needs refresh
-  if (isTokenExpired()) {
-    const refreshed = await refreshAccessToken();
-    if (!refreshed && !endpoint.includes('/auth/')) {
-      throw new ApiError(401, 'Session expired', 'SESSION_EXPIRED');
-    }
-  }
-
-  const token = getAccessToken();
 
   const res = await fetch(url, {
     ...options,
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options?.headers,
     },
   });
+
+  if (res.status === 401 && !skipRefresh && !endpoint.includes('/auth/')) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) {
+      return fetchApi<T>(endpoint, options, true);
+    }
+    throw new ApiError(401, 'Session expired', 'SESSION_EXPIRED');
+  }
 
   if (!res.ok) {
     let errorMessage = `API Error: ${res.statusText}`;
@@ -345,13 +304,10 @@ export const api = {
       const formData = new FormData();
       formData.append('file', file);
 
-      const token = getAccessToken();
       const res = await fetch(`${API_BASE}/imports/upload`, {
         method: 'POST',
         body: formData,
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        credentials: 'include',
       });
 
       if (!res.ok) {
@@ -375,13 +331,10 @@ export const api = {
       const formData = new FormData();
       formData.append('file', file);
 
-      const token = getAccessToken();
       const res = await fetch(`${API_BASE}/uploads/pdf`, {
         method: 'POST',
         body: formData,
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        credentials: 'include',
       });
 
       if (!res.ok) {

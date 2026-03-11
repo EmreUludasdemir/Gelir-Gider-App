@@ -55,7 +55,7 @@ export function FinancialHealthCard() {
 
   if (isLoading) {
     return (
-      <div className="bg-card rounded-xl shadow-sm border border-border p-6">
+      <div className="glass-card rounded-[28px] p-6">
         <div className="flex items-center justify-center h-40">
           <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
         </div>
@@ -70,7 +70,7 @@ export function FinancialHealthCard() {
   const highSeverityAnomalies = anomalies?.filter((a: SpendingAnomaly) => a.severity === 'high') || [];
 
   return (
-    <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+    <div className="glass-card rounded-[28px] overflow-hidden">
       {/* Header */}
       <div className="p-4 border-b border-border dark:border-gray-700">
         <div className="flex items-center justify-between">
@@ -137,7 +137,7 @@ export function FinancialHealthCard() {
           {health.factors.map((factor: FinancialHealthFactor, index: number) => {
             const Icon = statusIcons[factor.status as Status];
             return (
-              <div key={index} className="text-center p-2 bg-muted/40/50 rounded-lg">
+              <div key={index} className="rounded-2xl bg-muted/50 p-2 text-center">
                 <Icon className={`w-5 h-5 mx-auto mb-1 ${statusColors[factor.status as Status]}`} />
                 <div className="text-xs text-muted-foreground truncate" title={factor.name}>
                   {factor.name}
@@ -203,7 +203,7 @@ export function FinancialHealthCard() {
             {health.factors.map((factor: FinancialHealthFactor, index: number) => {
               const Icon = statusIcons[factor.status as Status];
               return (
-                <div key={index} className="p-3 bg-muted/40/50 rounded-lg">
+                <div key={index} className="rounded-2xl bg-muted/50 p-3">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <Icon className={`w-5 h-5 ${statusColors[factor.status as Status]}`} />

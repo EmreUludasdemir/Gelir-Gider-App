@@ -58,7 +58,7 @@ describe('RealtimeGateway', () => {
   describe('handleConnection', () => {
     it('should accept connection with valid token', async () => {
       const socket = mockSocket();
-      jwtService.verify.mockReturnValue({ userId: 'user-123', email: 'test@example.com' });
+      jwtService.verify.mockReturnValue({ sub: 'user-123', email: 'test@example.com', type: 'access' });
 
       await gateway.handleConnection(socket);
 
@@ -99,19 +99,34 @@ describe('RealtimeGateway', () => {
           headers: { authorization: 'Bearer header-token' },
         } as Socket['handshake'],
       });
-      jwtService.verify.mockReturnValue({ userId: 'user-456', email: 'test@example.com' });
+      jwtService.verify.mockReturnValue({ sub: 'user-456', email: 'test@example.com', type: 'access' });
 
       await gateway.handleConnection(socket);
 
       expect(jwtService.verify).toHaveBeenCalledWith('header-token');
       expect(socket.join).toHaveBeenCalledWith('user:user-456');
     });
+
+    it('should accept token from access_token cookie', async () => {
+      const socket = mockSocket({
+        handshake: {
+          auth: {},
+          headers: { cookie: 'access_token=cookie-token; refresh_token=refresh-token' },
+        } as Socket['handshake'],
+      });
+      jwtService.verify.mockReturnValue({ sub: 'user-789', email: 'test@example.com', type: 'access' });
+
+      await gateway.handleConnection(socket);
+
+      expect(jwtService.verify).toHaveBeenCalledWith('cookie-token');
+      expect(socket.join).toHaveBeenCalledWith('user:user-789');
+    });
   });
 
   describe('handleDisconnect', () => {
     it('should clean up user socket mapping on disconnect', async () => {
       const socket = mockSocket();
-      jwtService.verify.mockReturnValue({ userId: 'user-123', email: 'test@example.com' });
+      jwtService.verify.mockReturnValue({ sub: 'user-123', email: 'test@example.com', type: 'access' });
 
       await gateway.handleConnection(socket);
       expect(gateway.isUserOnline('user-123')).toBe(true);
@@ -129,22 +144,19 @@ describe('RealtimeGateway', () => {
   });
 
   describe('handlePing', () => {
-    it('should respond to ping with pong', () => {
+    it('should respond to ping with ack payload', () => {
       const socket = mockSocket();
 
       const result = gateway.handlePing(socket);
 
-      expect(result).toEqual({
-        event: 'pong',
-        data: { timestamp: expect.any(Number) },
-      });
+      expect(result).toEqual({ timestamp: expect.any(Number) });
     });
   });
 
   describe('handleSubscribe', () => {
     it('should subscribe authenticated client to channels', async () => {
       const socket = mockSocket();
-      jwtService.verify.mockReturnValue({ userId: 'user-123', email: 'test@example.com' });
+      jwtService.verify.mockReturnValue({ sub: 'user-123', email: 'test@example.com', type: 'access' });
       await gateway.handleConnection(socket);
 
       const result = gateway.handleSubscribe(socket, { channels: ['budgets', 'transactions'] });
@@ -167,7 +179,7 @@ describe('RealtimeGateway', () => {
   describe('handleUnsubscribe', () => {
     it('should unsubscribe authenticated client from channels', async () => {
       const socket = mockSocket();
-      jwtService.verify.mockReturnValue({ userId: 'user-123', email: 'test@example.com' });
+      jwtService.verify.mockReturnValue({ sub: 'user-123', email: 'test@example.com', type: 'access' });
       await gateway.handleConnection(socket);
 
       const result = gateway.handleUnsubscribe(socket, { channels: ['budgets'] });
@@ -235,7 +247,7 @@ describe('RealtimeGateway', () => {
     it('should track multiple connections for same user', async () => {
       const socket1 = mockSocket({ id: 'socket-1' } as Partial<Socket>);
       const socket2 = mockSocket({ id: 'socket-2' } as Partial<Socket>);
-      jwtService.verify.mockReturnValue({ userId: 'user-123', email: 'test@example.com' });
+      jwtService.verify.mockReturnValue({ sub: 'user-123', email: 'test@example.com', type: 'access' });
 
       await gateway.handleConnection(socket1);
       await gateway.handleConnection(socket2);

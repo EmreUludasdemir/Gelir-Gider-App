@@ -92,7 +92,7 @@ export function TransactionTable({
 
             {/* Desktop View */}
             <div className="hidden md:block overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full" data-testid="transaction-list">
                 <thead className="sticky top-0 z-10 border-b border-border bg-card/90 backdrop-blur-sm">
                   <tr>
                     {hasPdfTransactions && (

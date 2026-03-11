@@ -1,8 +1,9 @@
-﻿'use client';
+'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useCallback, ReactNode, useEffect, useState } from 'react';
 import { useRealtime } from '@/hooks/useRealtime';
 import { toast } from 'sonner';
+import { useAuth } from '@/components/auth-provider';
 
 interface TransactionEvent {
   id: string;
@@ -20,18 +21,12 @@ interface BudgetAlert {
   percentage: number;
 }
 
-interface BudgetUpdate {
-  id: string;
-  spent: number;
-  percentage: number;
-}
-
 interface RealtimeContextType {
   isConnected: boolean;
   error: string | null;
   lastTransactionEvent: TransactionEvent | null;
   lastBudgetAlert: BudgetAlert | null;
-  refreshTrigger: number; // Increment to trigger dashboard refresh
+  refreshTrigger: number;
   subscribe: (channels: string[]) => void;
   unsubscribe: (channels: string[]) => void;
 }
@@ -53,28 +48,10 @@ interface RealtimeProviderProps {
 }
 
 export function RealtimeProvider({ children }: RealtimeProviderProps) {
-  const [token, setToken] = useState<string | null>(null);
+  const { isAuthenticated } = useAuth();
   const [lastTransactionEvent, setLastTransactionEvent] = useState<TransactionEvent | null>(null);
   const [lastBudgetAlert, setLastBudgetAlert] = useState<BudgetAlert | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-
-  // Get token from localStorage on mount
-  useEffect(() => {
-    const storedToken = localStorage.getItem('token');
-    if (storedToken) {
-      setToken(storedToken);
-    }
-
-    // Listen for storage changes (login/logout in other tabs)
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'token') {
-        setToken(e.newValue);
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
 
   const triggerRefresh = useCallback(() => {
     setRefreshTrigger((prev) => prev + 1);
@@ -107,21 +84,21 @@ export function RealtimeProvider({ children }: RealtimeProviderProps) {
   }, [triggerRefresh]);
 
   const handleSavingsMilestone = useCallback((data: { name: string; percentage: number }) => {
-    toast.success(`Tasarruf Hedefinde Yeni Adim!`, {
+    toast.success('Tasarruf Hedefinde Yeni Adim!', {
       description: `"${data.name}" hedefinde %${Math.round(data.percentage)} tamamlandi`,
     });
     triggerRefresh();
   }, [triggerRefresh]);
 
   const handleSyncCompleted = useCallback((data: { source: string; imported: number }) => {
-    toast.success(`Senkronizasyon Tamamlandi`, {
+    toast.success('Senkronizasyon Tamamlandi', {
       description: `${data.source}: ${data.imported} islem aktarildi`,
     });
     triggerRefresh();
   }, [triggerRefresh]);
 
   const { isConnected, error, subscribe, unsubscribe } = useRealtime({
-    token,
+    enabled: isAuthenticated,
     showToasts: true,
     onTransactionCreated: handleTransactionCreated,
     onTransactionUpdated: handleTransactionUpdated,
@@ -150,7 +127,6 @@ export function RealtimeProvider({ children }: RealtimeProviderProps) {
   );
 }
 
-// Hook to trigger refresh on realtime events
 export function useRealtimeRefresh(callback: () => void, deps: unknown[] = []) {
   const { refreshTrigger } = useRealtimeContext();
 
@@ -160,4 +136,3 @@ export function useRealtimeRefresh(callback: () => void, deps: unknown[] = []) {
     }
   }, [refreshTrigger, ...deps]);
 }
-

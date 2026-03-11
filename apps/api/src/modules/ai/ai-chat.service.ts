@@ -3,7 +3,12 @@
  * Secure chat endpoint backed by Gemini with PII masking.
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma.service';
 import { maskPII } from './pii-masker';
 
@@ -19,6 +24,14 @@ interface ChatSummary {
   }>;
   topExpenseCategories: Array<{ category: string; total: number }>;
   transactionCount: number;
+}
+
+export interface ParsedTransactionResult {
+  description: string
+  amount: number
+  category: string
+  type: 'income' | 'expense'
+  date: string
 }
 
 @Injectable()
@@ -105,6 +118,90 @@ export class AiChatService {
             ? 'AI yaniti alinirken hata olustu.'
             : 'An error occurred while generating the answer.',
       };
+    }
+  }
+
+  async parseTransaction(
+    userId: string,
+    input: string
+  ): Promise<ParsedTransactionResult> {
+    const trimmed = input?.trim()
+    if (!trimmed) {
+      throw new BadRequestException('Text is required')
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY
+    if (!apiKey) {
+      throw new ServiceUnavailableException('AI service is not configured')
+    }
+
+    const language = await this.resolveLanguage(userId)
+    const today = new Date().toISOString().slice(0, 10)
+    const maskedInput = maskPII(trimmed)
+
+    const prompt = `Parse the following financial transaction text into JSON.
+Answer ONLY with valid JSON.
+Language: ${language === 'tr' ? 'Turkish' : 'English'}
+Today: ${today}
+
+Allowed categories:
+- Maas
+- Freelance
+- Yatirim
+- Hediye
+- Yemek
+- Ulasim
+- Konut
+- Faturalar
+- Eglence
+- Saglik
+- Alisveris
+- Diger
+
+Rules:
+- "amount" must always be a positive number
+- "type" must be "income" or "expense"
+- "date" must be in YYYY-MM-DD format
+- Keep the description concise
+
+Input:
+${maskedInput}
+
+Return:
+{
+  "description": "string",
+  "amount": 0,
+  "category": "string",
+  "type": "income or expense",
+  "date": "${today}"
+}`
+
+    const responseText = await this.callGemini(apiKey, prompt)
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) {
+      throw new BadRequestException('AI response could not be parsed')
+    }
+
+    let parsed: Partial<ParsedTransactionResult> & { amount?: number | string }
+    try {
+      parsed = JSON.parse(jsonMatch[0])
+    } catch {
+      throw new BadRequestException('AI response was not valid JSON')
+    }
+
+    const amount = Math.abs(Number(parsed.amount))
+    const type = parsed.type === 'income' ? 'income' : parsed.type === 'expense' ? 'expense' : null
+
+    if (!parsed.description || !Number.isFinite(amount) || !type) {
+      throw new BadRequestException('AI response is incomplete')
+    }
+
+    return {
+      description: parsed.description.trim(),
+      amount,
+      category: (parsed.category || 'Diger').trim(),
+      type,
+      date: /^\d{4}-\d{2}-\d{2}$/.test(parsed.date || '') ? (parsed.date as string) : today,
     }
   }
 

@@ -4,7 +4,10 @@ on:
   push:
     branches: [main, develop, 'claude/**']
   pull_request:
-    branches: [main, develop]
+    branches: [main, develop, 'claude/**']
+
+permissions:
+  contents: read
 
 env:
   NODE_VERSION: "20"

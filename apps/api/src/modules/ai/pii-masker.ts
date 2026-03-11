@@ -34,6 +34,11 @@ const defaultOptions: MaskOptions = {
   maskTCKN: true,
 };
 
+function testPattern(pattern: RegExp, text: string): boolean {
+  const flags = pattern.flags.replace(/g/g, '')
+  return new RegExp(pattern.source, flags).test(text)
+}
+
 /**
  * Mask IBAN - shows only last 4 characters
  * TR330006100519786457841326 → TR**************1326
@@ -142,11 +147,11 @@ export function maskPIIInObject<T>(obj: T, options: MaskOptions = defaultOptions
  */
 export function containsPII(text: string): boolean {
   return (
-    IBAN_PATTERN.test(text) ||
-    CARD_PATTERN.test(text) ||
-    EMAIL_PATTERN.test(text) ||
-    PHONE_PATTERN.test(text) ||
-    TCKN_PATTERN.test(text)
+    testPattern(IBAN_PATTERN, text) ||
+    testPattern(CARD_PATTERN, text) ||
+    testPattern(EMAIL_PATTERN, text) ||
+    testPattern(PHONE_PATTERN, text) ||
+    testPattern(TCKN_PATTERN, text)
   );
 }
 

@@ -1,5 +1,4 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
-import { v4 as uuidv4 } from 'uuid';
 import * as crypto from 'crypto';
 import {
   TransactionEntity,
@@ -13,7 +12,6 @@ import { CATEGORIES, classifyTransaction } from '../../shared/categories';
 import { PrismaService } from '../../prisma.service';
 import { CacheService } from '../../shared/cache';
 import { AutoCategorizerService } from '../ai/auto-categorizer.service';
-import { Prisma } from '@prisma/client';
 
 interface ParsedTransaction {
   date: string;

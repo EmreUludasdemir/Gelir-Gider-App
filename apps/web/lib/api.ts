@@ -2,27 +2,30 @@ import { getApiBaseUrl } from './api-base';
 
 const API_BASE = getApiBaseUrl();
 
-// Auth token management
-export function setAuthToken(token: string, refreshToken?: string) {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('token', token);
-    if (refreshToken) {
-      localStorage.setItem('refreshToken', refreshToken);
-    }
-  }
+type FetchApiOptions = RequestInit & {
+  skipRefresh?: boolean;
+  allowUnauthorized?: boolean;
+};
+
+export interface SessionUser {
+  id: string;
+  email: string;
+  name?: string;
+  twoFactorEnabled?: boolean;
+  emailVerified?: boolean;
 }
 
-export function clearAuthToken() {
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
-  }
+export interface LoginResponse {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+  user: SessionUser;
 }
 
+// Legacy no-op exports kept for compatibility during cookie migration.
+export function setAuthToken(_token: string, _refreshToken?: string) {}
+export function clearAuthToken() {}
 export function getAuthToken(): string | null {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('token');
-  }
   return null;
 }
 
@@ -33,26 +36,93 @@ export class ApiError extends Error {
   }
 }
 
-async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> {
+function buildHeaders(headers: HeadersInit | undefined, body: BodyInit | null | undefined) {
+  const resolvedHeaders = new Headers(headers);
+  if (!(body instanceof FormData) && !resolvedHeaders.has('Content-Type')) {
+    resolvedHeaders.set('Content-Type', 'application/json');
+  }
+  return resolvedHeaders;
+}
+
+async function refreshSession(): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_BASE}/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({}),
+    });
+
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function fetchApi<T>(endpoint: string, options: FetchApiOptions = {}): Promise<T> {
   const url = `${API_BASE}${endpoint}`;
-
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-
   const res = await fetch(url, {
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options?.headers,
-    },
+    headers: buildHeaders(options.headers, options.body),
+    credentials: 'include',
   });
+
+  const isAuthEndpoint =
+    endpoint.startsWith('/auth/login') ||
+    endpoint.startsWith('/auth/register') ||
+    endpoint.startsWith('/auth/refresh') ||
+    endpoint.startsWith('/auth/logout');
+
+  if (
+    res.status === 401 &&
+    !options.skipRefresh &&
+    !options.allowUnauthorized &&
+    !isAuthEndpoint
+  ) {
+    const refreshed = await refreshSession();
+    if (refreshed) {
+      return fetchApi<T>(endpoint, { ...options, skipRefresh: true });
+    }
+  }
 
   if (!res.ok) {
     throw new ApiError(res.status, `API Error: ${res.statusText}`);
   }
 
+  if (res.status === 204) {
+    return undefined as T;
+  }
+
   return res.json();
 }
+
+export const loginUser = (data: { email: string; password: string; twoFactorCode?: string }) =>
+  fetchApi<LoginResponse>('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify(data),
+    skipRefresh: true,
+    allowUnauthorized: true,
+  });
+
+export const refreshUserSession = () =>
+  fetchApi<LoginResponse>('/auth/refresh', {
+    method: 'POST',
+    body: JSON.stringify({}),
+    skipRefresh: true,
+    allowUnauthorized: true,
+  });
+
+export const logoutUser = () =>
+  fetchApi<{ message: string }>('/auth/logout', {
+    method: 'POST',
+    body: JSON.stringify({}),
+    skipRefresh: true,
+    allowUnauthorized: true,
+  });
+
+export const getCurrentUser = () => fetchApi<SessionUser>('/auth/me');
 
 // SWR fetcher
 export const fetcher = <T>(url: string): Promise<T> => fetchApi<T>(url);
@@ -113,20 +183,43 @@ export const chatWithAssistant = (message: string) =>
     method: 'POST',
     body: JSON.stringify({ message }),
   });
+export const parseSmartTransaction = (input: string) =>
+  fetchApi<{
+    description: string;
+    amount: number;
+    category: string;
+    type: 'income' | 'expense';
+    date: string;
+  }>('/ai/parse', {
+    method: 'POST',
+    body: JSON.stringify({ input }),
+  });
+export const getAiInsights = () => fetchApi<{
+  type: string;
+  title: string;
+  description: string;
+  impact: 'low' | 'medium' | 'high';
+  potentialSavings?: number;
+}[]>('/ai/insights');
+export const getAiAnomalies = () => fetchApi<{
+  totalAnomalies: number;
+  riskScore: number;
+  recentAnomalies: {
+    title: string;
+    severity: 'low' | 'medium' | 'high' | 'critical';
+    maskedDescription: string;
+  }[];
+}>('/ai/anomalies');
 
 // Upload
 export const uploadPdf = async (file: File): Promise<UploadResult> => {
   const formData = new FormData();
   formData.append('file', file);
 
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-
   const res = await fetch(`${API_BASE}/uploads/pdf`, {
     method: 'POST',
     body: formData,
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
+    credentials: 'include',
   });
 
   if (!res.ok) {
@@ -327,6 +420,28 @@ export const createBudget = (data: { categoryId: string; categoryLabel: string; 
   fetchApi<Budget>('/budgets', { method: 'POST', body: JSON.stringify(data) });
 export const deleteBudget = (id: string) =>
   fetchApi<{ success: boolean }>(`/budgets/${id}`, { method: 'DELETE' });
+
+// Bills
+export interface Bill {
+  id: string;
+  name: string;
+  amount: number;
+  currency: Currency;
+  dueDate: string;
+  frequency?: 'once' | 'weekly' | 'monthly' | 'yearly';
+  categoryId: string;
+  categoryLabel: string;
+  reminderDays?: number;
+  notes?: string;
+  isPaid: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export const getUpcomingBills = (days: number = 14) =>
+  fetchApi<Bill[]>(`/bills/upcoming?days=${days}`);
+export const markBillAsPaid = (id: string) =>
+  fetchApi<Bill>(`/bills/${id}/mark-paid`, { method: 'PATCH' });
 
 // Preferences
 export interface UserPreferences {

@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Eye, EyeOff, Mail, Lock, ArrowRight, User, ShieldCheck, Check } from 'lucide-react'
 import { useAuth } from '@/components/auth-provider'
 import { getApiBaseUrl } from '@/lib/api-base'
+import { loginUser } from '@/lib/api'
 
 type PasswordCheck = {
   minLength: boolean
@@ -92,23 +93,12 @@ export default function RegisterPage() {
         throw new Error(data.message || 'Kayit basarisiz')
       }
 
-      const loginRes = await fetch(`${apiBase}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      })
-
-      if (!loginRes.ok) {
+      const loginData = await loginUser({ email, password }).catch(() => null)
+      if (!loginData) {
         router.push('/auth/login')
         return
       }
-
-      const loginData = await loginRes.json()
-      const token = loginData.accessToken || loginData.access_token
-      if (!token) {
-        throw new Error('Eksik token')
-      }
-      login(token, loginData.user)
+      await login(loginData.user)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Kayit basarisiz. Tekrar deneyin.'
       setError(message)

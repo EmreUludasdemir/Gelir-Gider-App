@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Param, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards, Request } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PrismaService } from '../../prisma.service';
 import { randomBytes } from 'crypto';
@@ -59,7 +59,7 @@ export class TelegramController {
   }
 
   @Post('webhook')
-  async handleWebhook(@Body() update: unknown) {
+  async handleWebhook(@Body() _update: unknown) {
     // Webhook handler for production (alternative to polling)
     // This will be called by Telegram when a message is received
     // Implementation depends on whether you use polling or webhooks

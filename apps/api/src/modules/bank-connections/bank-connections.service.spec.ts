@@ -8,6 +8,7 @@ import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { BankConnectionsService } from './bank-connections.service';
 import { PrismaService } from '../../prisma.service';
 import { EncryptionService } from '../../shared/encryption';
+import { CreateBankConnectionDto } from './dto/bank-connection.dto';
 import {
   createMockBankConnection,
   createMockTransaction,
@@ -17,7 +18,6 @@ import {
 describe('BankConnectionsService', () => {
   let service: BankConnectionsService;
   let prisma: ReturnType<typeof createMockPrismaService>;
-  let encryption: jest.Mocked<EncryptionService>;
 
   const userId = 'user-test-123';
   const mockConnection = createMockBankConnection();
@@ -40,7 +40,6 @@ describe('BankConnectionsService', () => {
     }).compile();
 
     service = module.get<BankConnectionsService>(BankConnectionsService);
-    encryption = module.get(EncryptionService);
     jest.clearAllMocks();
   });
 
@@ -151,7 +150,7 @@ describe('BankConnectionsService', () => {
     });
 
     it('should set default account type to checking', async () => {
-      const dtoWithoutType = {
+      const dtoWithoutType: CreateBankConnectionDto = {
         bankCode: 'mock',
         bankName: 'Demo Banka',
         accountNumber: '1234567890',
@@ -163,7 +162,7 @@ describe('BankConnectionsService', () => {
         accountType: 'checking',
       });
 
-      const result = await service.create(userId, dtoWithoutType as any);
+      const result = await service.create(userId, dtoWithoutType);
 
       expect(result.accountType).toBe('checking');
     });

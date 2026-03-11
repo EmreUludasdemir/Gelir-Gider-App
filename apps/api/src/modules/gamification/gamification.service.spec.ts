@@ -4,7 +4,6 @@ import { PrismaService } from '../../prisma.service';
 
 describe('GamificationService', () => {
   let service: GamificationService;
-  let prisma: PrismaService;
 
   const mockUserId = 'user-123';
 
@@ -30,7 +29,6 @@ describe('GamificationService', () => {
     }).compile();
 
     service = module.get<GamificationService>(GamificationService);
-    prisma = module.get<PrismaService>(PrismaService);
 
     jest.clearAllMocks();
   });

@@ -204,10 +204,6 @@ export class NotificationSchedulerService implements OnModuleInit {
 
           // Send email summary if there are any bills due soon
           if (billReminders.length > 0) {
-            const billSummary = billReminders
-              .map((b) => `- ${b.message}`)
-              .join("\n");
-
             const html = this.generateBillReminderEmail(
               user.name || user.email.split("@")[0],
               billReminders

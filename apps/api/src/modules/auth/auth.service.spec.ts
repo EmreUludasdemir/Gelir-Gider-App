@@ -522,8 +522,9 @@ describe('AuthService', () => {
       (bcrypt.genSalt as jest.Mock).mockResolvedValue('salt');
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashed');
       // Simulate Prisma throwing unique constraint error
-      const uniqueError = new Error('Unique constraint failed');
-      (uniqueError as any).code = 'P2002';
+      const uniqueError = Object.assign(new Error('Unique constraint failed'), {
+        code: 'P2002',
+      });
       prisma.user.create.mockRejectedValue(uniqueError);
 
       await expect(

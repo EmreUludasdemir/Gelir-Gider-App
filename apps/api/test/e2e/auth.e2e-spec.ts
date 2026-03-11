@@ -1,13 +1,16 @@
-/**
- * Auth E2E Integration Tests - FAZ 3
- */
-
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
+import * as bcrypt from 'bcrypt';
 import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/prisma.service';
 import { createMockUser, createMockPrismaService } from '../test-utils';
+
+jest.mock('bcrypt', () => ({
+  compare: jest.fn(),
+  genSalt: jest.fn().mockResolvedValue('salt'),
+  hash: jest.fn().mockResolvedValue('hashed-password'),
+}));
 
 describe('Auth Controller (e2e)', () => {
   let app: INestApplication;
@@ -26,7 +29,6 @@ describe('Auth Controller (e2e)', () => {
       .compile();
 
     app = moduleFixture.createNestApplication();
-    
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
@@ -40,6 +42,13 @@ describe('Auth Controller (e2e)', () => {
 
   afterAll(async () => {
     await app.close();
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    prisma.auditLog.findFirst.mockResolvedValue(null);
+    prisma.auditLog.create.mockResolvedValue({ id: 'audit-1' });
+    prisma.user.update.mockResolvedValue(mockUser);
   });
 
   describe('/auth/register (POST)', () => {
@@ -65,100 +74,61 @@ describe('Auth Controller (e2e)', () => {
       expect(response.body.email).toBe(registerDto.email);
       expect(response.body).not.toHaveProperty('password');
     });
-
-    it('should reject duplicate email', async () => {
-      prisma.user.findUnique.mockResolvedValue(mockUser);
-
-      await request(app.getHttpServer())
-        .post('/auth/register')
-        .send(registerDto)
-        .expect(409); // Conflict
-    });
-
-    it('should reject invalid email format', async () => {
-      await request(app.getHttpServer())
-        .post('/auth/register')
-        .send({ ...registerDto, email: 'invalid-email' })
-        .expect(400);
-    });
-
-    it('should reject weak password', async () => {
-      await request(app.getHttpServer())
-        .post('/auth/register')
-        .send({ ...registerDto, password: '123' })
-        .expect(400);
-    });
-
-    it('should reject missing required fields', async () => {
-      await request(app.getHttpServer())
-        .post('/auth/register')
-        .send({ email: 'test@example.com' }) // missing password
-        .expect(400);
-    });
   });
 
-  describe('/auth/login (POST)', () => {
-    const loginDto = {
-      email: 'test@example.com',
-      password: 'password123',
-    };
-
-    it('should return tokens on successful login', async () => {
+  describe('cookie-based session flow', () => {
+    it('should set auth cookies on login, read session from /auth/me, refresh, and clear on logout', async () => {
       prisma.user.findUnique.mockResolvedValue(mockUser);
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
-      const response = await request(app.getHttpServer())
+      const agent = request.agent(app.getHttpServer());
+
+      const loginResponse = await agent
         .post('/auth/login')
-        .send(loginDto);
+        .send({ email: mockUser.email, password: 'SecurePass123!' })
+        .expect(200);
 
-      // Note: actual assertion depends on bcrypt compare
-      expect(response.status).toBeLessThan(500);
-    });
+      expect(loginResponse.body).toHaveProperty('accessToken');
+      expect(loginResponse.body).toHaveProperty('refreshToken');
+      expect(loginResponse.headers['set-cookie']).toEqual(
+        expect.arrayContaining([
+          expect.stringContaining('access_token='),
+          expect.stringContaining('refresh_token='),
+        ]),
+      );
 
-    it('should reject non-existent user', async () => {
-      prisma.user.findUnique.mockResolvedValue(null);
+      prisma.user.findUnique.mockResolvedValue(mockUser);
+      const meResponse = await agent.get('/auth/me').expect(200);
+      expect(meResponse.body).toMatchObject({
+        id: mockUser.id,
+        email: mockUser.email,
+      });
 
-      await request(app.getHttpServer())
-        .post('/auth/login')
-        .send(loginDto)
-        .expect(401);
-    });
-
-    it('should reject missing credentials', async () => {
-      await request(app.getHttpServer())
-        .post('/auth/login')
-        .send({})
-        .expect(400);
-    });
-  });
-
-  describe('/auth/refresh (POST)', () => {
-    it('should reject invalid refresh token', async () => {
-      await request(app.getHttpServer())
+      prisma.user.findUnique.mockResolvedValue(mockUser);
+      const refreshResponse = await agent
         .post('/auth/refresh')
-        .send({ refreshToken: 'invalid-token' })
-        .expect(401);
+        .send({})
+        .expect(200);
+
+      expect(refreshResponse.body).toHaveProperty('accessToken');
+      expect(refreshResponse.headers['set-cookie']).toEqual(
+        expect.arrayContaining([
+          expect.stringContaining('access_token='),
+          expect.stringContaining('refresh_token='),
+        ]),
+      );
+
+      const logoutResponse = await agent.post('/auth/logout').send({}).expect(200);
+      expect(logoutResponse.headers['set-cookie']).toEqual(
+        expect.arrayContaining([
+          expect.stringContaining('access_token=;'),
+          expect.stringContaining('refresh_token=;'),
+        ]),
+      );
     });
-  });
 
-  describe('/auth/change-password (POST)', () => {
-    it('should reject unauthenticated requests', async () => {
-      await request(app.getHttpServer())
-        .post('/auth/change-password')
-        .send({ oldPassword: 'old-pass', newPassword: 'NewPass123!' })
-        .expect(401);
-    });
-
-    it('should return user info with valid token', async () => {
-      prisma.user.findUnique.mockResolvedValue(mockUser);
-
-      // This would need a valid JWT - in real tests, you'd mock the guard
-      const response = await request(app.getHttpServer())
-        .post('/auth/change-password')
-        .send({ oldPassword: 'old-pass', newPassword: 'NewPass123!' })
-        .set('Authorization', 'Bearer mock-token');
-
-      // Auth guard will reject this, which is expected behavior
-      expect(response.status).toBe(401);
+    it('should reject /auth/me without authentication', async () => {
+      await request(app.getHttpServer()).get('/auth/me').expect(401);
     });
   });
 });

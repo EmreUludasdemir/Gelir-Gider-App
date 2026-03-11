@@ -236,9 +236,6 @@ export class AutoCategorizerService {
 
     // Find exact or fuzzy matches
     const descLower = description.toLowerCase();
-    const exactMatches: { categoryId: string; categoryLabel: string; count: number }[] = [];
-    const partialMatches: { categoryId: string; categoryLabel: string; count: number }[] = [];
-
     const categoryCount = new Map<string, { label: string; count: number; exact: boolean }>();
 
     for (const tx of historicalTransactions) {

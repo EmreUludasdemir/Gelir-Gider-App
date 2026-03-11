@@ -2,7 +2,6 @@ import {
   IsString,
   IsOptional,
   IsDateString,
-  IsEnum,
 } from 'class-validator';
 
 export type ExportFormat = 'csv' | 'excel' | 'pdf';

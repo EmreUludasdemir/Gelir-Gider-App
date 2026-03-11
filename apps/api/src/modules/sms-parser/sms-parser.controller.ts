@@ -120,7 +120,7 @@ export class SmsParserController {
           },
         });
         transactions.push(transaction);
-      } catch (error) {
+      } catch {
         failed++;
       }
     }
@@ -148,7 +148,6 @@ export class SmsParserController {
     const isSupported = this.smsParserService.isSupportedBank(sender);
 
     if (isSupported) {
-      const bankPatterns = this.smsParserService.getSupportedBanks();
       return { supported: true };
     }
 

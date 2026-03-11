@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Loader2, Sparkles, Minimize2 } from 'lucide-react';
-import { askFinancialAdvisor, isAIAvailable } from '@/lib/gemini';
+import { askFinancialAdvisor } from '@/lib/gemini';
 import { usePreferences } from '@/lib/PreferencesContext';
 import { useTranslation } from '@/lib/translations';
 import { useTransactions } from '@/lib/hooks';
@@ -73,10 +73,6 @@ export function FinancialAssistant() {
       setIsLoading(false);
     }
   };
-
-  if (!isAIAvailable()) {
-    return null;
-  }
 
   if (!isOpen) {
     return (

@@ -1,9 +1,9 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
 import { Sparkles, Loader2, Check, X } from 'lucide-react';
-import { parseTransactionNaturalLanguage, isAIAvailable } from '@/lib/gemini';
-import { createTransaction } from '@/lib/api';
+import { parseTransactionNaturalLanguage } from '@/lib/gemini';
+import { ApiError, createTransaction } from '@/lib/api';
 import { usePreferences } from '@/lib/PreferencesContext';
 import { useTranslation } from '@/lib/translations';
 import { SmartParseResult, TransactionType } from '@/lib/types';
@@ -34,8 +34,12 @@ export function SmartTransactionInput({ onSuccess }: SmartTransactionInputProps)
       } else {
         setError(language === 'tr' ? 'Islem parse edilemedi. Lutfen farkli bir ifade deneyin.' : 'Could not parse transaction. Please try a different phrase.');
       }
-    } catch {
-      setError(language === 'tr' ? 'Bir hata oldu.' : 'An error occurred.');
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 503) {
+        setError(language === 'tr' ? 'AI servisi su anda hazir degil.' : 'AI service is not available right now.');
+      } else {
+        setError(language === 'tr' ? 'Bir hata oldu.' : 'An error occurred.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -69,10 +73,6 @@ export function SmartTransactionInput({ onSuccess }: SmartTransactionInputProps)
     setInput('');
     setError(null);
   };
-
-  if (!isAIAvailable()) {
-    return null;
-  }
 
   return (
     <div className="bg-gradient-to-r from-primary-50 to-accent/20 rounded-xl p-4 border border-border">
@@ -159,4 +159,3 @@ export function SmartTransactionInput({ onSuccess }: SmartTransactionInputProps)
     </div>
   );
 }
-

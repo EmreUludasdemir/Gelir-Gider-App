@@ -5,7 +5,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SecurityMiddleware, HppMiddleware } from './security.middleware';
 import { Request, Response } from 'express';
-import { ForbiddenException } from '@nestjs/common';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 
 describe('SecurityMiddleware', () => {

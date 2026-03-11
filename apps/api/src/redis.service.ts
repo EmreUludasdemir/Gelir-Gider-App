@@ -11,7 +11,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
     this.client = new Redis(redisUrl);
 
-    this.client.on("error", (err) => {
+    this.client.on("error", (_err) => {
       // Redis error handled silently in production
     });
 

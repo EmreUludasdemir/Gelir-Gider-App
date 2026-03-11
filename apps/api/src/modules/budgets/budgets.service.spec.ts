@@ -10,10 +10,10 @@ import { BudgetsService } from './budgets.service';
 import { PrismaService } from '../../prisma.service';
 import { CacheService } from '../../shared/cache';
 import {
-  createMockBudget,
   createMockTransaction,
   createMockPrismaService,
 } from '../../../test/test-utils';
+import { CreateBudgetDto } from './dto/budget.dto';
 
 // Mock CacheService
 const createMockCacheService = () => ({
@@ -184,7 +184,7 @@ describe('BudgetsService', () => {
     });
 
     it('should set default period to monthly', async () => {
-      const dtoWithoutPeriod = {
+      const dtoWithoutPeriod: CreateBudgetDto = {
         categoryId: 'shopping',
         categoryLabel: 'Alışveriş',
         limitAmount: 1000,
@@ -196,7 +196,7 @@ describe('BudgetsService', () => {
         period: 'monthly',
       });
 
-      await service.create(userId, dtoWithoutPeriod as any);
+      await service.create(userId, dtoWithoutPeriod);
 
       expect(prisma.budget.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
@@ -206,7 +206,7 @@ describe('BudgetsService', () => {
     });
 
     it('should set default alertThreshold to 80', async () => {
-      const dtoWithoutThreshold = {
+      const dtoWithoutThreshold: CreateBudgetDto = {
         categoryId: 'shopping',
         categoryLabel: 'Alışveriş',
         limitAmount: 1000,
@@ -218,7 +218,7 @@ describe('BudgetsService', () => {
         alertThreshold: 80,
       });
 
-      await service.create(userId, dtoWithoutThreshold as any);
+      await service.create(userId, dtoWithoutThreshold);
 
       expect(prisma.budget.create).toHaveBeenCalledWith({
         data: expect.objectContaining({

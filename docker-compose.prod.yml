@@ -50,10 +50,13 @@ services:
       - REDIS_URL=redis://redis:6379
       - PDF_PARSER_URL=http://pdf-parser:8001
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET is required}
       - SESSION_SECRET=${SESSION_SECRET:?SESSION_SECRET is required}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY:?ENCRYPTION_KEY is required}
-      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
-      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000}
+      - FRONTEND_URL=${FRONTEND_URL:?FRONTEND_URL is required}
+      - APP_URL=${APP_URL:?APP_URL is required}
+      - CORS_ORIGINS=${CORS_ORIGINS:?CORS_ORIGINS is required}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -90,6 +93,8 @@ services:
     restart: unless-stopped
     ports:
       - "8001:8001"
+    environment:
+      - CORS_ORIGINS=${CORS_ORIGINS:?CORS_ORIGINS is required}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
       interval: 30s

@@ -6,7 +6,8 @@ import { toast } from 'sonner';
 import { getRealtimeBaseUrl } from '@/lib/api-base';
 
 interface RealtimeConfig {
-  token: string | null;
+  enabled: boolean;
+  token?: string | null;
   showToasts?: boolean;
   onConnect?: () => void;
   onDisconnect?: () => void;
@@ -83,14 +84,19 @@ export function useRealtime(config: RealtimeConfig) {
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
-    if (!config.token) {
+    if (!config.enabled) {
+      socketRef.current?.disconnect();
+      socketRef.current = null;
+      setIsConnected(false);
+      setError(null);
       return;
     }
 
     const apiUrl = getRealtimeBaseUrl();
     const socket = io(`${apiUrl}/realtime`, {
-      auth: { token: config.token },
+      auth: config.token ? { token: config.token } : undefined,
       transports: ['websocket', 'polling'],
+      withCredentials: true,
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
@@ -99,7 +105,6 @@ export function useRealtime(config: RealtimeConfig) {
 
     socketRef.current = socket;
 
-    // Connection events
     socket.on('connect', () => {
       setIsConnected(true);
       setError(null);
@@ -125,7 +130,6 @@ export function useRealtime(config: RealtimeConfig) {
       }).format(amount);
     };
 
-    // Transaction events
     socket.on('transaction:created', (message: RealtimeMessage<TransactionEvent>) => {
       config.onTransactionCreated?.(message.data);
       if (showToasts) {
@@ -140,7 +144,7 @@ export function useRealtime(config: RealtimeConfig) {
     socket.on('transaction:updated', (message: RealtimeMessage<TransactionEvent>) => {
       config.onTransactionUpdated?.(message.data);
       if (showToasts) {
-        toast.info('İşlem Güncellendi', {
+        toast.info('Islem Guncellendi', {
           description: message.data.description,
         });
       }
@@ -149,22 +153,21 @@ export function useRealtime(config: RealtimeConfig) {
     socket.on('transaction:deleted', (message: RealtimeMessage<{ id: string }>) => {
       config.onTransactionDeleted?.(message.data);
       if (showToasts) {
-        toast.info('İşlem Silindi');
+        toast.info('Islem Silindi');
       }
     });
 
-    // Budget events
     socket.on('budget:alert', (message: RealtimeMessage<BudgetAlert>) => {
       config.onBudgetAlert?.(message.data);
       if (showToasts) {
         const { data } = message;
         if (data.percentage >= 100) {
-          toast.error('Bütçe Aşıldı!', {
+          toast.error('Butce Asildi!', {
             description: `${data.categoryName}: ${formatAmount(data.spent)} / ${formatAmount(data.limit)}`,
           });
         } else {
-          toast.warning('Bütçe Uyarısı', {
-            description: `${data.categoryName} bütçesinin %${Math.round(data.percentage)}'i kullanıldı`,
+          toast.warning('Butce Uyarisi', {
+            description: `${data.categoryName} butcesinin %${Math.round(data.percentage)}'i kullanildi`,
           });
         }
       }
@@ -174,12 +177,10 @@ export function useRealtime(config: RealtimeConfig) {
       config.onBudgetUpdated?.(message.data);
     });
 
-    // Bill events
     socket.on('bill:reminder', (message: RealtimeMessage<BillReminder>) => {
       config.onBillReminder?.(message.data);
     });
 
-    // Savings events
     socket.on('savings:milestone', (message: RealtimeMessage<SavingsMilestone>) => {
       config.onSavingsMilestone?.(message.data);
     });
@@ -188,7 +189,6 @@ export function useRealtime(config: RealtimeConfig) {
       config.onSavingsUpdated?.(message.data);
     });
 
-    // Sync events
     socket.on('sync:completed', (message: RealtimeMessage<SyncResult>) => {
       config.onSyncCompleted?.(message.data);
     });
@@ -197,7 +197,7 @@ export function useRealtime(config: RealtimeConfig) {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [config.token]);
+  }, [config.enabled, config.onBillReminder, config.onBudgetAlert, config.onBudgetUpdated, config.onConnect, config.onDisconnect, config.onSavingsMilestone, config.onSavingsUpdated, config.onSyncCompleted, config.onTransactionCreated, config.onTransactionDeleted, config.onTransactionUpdated, config.showToasts, config.token]);
 
   const subscribe = useCallback((channels: string[]) => {
     socketRef.current?.emit('subscribe', { channels });
@@ -208,9 +208,14 @@ export function useRealtime(config: RealtimeConfig) {
   }, []);
 
   const ping = useCallback(() => {
-    return new Promise<number>((resolve) => {
+    return new Promise<number>((resolve, reject) => {
+      if (!socketRef.current) {
+        reject(new Error('Realtime socket is not connected'));
+        return;
+      }
+
       const start = Date.now();
-      socketRef.current?.emit('ping', {}, () => {
+      socketRef.current.emit('ping', {}, () => {
         resolve(Date.now() - start);
       });
     });
@@ -226,17 +231,17 @@ export function useRealtime(config: RealtimeConfig) {
   };
 }
 
-// Simpler hook for just connection status
-export function useRealtimeStatus(token: string | null) {
+export function useRealtimeStatus(enabled: boolean, token?: string | null) {
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    if (!token) return;
+    if (!enabled) return;
 
     const apiUrl = getRealtimeBaseUrl();
     const socket = io(`${apiUrl}/realtime`, {
-      auth: { token },
+      auth: token ? { token } : undefined,
       transports: ['websocket', 'polling'],
+      withCredentials: true,
     });
 
     socket.on('connect', () => setIsConnected(true));
@@ -245,7 +250,7 @@ export function useRealtimeStatus(token: string | null) {
     return () => {
       socket.disconnect();
     };
-  }, [token]);
+  }, [enabled, token]);
 
   return isConnected;
 }

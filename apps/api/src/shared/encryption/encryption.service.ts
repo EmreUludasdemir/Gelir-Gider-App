@@ -84,7 +84,7 @@ export class EncryptionService {
       decrypted = Buffer.concat([decrypted, decipher.final()]);
 
       return decrypted.toString('utf8');
-    } catch (error) {
+    } catch {
       this.logger.error('Decryption failed');
       throw new Error('Decryption failed');
     }

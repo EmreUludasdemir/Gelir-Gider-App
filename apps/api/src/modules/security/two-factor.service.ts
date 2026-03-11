@@ -9,12 +9,6 @@ import { PrismaService } from "../../prisma.service";
 // Simple TOTP implementation without external dependency
 // In production, consider using 'otplib' package
 
-interface TOTPConfig {
-  secret: string;
-  digits: number;
-  period: number;
-}
-
 @Injectable()
 export class TwoFactorService {
   private readonly DIGITS = 6;

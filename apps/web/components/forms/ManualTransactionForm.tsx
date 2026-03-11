@@ -60,6 +60,7 @@ export function ManualTransactionForm({ onSuccess }: ManualTransactionFormProps)
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input
+            name="description"
             label="Açıklama"
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -68,6 +69,7 @@ export function ManualTransactionForm({ onSuccess }: ManualTransactionFormProps)
           />
 
           <Input
+            name="amount"
             label="Tutar"
             type="number"
             step="0.01"
@@ -78,6 +80,7 @@ export function ManualTransactionForm({ onSuccess }: ManualTransactionFormProps)
           />
 
           <Select
+            name="type"
             label="Tip"
             value={formData.type}
             onChange={(e) => setFormData({ ...formData, type: e.target.value as TransactionType })}
@@ -88,6 +91,7 @@ export function ManualTransactionForm({ onSuccess }: ManualTransactionFormProps)
           />
 
           <Input
+            name="date"
             label="Tarih"
             type="date"
             value={formData.date}

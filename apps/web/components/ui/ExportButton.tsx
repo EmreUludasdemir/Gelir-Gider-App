@@ -39,6 +39,7 @@ export function ExportButton({ transactions, filename }: ExportButtonProps) {
       <Button
         variant="secondary"
         onClick={() => setShowMenu(!showMenu)}
+        data-testid="export-button"
       >
         📥 Dışa Aktar
       </Button>
@@ -52,12 +53,14 @@ export function ExportButton({ transactions, filename }: ExportButtonProps) {
           <div className="absolute right-0 mt-2 w-48 bg-card rounded-lg shadow-lg border border-border z-20">
             <button
               onClick={() => handleExport('csv')}
+              data-testid="export-csv"
               className="w-full text-left px-4 py-2 hover:bg-muted/40 rounded-t-lg"
             >
               📊 CSV Format
             </button>
             <button
               onClick={() => handleExport('json')}
+              data-testid="export-json"
               className="w-full text-left px-4 py-2 hover:bg-muted/40 rounded-b-lg"
             >
               📄 JSON Format

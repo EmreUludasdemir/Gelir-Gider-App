@@ -3,7 +3,7 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { HttpException, HttpStatus, BadRequestException, NotFoundException as NestNotFoundException } from '@nestjs/common';
+import { HttpStatus, BadRequestException, NotFoundException as NestNotFoundException } from '@nestjs/common';
 import { GlobalExceptionFilter } from './global-exception.filter';
 import { AppException, ValidationException, UnauthorizedException } from './app-exception';
 import { ErrorCode } from './error-codes';

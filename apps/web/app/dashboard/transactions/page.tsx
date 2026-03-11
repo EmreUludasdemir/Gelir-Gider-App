@@ -113,6 +113,7 @@ export default function TransactionsPage() {
           <Button
             onClick={() => setShowForm(!showForm)}
             variant="primary"
+            data-testid="add-transaction-toggle"
           >
             {showForm ? 'Formu Kapat' : '+ Yeni İşlem'}
           </Button>

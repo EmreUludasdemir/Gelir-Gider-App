@@ -21,7 +21,7 @@ export class MockBankAdapter implements IBankAdapter {
     return "Demo Banka";
   }
 
-  async connect(credentials: Record<string, any>): Promise<ConnectionResult> {
+  async connect(_credentials: Record<string, any>): Promise<ConnectionResult> {
     // Simulate connection delay
     await this.delay(500);
 

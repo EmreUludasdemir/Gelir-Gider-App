@@ -11,11 +11,10 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:e2e": "playwright test",
-    "test:e2e:ci": "playwright test --project=chromium e2e/auth-recovery.spec.ts",
+    "test:e2e:ci": "playwright test --config=playwright.ci.config.ts",
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
     "@tanstack/react-virtual": "^3.0.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
