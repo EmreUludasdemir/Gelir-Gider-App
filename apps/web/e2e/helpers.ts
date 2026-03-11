@@ -59,6 +59,54 @@ export const defaultTransactions = [
   },
 ]
 
+export const defaultUploadTransactions = [
+  {
+    id: 'tx-upload-1',
+    date: '2026-03-08T09:15:00.000Z',
+    description: 'Istanbulkart Yukleme',
+    amount: -420,
+    currency: 'TRY',
+    type: 'expense',
+    categoryId: 'transport',
+    categoryLabel: 'Ulasim',
+    source: 'pdf',
+    confidence: 64,
+    tags: ['pdf-upload'],
+    createdAt: '2026-03-08T09:15:00.000Z',
+    updatedAt: '2026-03-08T09:15:00.000Z',
+  },
+  {
+    id: 'tx-upload-2',
+    date: '2026-03-08T10:00:00.000Z',
+    description: 'A101 Market',
+    amount: -1180,
+    currency: 'TRY',
+    type: 'expense',
+    categoryId: 'market',
+    categoryLabel: 'Market',
+    source: 'pdf',
+    confidence: 91,
+    tags: ['pdf-upload'],
+    createdAt: '2026-03-08T10:00:00.000Z',
+    updatedAt: '2026-03-08T10:00:00.000Z',
+  },
+  {
+    id: 'tx-upload-3',
+    date: '2026-03-08T11:30:00.000Z',
+    description: 'Freelance Odemesi',
+    amount: 12500,
+    currency: 'TRY',
+    type: 'income',
+    categoryId: 'freelance',
+    categoryLabel: 'Freelance',
+    source: 'pdf',
+    confidence: 88,
+    tags: ['pdf-upload'],
+    createdAt: '2026-03-08T11:30:00.000Z',
+    updatedAt: '2026-03-08T11:30:00.000Z',
+  },
+]
+
 export const defaultConnections = [
   {
     id: 'conn-1',
@@ -500,6 +548,25 @@ export async function mockAppRoutes(
 
     if (path === '/transactions' && method === 'GET') {
       return createJsonResponse(route, applyTransactionFilters(transactions, url.searchParams))
+    }
+
+    if (path === '/uploads/pdf' && method === 'POST') {
+      const uploadTransactions = cloneTransactions(defaultUploadTransactions)
+      transactions = [...uploadTransactions, ...transactions]
+
+      return createJsonResponse(route, {
+        success: true,
+        filename: 'mart-ekstre.pdf',
+        totalParsed: uploadTransactions.length,
+        totalSaved: uploadTransactions.length,
+        lowConfidenceCount: 1,
+        errors: ['1 satir kategori guveni dusuk oldugu icin kontrol sirasina alindi.'],
+        suggestions: [
+          'Dusuk guvenli satirlari once kontrol edin.',
+          'Import sonrasi PDF filtreli islem ekraninda toplu duzenleme yapabilirsiniz.',
+        ],
+        transactions: uploadTransactions,
+      })
     }
 
     if (path === '/transactions/duplicates' && method === 'GET') {

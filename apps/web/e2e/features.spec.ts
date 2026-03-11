@@ -65,3 +65,27 @@ test.describe('Bank Connections', () => {
     await expect(page.getByText('Yedek Hesap')).toBeVisible()
   })
 })
+
+test.describe('PDF Upload Review', () => {
+  test.beforeEach(async ({ page }) => {
+    await seedAuthenticatedSession(page)
+    await mockAppRoutes(page)
+    await page.goto('/dashboard/upload')
+  })
+
+  test('shows import review after a successful pdf upload', async ({ page }) => {
+    await page.setInputFiles('#pdf-file-input', {
+      name: 'mart-ekstre.pdf',
+      mimeType: 'application/pdf',
+      buffer: Buffer.from('%PDF-1.4 test file'),
+    })
+
+    await page.getByTestId('pdf-upload-submit').click()
+
+    await expect(page.getByTestId('pdf-import-review')).toBeVisible()
+    await expect(page.getByText('Import review hazir')).toBeVisible()
+    await expect(page.getByText('Kontrol gerektiren satirlar')).toBeVisible()
+    await expect(page.getByTestId('pdf-import-review').getByText('Istanbulkart Yukleme').first()).toBeVisible()
+    await expect(page.getByText('PDF arsivi (4)')).toBeVisible()
+  })
+})
