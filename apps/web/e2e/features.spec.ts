@@ -82,10 +82,37 @@ test.describe('PDF Upload Review', () => {
 
     await page.getByTestId('pdf-upload-submit').click()
 
+    await expect(page.getByTestId('pdf-import-workbench')).toBeVisible()
+    await expect(page.getByText('Kaydetmeden once import satirlarini duzenle')).toBeVisible()
+    await page.getByRole('button', { name: /Sadece dusuk guven/i }).click()
+    await expect(page.getByText('Istanbulkart Yukleme')).toBeVisible()
+    await page.getByTestId('pdf-import-confirm').click()
+
     await expect(page.getByTestId('pdf-import-review')).toBeVisible()
     await expect(page.getByText('Import review hazir')).toBeVisible()
     await expect(page.getByText('Kontrol gerektiren satirlar')).toBeVisible()
     await expect(page.getByTestId('pdf-import-review').getByText('Istanbulkart Yukleme').first()).toBeVisible()
     await expect(page.getByText('PDF arsivi (4)')).toBeVisible()
+  })
+})
+
+test.describe('Subscription Center', () => {
+  test.beforeEach(async ({ page }) => {
+    await seedAuthenticatedSession(page)
+    await mockAppRoutes(page)
+    await page.goto('/dashboard/subscriptions')
+  })
+
+  test('renders subscription summary and can add a detected subscription', async ({ page }) => {
+    await expect(page.getByRole('heading', { name: /Abonelikleri tek merkezde yonet/i })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Tespit edilen tekrarli odemeler/i })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Kayitli abonelikler/i })).toBeVisible()
+    await expect(page.getByText('Spotify')).toBeVisible()
+
+    await page.getByRole('button', { name: 'Listeye al' }).first().click()
+
+    await expect(page.getByText('Tespit edilen abonelik listeye eklendi.')).toBeVisible()
+    await expect(page.getByText('Aktif abonelik')).toBeVisible()
+    await expect(page.getByRole('button', { name: /Pasife al/i }).first()).toBeVisible()
   })
 })

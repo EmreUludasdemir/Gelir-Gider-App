@@ -132,6 +132,33 @@ export interface UploadResult {
   transactions: TransactionEntity[];
 }
 
+export interface UploadPreviewTransaction {
+  id: string;
+  date: string;
+  description: string;
+  amount: number;
+  currency: Currency;
+  type: TransactionType;
+  categoryId: string;
+  categoryLabel: string;
+  confidence: number;
+  tags: string[];
+  notes?: string;
+}
+
+export interface UploadPreview {
+  success: boolean;
+  duplicate?: boolean;
+  filename: string;
+  fileHash: string;
+  fileSize: number;
+  totalParsed: number;
+  lowConfidenceCount: number;
+  errors: string[];
+  suggestions?: string[];
+  transactions: UploadPreviewTransaction[];
+}
+
 export interface DuplicateGroup {
   id: string;
   reason: string;
@@ -143,6 +170,29 @@ export interface DuplicateGroup {
   dateTo: string;
   count: number;
   transactions: TransactionEntity[];
+}
+
+export interface CashFlowForecastEvent {
+  id: string;
+  label: string;
+  amount: number;
+  currency: Currency;
+  dueDate: string;
+  source: "bill" | "subscription";
+  categoryLabel: string;
+}
+
+export interface CashFlowForecast {
+  days: number;
+  currentBalance: number;
+  averageDailyExpense: number;
+  committedExpenses: number;
+  projectedVariableExpenses: number;
+  projectedEndBalance: number;
+  bufferTarget: number;
+  health: "stable" | "watch" | "critical";
+  runwayDays: number | null;
+  upcomingEvents: CashFlowForecastEvent[];
 }
 
 // Query parameters

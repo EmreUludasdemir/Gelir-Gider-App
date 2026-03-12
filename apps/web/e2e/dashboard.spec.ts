@@ -14,6 +14,8 @@ test.describe('Dashboard', () => {
     await expect(page.getByText('Finans Nabzi')).toBeVisible()
     await expect(page.getByRole('heading', { name: /Bu ayki para akisini netlestir/i })).toBeVisible()
     await expect(page.getByTestId('dashboard-command-center')).toBeVisible()
+    await expect(page.getByTestId('cash-flow-forecast-card')).toBeVisible()
+    await expect(page.getByText('Ay sonu nakit akis tahmini')).toBeVisible()
     await expect(page.getByText('Hizli Islemler')).toBeVisible()
     await expect(page.getByText('Komuta Paneli')).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Finansal Sağlık' })).toBeVisible()

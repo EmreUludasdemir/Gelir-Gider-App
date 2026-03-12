@@ -1,30 +1,61 @@
-import { Controller, Get, UseGuards, Request } from "@nestjs/common";
-import { JwtAuthGuard } from "../auth/jwt-auth.guard";
-import { SubscriptionService } from "./subscription.service";
+﻿import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { User } from '../auth/user.decorator';
+import {
+  CreateSubscriptionDto,
+  SubscriptionService,
+  UpdateSubscriptionDto,
+} from './subscription.service';
 
-@Controller("subscriptions")
+@Controller('subscriptions')
 @UseGuards(JwtAuthGuard)
 export class SubscriptionController {
   constructor(private readonly subscriptionService: SubscriptionService) {}
 
-  // Get all detected subscriptions
   @Get()
-  async getSubscriptions(@Request() req: { user: { userId: string } }) {
-    return this.subscriptionService.getSubscriptionSummary(req.user.userId);
+  getSubscriptions(@User('id') userId: string) {
+    return this.subscriptionService.findAll(userId);
   }
 
-  // Get subscription summary for dashboard
-  @Get("summary")
-  async getSummary(@Request() req: { user: { userId: string } }) {
-    const data = await this.subscriptionService.getSubscriptionSummary(
-      req.user.userId
-    );
+  @Get('detected')
+  getDetectedSuggestions(@User('id') userId: string) {
+    return this.subscriptionService.getDetectedSuggestions(userId);
+  }
 
-    return {
-      totalMonthly: data.totalMonthly,
-      totalYearly: data.totalYearly,
-      activeCount: data.activeCount,
-      upcomingPayments: data.upcomingPayments,
-    };
+  @Get('summary')
+  getSummary(@User('id') userId: string) {
+    return this.subscriptionService.getSubscriptionSummary(userId);
+  }
+
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  create(@User('id') userId: string, @Body() dto: CreateSubscriptionDto) {
+    return this.subscriptionService.create(userId, dto);
+  }
+
+  @Patch(':id')
+  update(
+    @User('id') userId: string,
+    @Param('id') id: string,
+    @Body() dto: UpdateSubscriptionDto,
+  ) {
+    return this.subscriptionService.update(userId, id, dto);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  remove(@User('id') userId: string, @Param('id') id: string) {
+    return this.subscriptionService.remove(userId, id);
   }
 }

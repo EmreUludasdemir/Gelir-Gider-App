@@ -1,13 +1,13 @@
 ﻿'use client'
 
 import { useCallback, useState } from 'react'
-import { uploadPdf, UploadResult } from '@/lib/api'
+import { previewPdfImport, UploadPreview } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { AlertCircle, FileStack, ShieldCheck, UploadCloud } from 'lucide-react'
 
 interface PdfUploadProps {
-  onSuccess?: (result: UploadResult) => void | Promise<void>
+  onSuccess?: (result: UploadPreview) => void | Promise<void>
 }
 
 export function PdfUpload({ onSuccess }: PdfUploadProps) {
@@ -71,9 +71,9 @@ export function PdfUpload({ onSuccess }: PdfUploadProps) {
     }, 180)
 
     try {
-      const uploadResult = await uploadPdf(file)
+      const previewResult = await previewPdfImport(file)
       setUploadProgress(100)
-      await onSuccess?.(uploadResult)
+      await onSuccess?.(previewResult)
       setFile(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed')
@@ -200,7 +200,7 @@ export function PdfUpload({ onSuccess }: PdfUploadProps) {
               className="flex-1 sm:flex-none"
               data-testid="pdf-upload-submit"
             >
-              {loading ? 'Isleniyor...' : 'PDF yukle ve incelemeyi ac'}
+              {loading ? 'Preview hazirlaniyor...' : 'Preview olustur'}
             </Button>
             {file && !loading && (
               <Button onClick={resetSelection} variant="outline">

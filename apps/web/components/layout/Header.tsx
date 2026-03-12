@@ -13,6 +13,7 @@ import {
   Sun,
   LayoutDashboard,
   ListChecks,
+  Repeat2,
   FileUp,
   Target,
   Wallet,
@@ -66,6 +67,7 @@ export function Header() {
     { href: '/dashboard/transactions', label: t('transactions'), icon: ListChecks },
     { href: '/dashboard/duplicates', label: t('duplicates'), icon: Copy },
     { href: '/dashboard/upload', label: 'PDF', icon: FileUp },
+    { href: '/dashboard/subscriptions', label: 'Abonelikler', icon: Repeat2 },
     { href: '/dashboard/goals', label: t('savings_goals'), icon: Target },
     { href: '/dashboard/budgets', label: t('budget') || 'Butce', icon: Wallet },
   ]

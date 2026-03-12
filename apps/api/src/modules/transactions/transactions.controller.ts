@@ -96,6 +96,20 @@ export class TransactionsController {
     return this.transactionsService.getRecurringPayments(user.id);
   }
 
+  @Get("cash-flow")
+  getCashFlowForecast(
+    @User() user: JwtPayload,
+    @Query("days") days?: string
+  ) {
+    const parsedDays = days ? parseInt(days, 10) : undefined;
+    const safeDays =
+      parsedDays && Number.isFinite(parsedDays) && parsedDays > 0
+        ? parsedDays
+        : 30;
+
+    return this.transactionsService.getCashFlowForecast(user.id, safeDays);
+  }
+
   @Get("export")
   @ApiQuery({ name: "format", enum: ["csv", "excel"], required: true })
   @ApiQuery({ name: "startDate", required: false })

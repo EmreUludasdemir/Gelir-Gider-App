@@ -505,6 +505,71 @@ describe('TransactionsService', () => {
     });
   });
 
+  describe('getCashFlowForecast', () => {
+    it('should calculate commitments and month-end projection', async () => {
+      prisma.transaction.findMany
+        .mockResolvedValueOnce([
+          createMockTransaction({ type: 'expense', amount: 300, date: new Date('2026-03-10T00:00:00.000Z') }),
+          createMockTransaction({ type: 'expense', amount: 450, date: new Date('2026-03-09T00:00:00.000Z') }),
+        ])
+        .mockResolvedValueOnce([
+          createMockTransaction({ type: 'income', amount: 5000, date: new Date('2026-03-02T00:00:00.000Z') }),
+          createMockTransaction({ type: 'expense', amount: 1200, date: new Date('2026-03-06T00:00:00.000Z') }),
+        ]);
+
+      prisma.bill.findMany.mockResolvedValue([
+        {
+          id: 'bill-1',
+          userId,
+          name: 'Elektrik',
+          amount: 800,
+          currency: 'TRY',
+          dueDate: new Date('2026-03-15T00:00:00.000Z'),
+          frequency: 'monthly',
+          categoryId: 'utilities',
+          categoryLabel: 'Faturalar',
+          isPaid: false,
+        },
+      ]);
+
+      prisma.subscription.findMany.mockResolvedValue([
+        {
+          id: 'sub-1',
+          userId,
+          name: 'Netflix',
+          amount: 200,
+          currency: 'TRY',
+          billingCycle: 'monthly',
+          nextBillingDate: new Date('2026-03-18T00:00:00.000Z'),
+          categoryId: 'subscription',
+          categoryLabel: 'Abonelik',
+          isActive: true,
+          notes: null,
+        },
+      ]);
+
+      const result = await service.getCashFlowForecast(userId, 30);
+
+      expect(result.days).toBe(30);
+      expect(result.currentBalance).toBe(3800);
+      expect(result.committedExpenses).toBe(1000);
+      expect(result.projectedVariableExpenses).toBeGreaterThan(0);
+      expect(result.upcomingEvents).toHaveLength(2);
+    });
+
+    it('should clamp invalid day ranges to default limits', async () => {
+      prisma.transaction.findMany.mockResolvedValue([]);
+      prisma.bill.findMany.mockResolvedValue([]);
+      prisma.subscription.findMany.mockResolvedValue([]);
+
+      const result = await service.getCashFlowForecast(userId, -10);
+
+      expect(result.days).toBe(30);
+      expect(result.upcomingEvents).toEqual([]);
+      expect(result.runwayDays).toBeNull();
+    });
+  });
+
   // ============================================
   // EDGE CASES
   // ============================================

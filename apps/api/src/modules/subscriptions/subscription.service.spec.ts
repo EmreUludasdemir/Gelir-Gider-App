@@ -1,176 +1,252 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { SubscriptionService } from './subscription.service';
-import { PrismaService } from '../../prisma.service';
+import { BadRequestException, NotFoundException } from '@nestjs/common'
+import { Test, TestingModule } from '@nestjs/testing'
+import { PrismaService } from '../../prisma.service'
+import { SubscriptionService } from './subscription.service'
+import { createMockPrismaService } from '../../../test/test-utils'
 
 describe('SubscriptionService', () => {
-  let service: SubscriptionService;
+  let service: SubscriptionService
+  let prisma: ReturnType<typeof createMockPrismaService>
 
-  const mockUserId = 'user-123';
+  const userId = 'user-123'
 
-  const createMockTransaction = (overrides = {}) => ({
-    id: 'tx-' + Math.random().toString(36).substr(2, 9),
-    userId: mockUserId,
-    amount: 100,
-    type: 'expense',
-    description: 'Test transaction',
-    categoryId: 'other',
-    categoryLabel: 'Diğer',
-    date: new Date(),
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    ...overrides,
-  });
+  const createExpenseTransaction = (overrides: Partial<{ id: string; description: string; amount: number; createdAt: Date }> = {}) => ({
+    id: overrides.id || `tx-${Math.random().toString(36).slice(2, 8)}`,
+    userId,
+    description: overrides.description || 'Test transaction',
+    amount: overrides.amount ?? 99.99,
+    createdAt: overrides.createdAt || new Date('2026-03-10T00:00:00.000Z'),
+  })
 
-  const mockPrismaService = {
-    transaction: {
-      findMany: jest.fn(),
-    },
-  };
+  const createSavedSubscription = (overrides: Partial<{
+    id: string
+    name: string
+    amount: number
+    currency: string
+    billingCycle: 'weekly' | 'monthly' | 'yearly'
+    nextBillingDate: Date
+    categoryId: string
+    categoryLabel: string
+    isActive: boolean
+    notes: string | null
+  }> = {}) => ({
+    id: overrides.id || 'sub-1',
+    userId,
+    name: overrides.name || 'Netflix',
+    amount: overrides.amount ?? 199.99,
+    currency: overrides.currency || 'TRY',
+    billingCycle: overrides.billingCycle || 'monthly',
+    nextBillingDate: overrides.nextBillingDate || new Date('2026-03-15T00:00:00.000Z'),
+    categoryId: overrides.categoryId || 'subscription',
+    categoryLabel: overrides.categoryLabel || 'Abonelik',
+    isActive: overrides.isActive ?? true,
+    notes: overrides.notes ?? null,
+  })
 
   beforeEach(async () => {
+    prisma = createMockPrismaService()
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SubscriptionService,
-        { provide: PrismaService, useValue: mockPrismaService },
+        { provide: PrismaService, useValue: prisma },
       ],
-    }).compile();
+    }).compile()
 
-    service = module.get<SubscriptionService>(SubscriptionService);
-
-    jest.clearAllMocks();
-  });
+    service = module.get<SubscriptionService>(SubscriptionService)
+    jest.clearAllMocks()
+  })
 
   it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
+    expect(service).toBeDefined()
+  })
 
   describe('detectSubscriptions', () => {
-    it('should detect Netflix subscription from transactions', async () => {
-      const now = new Date();
-      const oneMonthAgo = new Date(now);
-      oneMonthAgo.setMonth(now.getMonth() - 1);
-      const twoMonthsAgo = new Date(now);
-      twoMonthsAgo.setMonth(now.getMonth() - 2);
+    it('detects known monthly subscriptions', async () => {
+      prisma.transaction.findMany.mockResolvedValue([
+        createExpenseTransaction({ description: 'Netflix Odeme', amount: 199.99, createdAt: new Date('2026-03-10T00:00:00.000Z') }),
+        createExpenseTransaction({ description: 'Netflix Odeme', amount: 199.99, createdAt: new Date('2026-02-10T00:00:00.000Z') }),
+        createExpenseTransaction({ description: 'Netflix Odeme', amount: 199.99, createdAt: new Date('2026-01-10T00:00:00.000Z') }),
+      ])
 
-      mockPrismaService.transaction.findMany.mockResolvedValue([
-        createMockTransaction({ description: 'Netflix Ödeme', amount: 99.99, createdAt: now }),
-        createMockTransaction({ description: 'Netflix Ödeme', amount: 99.99, createdAt: oneMonthAgo }),
-        createMockTransaction({ description: 'Netflix Ödeme', amount: 99.99, createdAt: twoMonthsAgo }),
-      ]);
+      const result = await service.detectSubscriptions(userId)
 
-      const result = await service.detectSubscriptions(mockUserId);
+      const netflix = result.find((subscription) => subscription.name === 'Netflix')
 
-      expect(result.length).toBeGreaterThanOrEqual(1);
-      const netflixSub = result.find(s => s.name === 'Netflix');
-      expect(netflixSub).toBeDefined();
-      expect(netflixSub?.category).toBe('Eğlence');
-    });
+      expect(netflix).toMatchObject({
+        name: 'Netflix',
+        frequency: 'monthly',
+        categoryLabel: 'Entertainment',
+        matchSource: 'known',
+      })
+    })
 
-    it('should detect Spotify subscription', async () => {
-      const now = new Date();
-      const oneMonthAgo = new Date(now);
-      oneMonthAgo.setMonth(now.getMonth() - 1);
-      const twoMonthsAgo = new Date(now);
-      twoMonthsAgo.setMonth(now.getMonth() - 2);
+    it('detects recurring unknown payments with stable amounts', async () => {
+      prisma.transaction.findMany.mockResolvedValue([
+        createExpenseTransaction({ description: 'Acme Workspace', amount: 150, createdAt: new Date('2026-03-08T00:00:00.000Z') }),
+        createExpenseTransaction({ description: 'Acme Workspace', amount: 150, createdAt: new Date('2026-02-08T00:00:00.000Z') }),
+        createExpenseTransaction({ description: 'Acme Workspace', amount: 150, createdAt: new Date('2026-01-08T00:00:00.000Z') }),
+      ])
 
-      mockPrismaService.transaction.findMany.mockResolvedValue([
-        createMockTransaction({ description: 'Spotify Premium', amount: 59.99, createdAt: now }),
-        createMockTransaction({ description: 'Spotify Premium', amount: 59.99, createdAt: oneMonthAgo }),
-        createMockTransaction({ description: 'Spotify', amount: 59.99, createdAt: twoMonthsAgo }),
-      ]);
+      const result = await service.detectSubscriptions(userId)
 
-      const result = await service.detectSubscriptions(mockUserId);
+      expect(result[0]).toMatchObject({
+        name: 'Acme workspace',
+        matchSource: 'pattern',
+        isActive: true,
+      })
+    })
 
-      const spotifySub = result.find(s => s.name === 'Spotify');
-      expect(spotifySub).toBeDefined();
-      expect(spotifySub?.frequency).toBe('monthly');
-    });
+    it('ignores recurring names when amounts are inconsistent', async () => {
+      prisma.transaction.findMany.mockResolvedValue([
+        createExpenseTransaction({ description: 'Netflix', amount: 99.99, createdAt: new Date('2026-03-01T00:00:00.000Z') }),
+        createExpenseTransaction({ description: 'Netflix', amount: 49.99, createdAt: new Date('2026-02-01T00:00:00.000Z') }),
+      ])
 
-    it('should return empty array when no subscriptions detected', async () => {
-      mockPrismaService.transaction.findMany.mockResolvedValue([
-        createMockTransaction({ description: 'Market alışverişi', amount: 250 }),
-        createMockTransaction({ description: 'Benzin', amount: 500 }),
-      ]);
+      const result = await service.detectSubscriptions(userId)
 
-      const result = await service.detectSubscriptions(mockUserId);
+      expect(result).toEqual([])
+    })
+  })
 
-      expect(result).toEqual([]);
-    });
+  describe('create', () => {
+    it('creates a subscription with sane defaults', async () => {
+      prisma.subscription.create.mockResolvedValue(createSavedSubscription())
 
-    it('should detect unknown recurring payments', async () => {
-      const now = new Date();
-      const oneMonthAgo = new Date(now);
-      oneMonthAgo.setMonth(now.getMonth() - 1);
-      const twoMonthsAgo = new Date(now);
-      twoMonthsAgo.setMonth(now.getMonth() - 2);
-      const threeMonthsAgo = new Date(now);
-      threeMonthsAgo.setMonth(now.getMonth() - 3);
+      const result = await service.create(userId, {
+        name: ' Netflix ',
+        amount: 199.99,
+        nextBillingDate: '2026-03-15',
+      })
 
-      mockPrismaService.transaction.findMany.mockResolvedValue([
-        createMockTransaction({ description: 'Acme Corp Monthly', amount: 150, createdAt: now }),
-        createMockTransaction({ description: 'Acme Corp Monthly', amount: 150, createdAt: oneMonthAgo }),
-        createMockTransaction({ description: 'Acme Corp Monthly', amount: 150, createdAt: twoMonthsAgo }),
-        createMockTransaction({ description: 'Acme Corp Monthly', amount: 150, createdAt: threeMonthsAgo }),
-      ]);
+      expect(prisma.subscription.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          userId,
+          name: 'Netflix',
+          amount: 199.99,
+          currency: 'TRY',
+          billingCycle: 'monthly',
+          categoryId: 'subscription',
+          categoryLabel: 'Abonelik',
+          isActive: true,
+        }),
+      })
+      expect(result.name).toBe('Netflix')
+      expect(result.monthlyCost).toBe(199.99)
+    })
 
-      const result = await service.detectSubscriptions(mockUserId);
+    it('rejects invalid input', async () => {
+      await expect(
+        service.create(userId, {
+          name: '',
+          amount: 0,
+          nextBillingDate: 'invalid-date',
+        }),
+      ).rejects.toThrow(BadRequestException)
+    })
+  })
 
-      expect(result.length).toBeGreaterThanOrEqual(1);
-    });
+  describe('update', () => {
+    it('updates an existing subscription', async () => {
+      prisma.subscription.findFirst.mockResolvedValue(createSavedSubscription())
+      prisma.subscription.update.mockResolvedValue(
+        createSavedSubscription({ name: 'Spotify', amount: 59.99, isActive: false }),
+      )
 
-    it('should not detect inconsistent amounts as subscription', async () => {
-      const now = new Date();
-      const oneMonthAgo = new Date(now);
-      oneMonthAgo.setMonth(now.getMonth() - 1);
+      const result = await service.update(userId, 'sub-1', {
+        name: 'Spotify',
+        amount: 59.99,
+        isActive: false,
+      })
 
-      mockPrismaService.transaction.findMany.mockResolvedValue([
-        createMockTransaction({ description: 'Netflix', amount: 99.99, createdAt: now }),
-        createMockTransaction({ description: 'Netflix', amount: 49.99, createdAt: oneMonthAgo }), // Very different amount
-      ]);
+      expect(prisma.subscription.update).toHaveBeenCalledWith({
+        where: { id: 'sub-1' },
+        data: expect.objectContaining({
+          name: 'Spotify',
+          amount: 59.99,
+          isActive: false,
+        }),
+      })
+      expect(result.name).toBe('Spotify')
+      expect(result.isActive).toBe(false)
+    })
 
-      const result = await service.detectSubscriptions(mockUserId);
+    it('throws when subscription does not exist', async () => {
+      prisma.subscription.findFirst.mockResolvedValue(null)
 
-      // Should not detect because amounts vary too much
-      const netflixSub = result.find(s => s.name === 'Netflix');
-      expect(netflixSub).toBeUndefined();
-    });
-  });
+      await expect(service.update(userId, 'missing', { isActive: false })).rejects.toThrow(NotFoundException)
+    })
+  })
+
+  describe('remove', () => {
+    it('deletes an existing subscription', async () => {
+      prisma.subscription.findFirst.mockResolvedValue({ id: 'sub-1' })
+      prisma.subscription.delete.mockResolvedValue(createSavedSubscription())
+
+      const result = await service.remove(userId, 'sub-1')
+
+      expect(prisma.subscription.delete).toHaveBeenCalledWith({ where: { id: 'sub-1' } })
+      expect(result).toEqual({ success: true })
+    })
+  })
 
   describe('getSubscriptionSummary', () => {
-    it('should return subscription summary with totals', async () => {
-      const now = new Date();
-      const oneMonthAgo = new Date(now);
-      oneMonthAgo.setMonth(now.getMonth() - 1);
-      const twoMonthsAgo = new Date(now);
-      twoMonthsAgo.setMonth(now.getMonth() - 2);
+    it('returns totals, upcoming payments, and filtered detected suggestions', async () => {
+      const detectSpy = jest.spyOn(service, 'detectSubscriptions').mockResolvedValue([
+        {
+          id: 'detected-spotify',
+          name: 'Spotify',
+          amount: 59.99,
+          frequency: 'monthly',
+          categoryLabel: 'Entertainment',
+          lastPayment: new Date('2026-02-11T00:00:00.000Z'),
+          nextPayment: new Date('2026-03-11T00:00:00.000Z'),
+          isActive: true,
+          totalSpentYear: 719.88,
+          matchSource: 'known',
+        },
+      ])
 
-      mockPrismaService.transaction.findMany.mockResolvedValue([
-        createMockTransaction({ description: 'Netflix', amount: 100, createdAt: now }),
-        createMockTransaction({ description: 'Netflix', amount: 100, createdAt: oneMonthAgo }),
-        createMockTransaction({ description: 'Netflix', amount: 100, createdAt: twoMonthsAgo }),
-        createMockTransaction({ description: 'Spotify', amount: 60, createdAt: now }),
-        createMockTransaction({ description: 'Spotify', amount: 60, createdAt: oneMonthAgo }),
-        createMockTransaction({ description: 'Spotify', amount: 60, createdAt: twoMonthsAgo }),
-      ]);
+      prisma.subscription.findMany
+        .mockResolvedValueOnce([
+          createSavedSubscription({ name: 'Netflix', amount: 199.99 }),
+          createSavedSubscription({ id: 'sub-2', name: 'Adobe CC', amount: 399.99, categoryLabel: 'Work' }),
+        ])
+        .mockResolvedValueOnce([{ name: 'Netflix' }, { name: 'Adobe CC' }])
 
-      const result = await service.getSubscriptionSummary(mockUserId);
+      const result = await service.getSubscriptionSummary(userId)
 
-      expect(result.subscriptions).toBeDefined();
-      expect(result.totalMonthly).toBeGreaterThan(0);
-      expect(result.totalYearly).toBe(result.totalMonthly * 12);
-      expect(result.activeCount).toBeGreaterThanOrEqual(0);
-    });
+      expect(result.totalMonthly).toBeCloseTo(599.98)
+      expect(result.totalYearly).toBeCloseTo(7199.76)
+      expect(result.activeCount).toBe(2)
+      expect(result.upcomingPayments).toHaveLength(2)
+      expect(result.detectedSuggestions).toHaveLength(1)
+      expect(result.detectedSuggestions[0].name).toBe('Spotify')
+      expect(result.savingsOpportunities[0].name).toBe('Adobe CC')
 
-    it('should return empty summary when no subscriptions', async () => {
-      mockPrismaService.transaction.findMany.mockResolvedValue([]);
+      detectSpy.mockRestore()
+    })
 
-      const result = await service.getSubscriptionSummary(mockUserId);
+    it('returns empty totals when there are no subscriptions', async () => {
+      const detectSpy = jest.spyOn(service, 'detectSubscriptions').mockResolvedValue([])
 
-      expect(result.subscriptions).toEqual([]);
-      expect(result.totalMonthly).toBe(0);
-      expect(result.totalYearly).toBe(0);
-      expect(result.activeCount).toBe(0);
-      expect(result.upcomingPayments).toEqual([]);
-    });
-  });
-});
+      prisma.subscription.findMany
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([])
+
+      const result = await service.getSubscriptionSummary(userId)
+
+      expect(result).toMatchObject({
+        subscriptions: [],
+        detectedSuggestions: [],
+        totalMonthly: 0,
+        totalYearly: 0,
+        activeCount: 0,
+      })
+      expect(result.upcomingPayments).toEqual([])
+      expect(result.savingsOpportunities).toEqual([])
+
+      detectSpy.mockRestore()
+    })
+  })
+})

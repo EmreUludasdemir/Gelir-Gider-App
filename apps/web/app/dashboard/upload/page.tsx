@@ -4,9 +4,10 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowRight, FileStack, ShieldCheck, Sparkles } from 'lucide-react'
 import { PdfUpload } from '@/components/forms/PdfUpload'
-import { UploadResult } from '@/lib/api'
+import { confirmPdfImport, UploadPreview, UploadResult } from '@/lib/api'
 import { TransactionTable } from '@/components/dashboard/TransactionTable'
 import { PdfImportReview } from '@/components/dashboard/PdfImportReview'
+import { PdfImportWorkbench } from '@/components/dashboard/PdfImportWorkbench'
 import { useRefreshAll, useTransactions } from '@/lib/hooks'
 import { formatCurrency } from '@/lib/utils'
 
@@ -16,6 +17,7 @@ export default function UploadPage() {
   const { data: pdfTransactions, mutate: refreshPdfTransactions } = useTransactions({
     source: 'pdf',
   })
+  const [pendingPreview, setPendingPreview] = useState<UploadPreview | null>(null)
   const [latestUploadResult, setLatestUploadResult] = useState<UploadResult | null>(null)
 
   const pdfStats = useMemo(() => {
@@ -33,8 +35,21 @@ export default function UploadPage() {
     }
   }, [pdfTransactions])
 
-  const handleSuccess = async (uploadResult: UploadResult) => {
+  const handlePreviewReady = async (preview: UploadPreview) => {
+    setPendingPreview(preview)
+    setLatestUploadResult(null)
+  }
+
+  const handleConfirmImport = async (payload: {
+    filename: string
+    fileHash: string
+    fileSize: number
+    totalParsed: number
+    transactions: UploadPreview['transactions']
+  }) => {
+    const uploadResult = await confirmPdfImport(payload)
     setLatestUploadResult(uploadResult)
+    setPendingPreview(null)
 
     if (uploadResult.totalSaved > 0) {
       await Promise.all([refreshAll(), refreshPdfTransactions()])
@@ -80,7 +95,7 @@ export default function UploadPage() {
       </section>
 
       <div className="grid gap-6 xl:grid-cols-[0.92fr_1.08fr]">
-        <PdfUpload onSuccess={handleSuccess} />
+        <PdfUpload onSuccess={handlePreviewReady} />
 
         <section className="rounded-[28px] border border-border/70 bg-card/85 p-6 shadow-[0_16px_34px_rgba(15,76,92,0.08)]">
           <div className="flex items-start justify-between gap-4">
@@ -91,7 +106,7 @@ export default function UploadPage() {
               </p>
               <h2 className="mt-3 text-xl font-display font-semibold text-foreground">Import sonrasi en mantikli akisi izle</h2>
               <p className="mt-2 text-sm text-muted-foreground">
-                Once kalite panelini kontrol et, sonra PDF filtreli islem ekranina gecip gerekli duzeltmeleri yap.
+                Once preview workbench'te duzeltmeleri yap, sonra import review panelinden kayit kalitesini kontrol et.
               </p>
             </div>
             <button
@@ -107,27 +122,35 @@ export default function UploadPage() {
             <div className="rounded-[22px] border border-border/70 bg-background/70 p-4">
               <p className="inline-flex items-center gap-2 text-sm font-semibold text-foreground">
                 <FileStack className="h-4 w-4 text-primary" />
-                1. Import review paneli
+                1. Preview olustur
               </p>
               <p className="mt-2 text-sm text-muted-foreground">
-                Kaydedilen oran, dusuk guvenli satirlar ve parser notlari tek panelde toplanir.
-              </p>
-            </div>
-            <div className="rounded-[22px] border border-border/70 bg-background/70 p-4">
-              <p className="text-sm font-semibold text-foreground">2. Dusuk guvenli satirlari incele</p>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Guven skoru dusuk satirlari filtrelenmis islem ekranindan acip kategori, not ve tutar duzeltmesi yap.
+                Parser sonucu kaydedilmeden once satir bazli duzenleme akisi acilir.
               </p>
             </div>
             <div className="rounded-[22px] border border-border/70 bg-background/70 p-4">
-              <p className="text-sm font-semibold text-foreground">3. Dashboard etkisini gor</p>
+              <p className="text-sm font-semibold text-foreground">2. Guven puani dusuk satirlari duzelt</p>
               <p className="mt-2 text-sm text-muted-foreground">
-                Import sonrasi dashboard, butce ve AI paneli yeni verilerle otomatik tazelenir.
+                Aciklama, tutar, tip ve kategori alanlarini import tamamlanmadan once guncelleyebilirsin.
+              </p>
+            </div>
+            <div className="rounded-[22px] border border-border/70 bg-background/70 p-4">
+              <p className="text-sm font-semibold text-foreground">3. Import review ile sonucu dogrula</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Kayit sonrasinda kalite skoru, parser notlari ve yeni eklenen satirlar ayrica raporlanir.
               </p>
             </div>
           </div>
         </section>
       </div>
+
+      {pendingPreview && (
+        <PdfImportWorkbench
+          preview={pendingPreview}
+          onConfirm={handleConfirmImport}
+          onDiscard={() => setPendingPreview(null)}
+        />
+      )}
 
       {latestUploadResult && <PdfImportReview result={latestUploadResult} />}
 

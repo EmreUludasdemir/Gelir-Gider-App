@@ -3,6 +3,7 @@
 const testPort = process.env.PLAYWRIGHT_TEST_PORT || '3100'
 const baseUrl = process.env.PLAYWRIGHT_TEST_BASE_URL || `http://127.0.0.1:${testPort}`
 const authToken = 'e2e-token'
+const forecastAnchorDate = new Date('2026-03-11T12:00:00.000Z')
 
 export const mockUser = {
   id: 'e2e-user-1',
@@ -248,6 +249,122 @@ export const defaultAnomalies = [
   },
 ]
 
+function normalizeName(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+}
+
+function calculateMonthlyCost(amount: number, billingCycle: 'weekly' | 'monthly' | 'yearly') {
+  if (billingCycle === 'weekly') {
+    return Number((amount * 4).toFixed(2))
+  }
+
+  if (billingCycle === 'yearly') {
+    return Number((amount / 12).toFixed(2))
+  }
+
+  return Number(amount.toFixed(2))
+}
+
+function calculateAnnualCost(amount: number, billingCycle: 'weekly' | 'monthly' | 'yearly') {
+  return Number((calculateMonthlyCost(amount, billingCycle) * 12).toFixed(2))
+}
+
+function calculateDaysUntilBilling(nextBillingDate: string) {
+  const diffMs = new Date(nextBillingDate).getTime() - forecastAnchorDate.getTime()
+  return Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)))
+}
+
+function toManagedSubscription(input: {
+  id: string
+  name: string
+  amount: number
+  currency?: string
+  billingCycle: 'weekly' | 'monthly' | 'yearly'
+  nextBillingDate: string
+  categoryId: string
+  categoryLabel: string
+  isActive: boolean
+  notes?: string
+}) {
+  const amount = Number(Math.abs(input.amount).toFixed(2))
+
+  return {
+    id: input.id,
+    name: input.name,
+    amount,
+    currency: input.currency || 'TRY',
+    billingCycle: input.billingCycle,
+    nextBillingDate: input.nextBillingDate,
+    categoryId: input.categoryId,
+    categoryLabel: input.categoryLabel,
+    isActive: input.isActive,
+    notes: input.notes,
+    monthlyCost: calculateMonthlyCost(amount, input.billingCycle),
+    annualCost: calculateAnnualCost(amount, input.billingCycle),
+    daysUntilBilling: calculateDaysUntilBilling(input.nextBillingDate),
+  }
+}
+
+export const defaultManagedSubscriptions = [
+  toManagedSubscription({
+    id: 'sub-1',
+    name: 'Netflix',
+    amount: 199.99,
+    billingCycle: 'monthly',
+    nextBillingDate: '2026-03-15T00:00:00.000Z',
+    categoryId: 'subscription',
+    categoryLabel: 'Abonelik',
+    isActive: true,
+    notes: '4K paket',
+  }),
+  toManagedSubscription({
+    id: 'sub-2',
+    name: 'iCloud+',
+    amount: 129.99,
+    billingCycle: 'monthly',
+    nextBillingDate: '2026-03-18T00:00:00.000Z',
+    categoryId: 'technology',
+    categoryLabel: 'Teknoloji',
+    isActive: true,
+    notes: '200 GB plan',
+  }),
+]
+
+export const defaultDetectedSubscriptions = [
+  {
+    id: 'detected-spotify',
+    name: 'Spotify',
+    amount: 59.99,
+    frequency: 'monthly',
+    categoryLabel: 'Abonelik',
+    lastPayment: '2026-02-11T00:00:00.000Z',
+    nextPayment: '2026-03-11T00:00:00.000Z',
+    isActive: true,
+    totalSpentYear: 719.88,
+    matchSource: 'known',
+  },
+  {
+    id: 'detected-adobe-cc',
+    name: 'Adobe CC',
+    amount: 399.99,
+    frequency: 'monthly',
+    categoryLabel: 'Work',
+    lastPayment: '2026-02-20T00:00:00.000Z',
+    nextPayment: '2026-03-20T00:00:00.000Z',
+    isActive: true,
+    totalSpentYear: 4799.88,
+    matchSource: 'pattern',
+  },
+]
+
+type MockTransaction = (typeof defaultTransactions)[number]
+type MockConnection = (typeof defaultConnections)[number]
+type MockBudget = (typeof defaultBudgetStatus)[number]
+type MockGoal = (typeof defaultSavingsGoals)[number]
+type MockBill = (typeof defaultUpcomingBills)[number]
+type ManagedSubscription = (typeof defaultManagedSubscriptions)[number]
+type DetectedSubscription = (typeof defaultDetectedSubscriptions)[number]
+
 function createJsonResponse(
   route: Route,
   body: unknown,
@@ -269,6 +386,46 @@ function normalizePath(url: string) {
 
 function cloneTransactions(transactions = defaultTransactions) {
   return transactions.map((transaction) => ({ ...transaction, tags: [...transaction.tags] }))
+}
+
+function cloneConnections(connections = defaultConnections) {
+  return connections.map((connection) => ({ ...connection }))
+}
+
+function cloneBudgets(budgets = defaultBudgetStatus) {
+  return budgets.map((budget) => ({ ...budget }))
+}
+
+function cloneGoals(goals = defaultSavingsGoals) {
+  return goals.map((goal) => ({ ...goal }))
+}
+
+function cloneBills(bills = defaultUpcomingBills) {
+  return bills.map((bill) => ({ ...bill }))
+}
+
+function cloneManagedSubscriptions(subscriptions = defaultManagedSubscriptions) {
+  return subscriptions.map((subscription) => ({ ...subscription }))
+}
+
+function cloneDetectedSubscriptions(subscriptions = defaultDetectedSubscriptions) {
+  return subscriptions.map((subscription) => ({ ...subscription }))
+}
+
+function buildUploadPreviewTransactions(transactions = defaultUploadTransactions) {
+  return transactions.map((transaction, index) => ({
+    id: `preview-${index + 1}`,
+    date: transaction.date,
+    description: transaction.description,
+    amount: Math.abs(Number(transaction.amount)),
+    currency: transaction.currency,
+    type: transaction.type,
+    categoryId: transaction.categoryId,
+    categoryLabel: transaction.categoryLabel,
+    confidence: transaction.confidence,
+    tags: [...transaction.tags],
+    notes: 'Parsed from mart-ekstre.pdf',
+  }))
 }
 
 function applyTransactionFilters(
@@ -395,6 +552,160 @@ function buildSummary(transactions: Array<(typeof defaultTransactions)[number]>)
   }
 }
 
+function buildSubscriptionSummary(
+  subscriptions: ManagedSubscription[],
+  detectedSuggestions: DetectedSubscription[],
+) {
+  const filteredDetected = detectedSuggestions.filter((suggestion) => {
+    const suggestionName = normalizeName(suggestion.name)
+    return !subscriptions.some((subscription) => normalizeName(subscription.name) === suggestionName)
+  })
+
+  const activeSubscriptions = subscriptions.filter((subscription) => subscription.isActive)
+  const totalMonthly = Number(
+    activeSubscriptions.reduce((sum, subscription) => sum + subscription.monthlyCost, 0).toFixed(2),
+  )
+  const totalYearly = Number(
+    activeSubscriptions.reduce((sum, subscription) => sum + subscription.annualCost, 0).toFixed(2),
+  )
+
+  return {
+    subscriptions,
+    detectedSuggestions: filteredDetected,
+    totalMonthly,
+    totalYearly,
+    activeCount: activeSubscriptions.length,
+    upcomingPayments: activeSubscriptions
+      .slice()
+      .sort(
+        (left, right) => new Date(left.nextBillingDate).getTime() - new Date(right.nextBillingDate).getTime(),
+      )
+      .slice(0, 5)
+      .map((subscription) => ({
+        id: subscription.id,
+        name: subscription.name,
+        amount: subscription.amount,
+        currency: subscription.currency,
+        date: subscription.nextBillingDate,
+      })),
+    savingsOpportunities: activeSubscriptions
+      .slice()
+      .sort((left, right) => right.monthlyCost - left.monthlyCost)
+      .slice(0, 3)
+      .map((subscription) => ({
+        id: subscription.id,
+        name: subscription.name,
+        monthlyCost: subscription.monthlyCost,
+      })),
+  }
+}
+
+function buildCashFlowForecast(
+  transactions: MockTransaction[],
+  bills: MockBill[],
+  subscriptions: ManagedSubscription[],
+  days: number,
+) {
+  const horizonDays = Number.isFinite(days) && days > 0 ? Math.min(days, 90) : 30
+  const now = new Date(forecastAnchorDate)
+  const horizonEnd = new Date(now)
+  horizonEnd.setDate(horizonEnd.getDate() + horizonDays)
+  const recentStart = new Date(now)
+  recentStart.setDate(recentStart.getDate() - 29)
+  const monthStart = new Date(Date.UTC(2026, 2, 1, 0, 0, 0))
+  const monthEnd = new Date(Date.UTC(2026, 2, 31, 23, 59, 59))
+
+  const recentTransactions = transactions.filter((transaction) => {
+    const date = new Date(transaction.date)
+    return date >= recentStart && date <= now
+  })
+
+  const monthTransactions = transactions.filter((transaction) => {
+    const date = new Date(transaction.date)
+    return date >= monthStart && date <= now
+  })
+
+  const upcomingEvents = [
+    ...bills
+      .filter((bill) => !bill.isPaid)
+      .filter((bill) => {
+        const dueDate = new Date(bill.dueDate)
+        return dueDate >= now && dueDate <= horizonEnd
+      })
+      .map((bill) => ({
+        id: `bill-${bill.id}`,
+        label: bill.name,
+        amount: Math.abs(Number(bill.amount)),
+        currency: bill.currency,
+        dueDate: bill.dueDate,
+        source: 'bill' as const,
+        categoryLabel: bill.categoryLabel,
+      })),
+    ...subscriptions
+      .filter((subscription) => subscription.isActive)
+      .filter((subscription) => {
+        const dueDate = new Date(subscription.nextBillingDate)
+        return dueDate >= now && dueDate <= horizonEnd
+      })
+      .map((subscription) => ({
+        id: `subscription-${subscription.id}`,
+        label: subscription.name,
+        amount: Math.abs(Number(subscription.amount)),
+        currency: subscription.currency,
+        dueDate: subscription.nextBillingDate,
+        source: 'subscription' as const,
+        categoryLabel: subscription.categoryLabel,
+      })),
+  ].sort((left, right) => new Date(left.dueDate).getTime() - new Date(right.dueDate).getTime())
+
+  const currentBalance = monthTransactions.reduce((sum, transaction) => {
+    if (transaction.type === 'income') {
+      return sum + Math.abs(Number(transaction.amount))
+    }
+
+    return sum - Math.abs(Number(transaction.amount))
+  }, 0)
+
+  const recentExpenseTotal = recentTransactions
+    .filter((transaction) => transaction.type === 'expense')
+    .reduce((sum, transaction) => sum + Math.abs(Number(transaction.amount)), 0)
+
+  const averageDailyExpense = recentExpenseTotal / 30
+  const committedExpenses = upcomingEvents.reduce((sum, event) => sum + event.amount, 0)
+  const daysRemainingInMonth = Math.max(
+    0,
+    Math.ceil((monthEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
+  )
+  const projectedVariableExpenses = Number((averageDailyExpense * daysRemainingInMonth).toFixed(2))
+  const projectedEndBalance = Number((currentBalance - committedExpenses - projectedVariableExpenses).toFixed(2))
+  const bufferTarget = Number((averageDailyExpense * 7).toFixed(2))
+
+  let health: 'stable' | 'watch' | 'critical' = 'stable'
+  if (projectedEndBalance < 0) {
+    health = 'critical'
+  } else if (projectedEndBalance < bufferTarget) {
+    health = 'watch'
+  }
+
+  const runwayDays =
+    averageDailyExpense > 0
+      ? Math.max(0, Math.floor((currentBalance - committedExpenses) / averageDailyExpense))
+      : null
+
+  return {
+    days: horizonDays,
+    currentBalance: Number(currentBalance.toFixed(2)),
+    averageDailyExpense: Number(averageDailyExpense.toFixed(2)),
+    committedExpenses: Number(committedExpenses.toFixed(2)),
+    projectedVariableExpenses,
+    projectedEndBalance,
+    bufferTarget,
+    health,
+    runwayDays,
+    upcomingEvents: upcomingEvents.slice(0, 6),
+  }
+}
+
 function parseJson<T>(route: Route): T {
   return JSON.parse(route.request().postData() || '{}') as T
 }
@@ -419,18 +730,22 @@ export async function mockAppRoutes(
   options?: {
     loginSuccess?: boolean
     registerSuccess?: boolean
-    transactions?: Array<(typeof defaultTransactions)[number]>
-    connections?: typeof defaultConnections
-    budgets?: typeof defaultBudgetStatus
-    goals?: typeof defaultSavingsGoals
-    bills?: typeof defaultUpcomingBills
+    transactions?: MockTransaction[]
+    connections?: MockConnection[]
+    budgets?: MockBudget[]
+    goals?: MockGoal[]
+    bills?: MockBill[]
+    subscriptions?: ManagedSubscription[]
+    detectedSubscriptions?: DetectedSubscription[]
   },
 ) {
   let transactions = cloneTransactions(options?.transactions)
-  let connections = (options?.connections || defaultConnections).map((connection) => ({ ...connection }))
-  let budgets = (options?.budgets || defaultBudgetStatus).map((budget) => ({ ...budget }))
-  let goals = (options?.goals || defaultSavingsGoals).map((goal) => ({ ...goal }))
-  let bills = (options?.bills || defaultUpcomingBills).map((bill) => ({ ...bill }))
+  let connections = cloneConnections(options?.connections)
+  let budgets = cloneBudgets(options?.budgets)
+  let goals = cloneGoals(options?.goals)
+  let bills = cloneBills(options?.bills)
+  let subscriptions = cloneManagedSubscriptions(options?.subscriptions)
+  let detectedSubscriptions = cloneDetectedSubscriptions(options?.detectedSubscriptions)
 
   await page.route('**/*', async (route) => {
     const request = route.request()
@@ -546,12 +861,86 @@ export async function mockAppRoutes(
       return createJsonResponse(route, buildSummary(transactions))
     }
 
+    if (path === '/transactions/cash-flow' && method === 'GET') {
+      const days = Number(url.searchParams.get('days') || '30')
+      return createJsonResponse(route, buildCashFlowForecast(transactions, bills, subscriptions, days))
+    }
+
     if (path === '/transactions' && method === 'GET') {
       return createJsonResponse(route, applyTransactionFilters(transactions, url.searchParams))
     }
 
+    if (path === '/uploads/pdf/preview' && method === 'POST') {
+      const previewTransactions = buildUploadPreviewTransactions()
+
+      return createJsonResponse(route, {
+        success: true,
+        filename: 'mart-ekstre.pdf',
+        fileHash: 'preview-file-hash',
+        fileSize: 4096,
+        totalParsed: previewTransactions.length,
+        lowConfidenceCount: 1,
+        errors: ['1 satir kategori guveni dusuk oldugu icin on inceleme sirasina alindi.'],
+        suggestions: ['Dusuk guvenli satirlari duzeltip sonra importu onaylayin.'],
+        transactions: previewTransactions,
+      })
+    }
+
+    if (path === '/uploads/pdf/confirm' && method === 'POST') {
+      const body = parseJson<{
+        filename: string
+        totalParsed: number
+        transactions: Array<{
+          id: string
+          date: string
+          description: string
+          amount: number
+          currency: string
+          type: 'income' | 'expense'
+          categoryId: string
+          categoryLabel: string
+          confidence: number
+          tags: string[]
+          notes?: string
+        }>
+      }>(route)
+
+      const savedTransactions = body.transactions.map((transaction, index) => ({
+        id: `tx-upload-confirmed-${index + 1}`,
+        date: transaction.date,
+        description: transaction.description,
+        amount:
+          transaction.type === 'expense'
+            ? -Math.abs(Number(transaction.amount))
+            : Math.abs(Number(transaction.amount)),
+        currency: transaction.currency,
+        type: transaction.type,
+        categoryId: transaction.categoryId,
+        categoryLabel: transaction.categoryLabel,
+        source: 'pdf',
+        confidence: transaction.confidence,
+        tags: transaction.tags,
+        notes: transaction.notes,
+        createdAt: transaction.date,
+        updatedAt: transaction.date,
+      }))
+
+      transactions = [...savedTransactions, ...transactions]
+
+      return createJsonResponse(route, {
+        success: true,
+        filename: body.filename,
+        totalParsed: body.totalParsed || savedTransactions.length,
+        totalSaved: savedTransactions.length,
+        lowConfidenceCount: savedTransactions.filter((transaction) => transaction.confidence < 70).length,
+        errors: ['1 satir review ekraninda takibe alindi.'],
+        suggestions: ['PDF kaynakli islemler transactions ekranindan toplu duzenlenebilir.'],
+        transactions: savedTransactions,
+      })
+    }
+
     if (path === '/uploads/pdf' && method === 'POST') {
-      const uploadTransactions = cloneTransactions(defaultUploadTransactions)
+      const uploadTransactions = cloneTransactions(defaultUploadTransactions as unknown as MockTransaction[])
       transactions = [...uploadTransactions, ...transactions]
 
       return createJsonResponse(route, {
@@ -602,6 +991,87 @@ export async function mockAppRoutes(
       return createJsonResponse(route, bills.find((bill) => bill.id === billId))
     }
 
+    if (path === '/subscriptions' && method === 'GET') {
+      return createJsonResponse(route, subscriptions)
+    }
+
+    if (path === '/subscriptions/detected' && method === 'GET') {
+      return createJsonResponse(route, buildSubscriptionSummary(subscriptions, detectedSubscriptions).detectedSuggestions)
+    }
+
+    if (path === '/subscriptions/summary' && method === 'GET') {
+      return createJsonResponse(route, buildSubscriptionSummary(subscriptions, detectedSubscriptions))
+    }
+
+    if (path === '/subscriptions' && method === 'POST') {
+      const body = parseJson<{
+        name: string
+        amount: number
+        currency?: string
+        billingCycle?: 'weekly' | 'monthly' | 'yearly'
+        nextBillingDate: string
+        categoryId?: string
+        categoryLabel?: string
+        notes?: string
+        isActive?: boolean
+      }>(route)
+
+      const createdSubscription = toManagedSubscription({
+        id: `sub-${subscriptions.length + 1}`,
+        name: body.name,
+        amount: body.amount,
+        currency: body.currency || 'TRY',
+        billingCycle: body.billingCycle || 'monthly',
+        nextBillingDate: body.nextBillingDate,
+        categoryId: body.categoryId || 'subscription',
+        categoryLabel: body.categoryLabel || 'Abonelik',
+        isActive: body.isActive ?? true,
+        notes: body.notes,
+      })
+
+      subscriptions = [createdSubscription, ...subscriptions]
+      detectedSubscriptions = detectedSubscriptions.filter(
+        (subscription) => normalizeName(subscription.name) !== normalizeName(createdSubscription.name),
+      )
+
+      return createJsonResponse(route, createdSubscription, 201)
+    }
+
+    if (path.match(/^\/subscriptions\/[^/]+$/) && method === 'PATCH') {
+      const subscriptionId = path.split('/')[2]
+      const body = parseJson<Partial<ManagedSubscription>>(route)
+      const existing = subscriptions.find((subscription) => subscription.id === subscriptionId)
+
+      if (!existing) {
+        return createJsonResponse(route, { message: 'Not found' }, 404)
+      }
+
+      const updatedSubscription = toManagedSubscription({
+        id: existing.id,
+        name: body.name || existing.name,
+        amount: body.amount !== undefined ? Number(body.amount) : existing.amount,
+        currency: body.currency || existing.currency,
+        billingCycle: (body.billingCycle as 'weekly' | 'monthly' | 'yearly') || existing.billingCycle,
+        nextBillingDate: body.nextBillingDate || existing.nextBillingDate,
+        categoryId: body.categoryId || existing.categoryId,
+        categoryLabel: body.categoryLabel || existing.categoryLabel,
+        isActive: body.isActive ?? existing.isActive,
+        notes: body.notes !== undefined ? body.notes : existing.notes,
+      })
+
+      subscriptions = subscriptions.map((subscription) =>
+        subscription.id === subscriptionId ? updatedSubscription : subscription,
+      )
+
+      return createJsonResponse(route, updatedSubscription)
+    }
+
+    if (path.match(/^\/subscriptions\/[^/]+$/) && method === 'DELETE') {
+      const subscriptionId = path.split('/')[2]
+      subscriptions = subscriptions.filter((subscription) => subscription.id !== subscriptionId)
+      return createJsonResponse(route, { success: true })
+    }
+
     if (path === '/transactions/manual' && method === 'POST') {
       const body = parseJson<{
         description: string
@@ -610,11 +1080,12 @@ export async function mockAppRoutes(
         date: string
       }>(route)
 
+      const amount = body.type === 'expense' ? -Math.abs(Number(body.amount)) : Math.abs(Number(body.amount))
       const createdTransaction = {
         id: `tx-${transactions.length + 1}`,
         date: `${body.date}T12:00:00.000Z`,
         description: body.description,
-        amount: body.amount,
+        amount,
         currency: 'TRY',
         type: body.type,
         categoryId: body.type === 'income' ? 'salary' : 'other',

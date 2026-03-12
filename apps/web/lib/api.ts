@@ -229,6 +229,29 @@ export const uploadPdf = async (file: File): Promise<UploadResult> => {
   return res.json();
 };
 
+export const previewPdfImport = async (file: File): Promise<UploadPreview> => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const res = await fetch(`${API_BASE}/uploads/pdf/preview`, {
+    method: 'POST',
+    body: formData,
+    credentials: 'include',
+  });
+
+  if (!res.ok) {
+    throw new ApiError(res.status, 'PDF preview failed');
+  }
+
+  return res.json();
+};
+
+export const confirmPdfImport = (data: ConfirmPdfUploadPayload) =>
+  fetchApi<UploadResult>('/uploads/pdf/confirm', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+
 // Types
 export type TransactionType = 'income' | 'expense';
 export type Currency = 'TRY' | 'USD' | 'EUR';
@@ -353,6 +376,41 @@ export interface UploadResult {
   transactions: Transaction[];
 }
 
+export interface UploadPreviewTransaction {
+  id: string;
+  date: string;
+  description: string;
+  amount: number;
+  currency: Currency;
+  type: TransactionType;
+  categoryId: string;
+  categoryLabel: string;
+  confidence: number;
+  tags: string[];
+  notes?: string;
+}
+
+export interface UploadPreview {
+  success: boolean;
+  duplicate?: boolean;
+  filename: string;
+  fileHash: string;
+  fileSize: number;
+  totalParsed: number;
+  lowConfidenceCount: number;
+  errors: string[];
+  suggestions?: string[];
+  transactions: UploadPreviewTransaction[];
+}
+
+export interface ConfirmPdfUploadPayload {
+  filename: string;
+  fileHash: string;
+  fileSize: number;
+  totalParsed: number;
+  transactions: UploadPreviewTransaction[];
+}
+
 export interface DuplicateGroup {
   id: string;
   reason: string;
@@ -442,6 +500,126 @@ export const getUpcomingBills = (days: number = 14) =>
   fetchApi<Bill[]>(`/bills/upcoming?days=${days}`);
 export const markBillAsPaid = (id: string) =>
   fetchApi<Bill>(`/bills/${id}/mark-paid`, { method: 'PATCH' });
+
+// Subscriptions
+export interface ManagedSubscription {
+  id: string;
+  name: string;
+  amount: number;
+  currency: Currency;
+  billingCycle: 'weekly' | 'monthly' | 'yearly';
+  nextBillingDate: string;
+  categoryId: string;
+  categoryLabel: string;
+  isActive: boolean;
+  notes?: string;
+  monthlyCost: number;
+  annualCost: number;
+  daysUntilBilling: number;
+}
+
+export interface DetectedSubscription {
+  id: string;
+  name: string;
+  amount: number;
+  frequency: 'weekly' | 'monthly' | 'yearly';
+  categoryLabel: string;
+  lastPayment: string;
+  nextPayment: string;
+  isActive: boolean;
+  totalSpentYear: number;
+  matchSource: 'known' | 'pattern';
+}
+
+export interface SubscriptionSummary {
+  subscriptions: ManagedSubscription[];
+  detectedSuggestions: DetectedSubscription[];
+  totalMonthly: number;
+  totalYearly: number;
+  activeCount: number;
+  upcomingPayments: Array<{
+    id: string;
+    name: string;
+    amount: number;
+    currency: Currency;
+    date: string;
+  }>;
+  savingsOpportunities: Array<{
+    id: string;
+    name: string;
+    monthlyCost: number;
+  }>;
+}
+
+export const getSubscriptions = () => fetchApi<ManagedSubscription[]>('/subscriptions');
+export const getDetectedSubscriptions = () =>
+  fetchApi<DetectedSubscription[]>('/subscriptions/detected');
+export const getSubscriptionSummary = () =>
+  fetchApi<SubscriptionSummary>('/subscriptions/summary');
+export const createSubscription = (data: {
+  name: string;
+  amount: number;
+  currency?: Currency;
+  billingCycle?: 'weekly' | 'monthly' | 'yearly';
+  nextBillingDate: string;
+  categoryId?: string;
+  categoryLabel?: string;
+  notes?: string;
+  isActive?: boolean;
+}) =>
+  fetchApi<ManagedSubscription>('/subscriptions', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+export const updateSubscription = (
+  id: string,
+  data: Partial<{
+    name: string;
+    amount: number;
+    currency: Currency;
+    billingCycle: 'weekly' | 'monthly' | 'yearly';
+    nextBillingDate: string;
+    categoryId: string;
+    categoryLabel: string;
+    notes: string;
+    isActive: boolean;
+  }>
+) =>
+  fetchApi<ManagedSubscription>(`/subscriptions/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+export const deleteSubscription = (id: string) =>
+  fetchApi<{ success: boolean }>(`/subscriptions/${id}`, {
+    method: 'DELETE',
+  });
+
+// Cash Flow
+export interface CashFlowForecastEvent {
+  id: string;
+  label: string;
+  amount: number;
+  currency: Currency;
+  dueDate: string;
+  source: 'bill' | 'subscription';
+  categoryLabel: string;
+}
+
+export interface CashFlowForecast {
+  days: number;
+  currentBalance: number;
+  averageDailyExpense: number;
+  committedExpenses: number;
+  projectedVariableExpenses: number;
+  projectedEndBalance: number;
+  bufferTarget: number;
+  health: 'stable' | 'watch' | 'critical';
+  runwayDays: number | null;
+  upcomingEvents: CashFlowForecastEvent[];
+}
+
+export const getCashFlowForecast = (days: number = 30) =>
+  fetchApi<CashFlowForecast>(`/transactions/cash-flow?days=${days}`);
 
 // Preferences
 export interface UserPreferences {

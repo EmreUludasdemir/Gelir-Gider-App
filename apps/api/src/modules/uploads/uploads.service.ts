@@ -1,7 +1,9 @@
-import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+﻿import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import * as crypto from 'crypto';
 import {
   TransactionEntity,
+  UploadPreview,
+  UploadPreviewTransaction,
   UploadResult,
   Currency,
   TransactionSource,
@@ -21,9 +23,18 @@ interface ParsedTransaction {
   type?: 'income' | 'expense';
 }
 
+export interface ConfirmPdfUploadDto {
+  filename: string;
+  fileHash: string;
+  fileSize: number;
+  totalParsed: number;
+  transactions: UploadPreviewTransaction[];
+}
+
 @Injectable()
 export class UploadsService {
   private readonly logger = new Logger(UploadsService.name);
+  private static readonly LOW_CONFIDENCE_THRESHOLD = 70;
   private static readonly EXPENSE_OVERRIDE_KEYWORDS = [
     'bsmv',
     'kkdf',
@@ -43,10 +54,168 @@ export class UploadsService {
     private readonly prisma: PrismaService,
     private readonly cache: CacheService,
     private readonly autoCategorizer: AutoCategorizerService,
-  ) { }
+  ) {}
 
   async processPdf(userId: string, file: Express.Multer.File): Promise<UploadResult> {
-    // Validate file
+    const preview = await this.previewPdf(userId, file);
+
+    if (preview.duplicate) {
+      return {
+        success: false,
+        duplicate: true,
+        filename: preview.filename,
+        totalParsed: preview.totalParsed,
+        totalSaved: 0,
+        lowConfidenceCount: preview.lowConfidenceCount,
+        errors: preview.errors,
+        suggestions: preview.suggestions,
+        transactions: [],
+      };
+    }
+
+    return this.confirmPdfUpload(userId, {
+      filename: preview.filename,
+      fileHash: preview.fileHash,
+      fileSize: preview.fileSize,
+      totalParsed: preview.totalParsed,
+      transactions: preview.transactions,
+    });
+  }
+
+  async previewPdf(userId: string, file: Express.Multer.File): Promise<UploadPreview> {
+    this.validateFile(file);
+
+    const fileHash = this.calculateFileHash(file);
+    const existingUpload = await this.prisma.pdfUpload.findFirst({
+      where: { userId, fileHash },
+      select: { uploadedAt: true, filename: true },
+    });
+
+    if (existingUpload) {
+      return {
+        success: false,
+        duplicate: true,
+        filename: file.originalname,
+        fileHash,
+        fileSize: file.size,
+        totalParsed: 0,
+        lowConfidenceCount: 0,
+        errors: [
+          `Bu PDF daha once ${this.formatDate(existingUpload.uploadedAt)} tarihinde yuklenmis gorunuyor.`,
+        ],
+        suggestions: this.buildDuplicateSuggestions(file.originalname, existingUpload.filename),
+        transactions: [],
+      };
+    }
+
+    try {
+      const parseResult = await this.parsePdfFile(file);
+      const previewTransactions: UploadPreviewTransaction[] = [];
+      const errors = [...(parseResult.errors || [])];
+
+      for (const [index, parsed] of parseResult.transactions.entries()) {
+        try {
+          previewTransactions.push(await this.buildPreviewTransaction(userId, file.originalname, parsed, index));
+        } catch (error) {
+          errors.push(`Transaction ${index + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }
+
+      return {
+        success: true,
+        filename: file.originalname,
+        fileHash,
+        fileSize: file.size,
+        totalParsed: parseResult.transactions.length,
+        lowConfidenceCount: previewTransactions.filter(
+          (transaction) => transaction.confidence < UploadsService.LOW_CONFIDENCE_THRESHOLD,
+        ).length,
+        errors,
+        suggestions: [],
+        transactions: previewTransactions,
+      };
+    } catch (error) {
+      return this.handleParserFailure(file.originalname, fileHash, file.size, error);
+    }
+  }
+
+  async confirmPdfUpload(userId: string, dto: ConfirmPdfUploadDto): Promise<UploadResult> {
+    if (!dto.filename || !dto.fileHash) {
+      throw new BadRequestException('Import metadata is missing');
+    }
+
+    if (!dto.transactions || dto.transactions.length === 0) {
+      throw new BadRequestException('Kaydedilecek islem bulunamadi');
+    }
+
+    const existingUpload = await this.prisma.pdfUpload.findFirst({
+      where: { userId, fileHash: dto.fileHash },
+      select: { uploadedAt: true, filename: true },
+    });
+
+    if (existingUpload) {
+      return {
+        success: false,
+        duplicate: true,
+        filename: dto.filename,
+        totalParsed: dto.totalParsed || dto.transactions.length,
+        totalSaved: 0,
+        lowConfidenceCount: 0,
+        errors: [
+          `Bu PDF daha once ${this.formatDate(existingUpload.uploadedAt)} tarihinde yuklenmis gorunuyor.`,
+        ],
+        suggestions: this.buildDuplicateSuggestions(dto.filename, existingUpload.filename),
+        transactions: [],
+      };
+    }
+
+    const errors: string[] = [];
+    const savedTransactions: TransactionEntity[] = [];
+
+    for (const [index, transaction] of dto.transactions.entries()) {
+      try {
+        const saved = await this.prisma.transaction.create({
+          data: await this.mapPreviewToCreateData(userId, dto.filename, transaction),
+        });
+        savedTransactions.push(this.mapToEntity(saved));
+      } catch (error) {
+        errors.push(`Transaction ${index + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
+
+    const lowConfidenceCount = savedTransactions.filter(
+      (transaction) => transaction.confidence < UploadsService.LOW_CONFIDENCE_THRESHOLD,
+    ).length;
+
+    await this.prisma.pdfUpload.create({
+      data: {
+        userId,
+        filename: dto.filename,
+        fileHash: dto.fileHash,
+        fileSize: dto.fileSize || 0,
+        totalParsed: dto.totalParsed || dto.transactions.length,
+        totalSaved: savedTransactions.length,
+        lowConfidenceCount,
+      },
+    });
+
+    if (savedTransactions.length > 0) {
+      await this.cache.invalidateTransactions(userId);
+    }
+
+    return {
+      success: true,
+      filename: dto.filename,
+      totalParsed: dto.totalParsed || dto.transactions.length,
+      totalSaved: savedTransactions.length,
+      lowConfidenceCount,
+      errors,
+      suggestions: [],
+      transactions: savedTransactions,
+    };
+  }
+
+  private validateFile(file: Express.Multer.File | undefined): asserts file is Express.Multer.File {
     if (!file) {
       throw new BadRequestException('No file provided');
     }
@@ -62,161 +231,167 @@ export class UploadsService {
     if (!file.buffer) {
       throw new BadRequestException('File buffer not available');
     }
+  }
 
-    const errors: string[] = [];
-    const transactions: TransactionEntity[] = [];
-    const fileHash = this.calculateFileHash(file);
+  private async parsePdfFile(file: Express.Multer.File): Promise<{
+    transactions: ParsedTransaction[];
+    errors?: string[];
+  }> {
+    const pdfParserUrl = process.env.PDF_PARSER_URL || 'http://localhost:8001';
+    const formData = new FormData();
+    const pdfBuffer = file.buffer.buffer.slice(
+      file.buffer.byteOffset,
+      file.buffer.byteOffset + file.buffer.byteLength,
+    ) as ArrayBuffer;
+    const pdfBlob = new Blob([pdfBuffer], { type: 'application/pdf' });
+    formData.append('file', pdfBlob, file.originalname);
 
-    const existingUpload = await this.prisma.pdfUpload.findFirst({
-      where: { userId, fileHash },
-      select: { uploadedAt: true, filename: true },
+    const response = await fetch(`${pdfParserUrl}/parse`, {
+      method: 'POST',
+      body: formData,
     });
 
-    if (existingUpload) {
+    if (!response.ok) {
+      throw new Error(`PDF Parser service error: ${response.statusText}`);
+    }
+
+    const parseResult = (await response.json()) as {
+      success: boolean;
+      transactions?: ParsedTransaction[];
+      errors?: string[];
+    };
+
+    if (!parseResult.success) {
+      throw new Error('PDF parsing failed');
+    }
+
+    return {
+      transactions: parseResult.transactions || [],
+      errors: parseResult.errors || [],
+    };
+  }
+
+  private async buildPreviewTransaction(
+    userId: string,
+    filename: string,
+    parsed: ParsedTransaction,
+    index: number,
+  ): Promise<UploadPreviewTransaction> {
+    const type = this.inferTransactionType(parsed);
+    const classification = await this.resolveCategory(parsed.description, type, userId);
+
+    return {
+      id: `preview-${index + 1}-${crypto.randomUUID()}`,
+      date: new Date(parsed.date).toISOString(),
+      description: parsed.description,
+      amount: Math.abs(Number(parsed.amount || 0)),
+      currency: this.normalizeCurrency(parsed.currency),
+      type,
+      categoryId: classification.categoryId,
+      categoryLabel: classification.categoryLabel,
+      confidence: classification.confidence,
+      tags: ['pdf-upload'],
+      notes: `Parsed from ${filename}`,
+    };
+  }
+
+  private async mapPreviewToCreateData(
+    userId: string,
+    filename: string,
+    transaction: UploadPreviewTransaction,
+  ) {
+    if (!transaction.description?.trim()) {
+      throw new BadRequestException('Transaction description is required');
+    }
+
+    if (!transaction.date) {
+      throw new BadRequestException('Transaction date is required');
+    }
+
+    if (!Number.isFinite(Number(transaction.amount))) {
+      throw new BadRequestException('Transaction amount is invalid');
+    }
+
+    const type = transaction.type === 'income' || transaction.type === 'expense'
+      ? transaction.type
+      : 'expense';
+
+    let categoryId = transaction.categoryId;
+    let categoryLabel = transaction.categoryLabel;
+    let confidence = Number(transaction.confidence || 0);
+
+    if (!categoryId || !categoryLabel) {
+      const classification = await this.resolveCategory(transaction.description, type, userId);
+      categoryId = classification.categoryId;
+      categoryLabel = classification.categoryLabel;
+      confidence = classification.confidence;
+    }
+
+    return {
+      userId,
+      accountId: 'pdf-upload',
+      date: new Date(transaction.date),
+      description: transaction.description.trim(),
+      amount: Math.abs(Number(transaction.amount)),
+      currency: this.normalizeCurrency(transaction.currency),
+      source: 'pdf',
+      type,
+      categoryId,
+      categoryLabel,
+      confidence: Math.max(0, Math.min(100, confidence)),
+      tags: JSON.stringify(transaction.tags?.length ? transaction.tags : ['pdf-upload']),
+      notes: transaction.notes?.trim() || `Parsed from ${filename}`,
+    };
+  }
+
+  private async resolveCategory(
+    description: string,
+    type: TransactionType,
+    userId: string,
+  ): Promise<{ categoryId: string; categoryLabel: string; confidence: number }> {
+    const auto = await this.autoCategorizer.categorize(description, userId);
+    const fallback = classifyTransaction(description, type);
+
+    if (fallback.confidence >= auto.confidence) {
+      return fallback;
+    }
+
+    return {
+      categoryId: auto.categoryId,
+      categoryLabel: auto.categoryLabel,
+      confidence: auto.confidence,
+    };
+  }
+
+  private handleParserFailure(
+    filename: string,
+    fileHash: string,
+    fileSize: number,
+    error: unknown,
+  ): UploadPreview {
+    this.logger.error('Error in previewPdf:', error);
+
+    if (error instanceof Error && error.message.includes('fetch')) {
+      this.logger.error('PDF Parser service not available');
       return {
         success: false,
-        duplicate: true,
-        filename: file.originalname,
+        filename,
+        fileHash,
+        fileSize,
         totalParsed: 0,
-        totalSaved: 0,
         lowConfidenceCount: 0,
         errors: [
-          `Bu PDF daha once ${this.formatDate(existingUpload.uploadedAt)} tarihinde yuklenmis gorunuyor.`,
+          'PDF Parser service is not available. Please start the service with: npm run dev:parser',
+          error.message,
         ],
-        suggestions: this.buildDuplicateSuggestions(file.originalname, existingUpload.filename),
+        suggestions: [],
         transactions: [],
       };
     }
 
-    try {
-      // Call PDF parser service
-      const pdfParserUrl = process.env.PDF_PARSER_URL || 'http://localhost:8001';
-
-      // Use the native FormData/Blob so fetch can set the correct boundary.
-      const formData = new FormData();
-      const pdfBuffer = file.buffer.buffer.slice(
-        file.buffer.byteOffset,
-        file.buffer.byteOffset + file.buffer.byteLength
-      ) as ArrayBuffer;
-      const pdfBlob = new Blob([pdfBuffer], { type: 'application/pdf' });
-      formData.append('file', pdfBlob, file.originalname);
-
-      const response = await fetch(`${pdfParserUrl}/parse`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error(`PDF Parser service error: ${response.statusText}`);
-      }
-
-      const parseResult = await response.json() as {
-        success: boolean;
-        transactions?: ParsedTransaction[];
-        errors?: string[];
-      };
-
-      if (!parseResult.success) {
-        throw new Error('PDF parsing failed');
-      }
-
-      const parsedTransactions: ParsedTransaction[] = parseResult.transactions || [];
-
-      // Process each parsed transaction
-      for (const [index, parsed] of parsedTransactions.entries()) {
-        try {
-          // Classify transaction
-          const type = this.inferTransactionType(parsed);
-          const auto = await this.autoCategorizer.categorize(parsed.description, userId);
-          const fallback = classifyTransaction(parsed.description, type);
-          const classification =
-            fallback.confidence >= auto.confidence
-              ? fallback
-              : {
-                categoryId: auto.categoryId,
-                categoryLabel: auto.categoryLabel,
-                confidence: auto.confidence,
-              };
-          const normalizedAmount = Math.abs(parsed.amount);
-
-          // Save to database
-          const transaction = await this.prisma.transaction.create({
-            data: {
-              userId,
-              accountId: 'pdf-upload',
-              date: new Date(parsed.date),
-              description: parsed.description,
-              amount: normalizedAmount,
-              currency: (parsed.currency || 'TRY'),
-              source: 'pdf',
-              type,
-              categoryId: classification.categoryId,
-              categoryLabel: classification.categoryLabel,
-              confidence: classification.confidence,
-              tags: JSON.stringify(['pdf-upload']),
-              notes: `Parsed from ${file.originalname}`,
-            },
-          });
-
-          transactions.push(this.mapToEntity(transaction));
-        } catch (err) {
-          errors.push(`Transaction ${index + 1}: ${err instanceof Error ? err.message : 'Unknown error'}`);
-        }
-      }
-
-      const lowConfidenceCount = transactions.filter(tx => tx.confidence < 60).length;
-
-      await this.prisma.pdfUpload.create({
-        data: {
-          userId,
-          filename: file.originalname,
-          fileHash,
-          fileSize: file.size,
-          totalParsed: parsedTransactions.length,
-          totalSaved: transactions.length,
-          lowConfidenceCount,
-        },
-      });
-
-      if (transactions.length > 0) {
-        await this.cache.invalidateTransactions(userId);
-      }
-
-      return {
-        success: true,
-        filename: file.originalname,
-        totalParsed: parsedTransactions.length,
-        totalSaved: transactions.length,
-        lowConfidenceCount,
-        errors,
-        suggestions: [],
-        transactions,
-      };
-    } catch (error) {
-      this.logger.error('Error in processPdf:', error);
-
-      // If PDF parser service is not available, return a friendly error
-      if (error instanceof Error && error.message.includes('fetch')) {
-        this.logger.error('PDF Parser service not available');
-        return {
-          success: false,
-          filename: file.originalname,
-          totalParsed: 0,
-          totalSaved: 0,
-          lowConfidenceCount: 0,
-          errors: [
-            'PDF Parser service is not available. Please start the service with: npm run dev:parser',
-            error.message,
-          ],
-          suggestions: [],
-          transactions: [],
-        };
-      }
-
-      const errorMessage = `Failed to process PDF: ${error instanceof Error ? error.message : 'Unknown error'}`;
-      this.logger.error('Throwing BadRequestException:', errorMessage);
-      throw new BadRequestException(errorMessage);
-    }
+    const errorMessage = `Failed to process PDF: ${error instanceof Error ? error.message : 'Unknown error'}`;
+    this.logger.error('Throwing BadRequestException:', errorMessage);
+    throw new BadRequestException(errorMessage);
   }
 
   private mapToEntity(prismaTx: PrismaTransaction): TransactionEntity {
@@ -271,9 +446,10 @@ export class UploadsService {
 
   private matchesCategoryKeywords(description: string, type: TransactionType): boolean {
     const normalized = this.normalizeText(description);
-    return CATEGORIES.some((category) =>
-      category.type === type &&
-      category.keywords.some((keyword) => normalized.includes(this.normalizeText(keyword)))
+    return CATEGORIES.some(
+      (category) =>
+        category.type === type &&
+        category.keywords.some((keyword) => normalized.includes(this.normalizeText(keyword))),
     );
   }
 
@@ -285,12 +461,19 @@ export class UploadsService {
   private normalizeText(input: string): string {
     return input
       .toLowerCase()
-      .replace(/ç/g, 'c')
-      .replace(/ğ/g, 'g')
-      .replace(/ı/g, 'i')
-      .replace(/ö/g, 'o')
-      .replace(/ş/g, 's')
-      .replace(/ü/g, 'u');
+      .replace(/Ã§/g, 'c')
+      .replace(/ÄŸ/g, 'g')
+      .replace(/Ä±/g, 'i')
+      .replace(/Ã¶/g, 'o')
+      .replace(/ÅŸ/g, 's')
+      .replace(/Ã¼/g, 'u');
+  }
+
+  private normalizeCurrency(currency?: string): Currency {
+    if (currency === 'USD' || currency === 'EUR') {
+      return currency;
+    }
+    return 'TRY';
   }
 
   private calculateFileHash(file: Express.Multer.File): string {

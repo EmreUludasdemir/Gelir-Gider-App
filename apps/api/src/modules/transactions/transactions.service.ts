@@ -16,6 +16,8 @@ import {
   DuplicateGroup,
   Suggestion,
   RecurringPayment,
+  CashFlowForecast,
+  CashFlowForecastEvent,
   CategorySummary,
   WeeklyData,
   Currency,
@@ -471,6 +473,117 @@ export class TransactionsService {
           new Date(a.nextDate).getTime() - new Date(b.nextDate).getTime()
       )
       .slice(0, 5);
+  }
+
+  async getCashFlowForecast(
+    userId: string,
+    days: number = 30
+  ): Promise<CashFlowForecast> {
+    const horizonDays = Number.isFinite(days) && days > 0 ? Math.min(days, 90) : 30;
+    const now = new Date();
+    const horizonEnd = new Date(now);
+    horizonEnd.setDate(horizonEnd.getDate() + horizonDays);
+    const recentStart = new Date(now);
+    recentStart.setDate(recentStart.getDate() - 29);
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+    const [recentTransactions, monthTransactions, upcomingBills, upcomingSubscriptions] =
+      await Promise.all([
+        this.prisma.transaction.findMany({
+          where: { userId, date: { gte: recentStart, lte: now } },
+        }),
+        this.prisma.transaction.findMany({
+          where: { userId, date: { gte: startOfMonth, lte: now } },
+        }),
+        this.prisma.bill.findMany({
+          where: {
+            userId,
+            isPaid: false,
+            dueDate: { gte: now, lte: horizonEnd },
+          },
+          orderBy: { dueDate: "asc" },
+        }),
+        this.prisma.subscription.findMany({
+          where: {
+            userId,
+            isActive: true,
+            nextBillingDate: { gte: now, lte: horizonEnd },
+          },
+          orderBy: { nextBillingDate: "asc" },
+        }),
+      ]);
+
+    const currentBalance = monthTransactions.reduce((sum, transaction) => {
+      if (transaction.type === "income") {
+        return sum + Math.abs(Number(transaction.amount));
+      }
+      return sum - Math.abs(Number(transaction.amount));
+    }, 0);
+
+    const recentExpenseTotal = recentTransactions
+      .filter((transaction) => transaction.type === "expense")
+      .reduce((sum, transaction) => sum + Math.abs(Number(transaction.amount)), 0);
+
+    const averageDailyExpense = recentExpenseTotal / 30;
+
+    const upcomingEvents: CashFlowForecastEvent[] = [
+      ...upcomingBills.map((bill) => ({
+        id: `bill-${bill.id}`,
+        label: bill.name,
+        amount: Math.abs(Number(bill.amount)),
+        currency: bill.currency as Currency,
+        dueDate: bill.dueDate.toISOString(),
+        source: "bill" as const,
+        categoryLabel: bill.categoryLabel,
+      })),
+      ...upcomingSubscriptions.map((subscription) => ({
+        id: `subscription-${subscription.id}`,
+        label: subscription.name,
+        amount: Math.abs(Number(subscription.amount)),
+        currency: subscription.currency as Currency,
+        dueDate: subscription.nextBillingDate.toISOString(),
+        source: "subscription" as const,
+        categoryLabel: subscription.categoryLabel,
+      })),
+    ].sort((left, right) => new Date(left.dueDate).getTime() - new Date(right.dueDate).getTime());
+
+    const committedExpenses = upcomingEvents.reduce((sum, event) => sum + event.amount, 0);
+    const daysRemainingInMonth = Math.max(
+      0,
+      Math.ceil((endOfMonth.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    );
+    const projectedVariableExpenses = Number((averageDailyExpense * daysRemainingInMonth).toFixed(2));
+    const projectedEndBalance = Number(
+      (currentBalance - committedExpenses - projectedVariableExpenses).toFixed(2)
+    );
+    const bufferTarget = Number((averageDailyExpense * 7).toFixed(2));
+
+    let health: "stable" | "watch" | "critical" = "stable";
+    if (projectedEndBalance < 0) {
+      health = "critical";
+    } else if (projectedEndBalance < bufferTarget) {
+      health = "watch";
+    }
+
+    const availableAfterCommitments = currentBalance - committedExpenses;
+    const runwayDays =
+      averageDailyExpense > 0
+        ? Math.max(0, Math.floor(availableAfterCommitments / averageDailyExpense))
+        : null;
+
+    return {
+      days: horizonDays,
+      currentBalance: Number(currentBalance.toFixed(2)),
+      averageDailyExpense: Number(averageDailyExpense.toFixed(2)),
+      committedExpenses: Number(committedExpenses.toFixed(2)),
+      projectedVariableExpenses,
+      projectedEndBalance,
+      bufferTarget,
+      health,
+      runwayDays,
+      upcomingEvents: upcomingEvents.slice(0, 6),
+    };
   }
 
   // ============ EXPORT METHODS ============

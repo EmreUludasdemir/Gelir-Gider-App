@@ -12,6 +12,10 @@ import {
   Budget,
   SavingsGoal,
   Bill,
+  ManagedSubscription,
+  DetectedSubscription,
+  SubscriptionSummary,
+  CashFlowForecast,
 } from './api'
 
 function useProtectedKey(path: string | null) {
@@ -76,16 +80,44 @@ export function useUpcomingBills(days = 14) {
   })
 }
 
+export function useSubscriptions() {
+  return useSWR<ManagedSubscription[]>(useProtectedKey('/subscriptions'), fetcher, {
+    refreshInterval: 60000,
+  })
+}
+
+export function useDetectedSubscriptions() {
+  return useSWR<DetectedSubscription[]>(useProtectedKey('/subscriptions/detected'), fetcher, {
+    refreshInterval: 60000,
+  })
+}
+
+export function useSubscriptionSummary() {
+  return useSWR<SubscriptionSummary>(useProtectedKey('/subscriptions/summary'), fetcher, {
+    refreshInterval: 60000,
+  })
+}
+
+export function useCashFlowForecast(days = 30) {
+  return useSWR<CashFlowForecast>(useProtectedKey(`/transactions/cash-flow?days=${days}`), fetcher, {
+    refreshInterval: 60000,
+  })
+}
+
 export function useRefreshAll() {
   const { mutate: mutateTransactions } = useTransactions()
   const { mutate: mutateSummary } = useSummary()
   const { mutate: mutateSuggestions } = useSuggestions()
+  const { mutate: mutateSubscriptions } = useSubscriptionSummary()
+  const { mutate: mutateCashFlow } = useCashFlowForecast()
 
   return async () => {
     await Promise.all([
       mutateTransactions(),
       mutateSummary(),
       mutateSuggestions(),
+      mutateSubscriptions(),
+      mutateCashFlow(),
     ])
   }
 }
