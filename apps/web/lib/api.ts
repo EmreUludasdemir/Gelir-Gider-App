@@ -252,6 +252,99 @@ export const confirmPdfImport = (data: ConfirmPdfUploadPayload) =>
     body: JSON.stringify(data),
   });
 
+function buildUploadBatchPreview(items: UploadBatchPreviewItem[]): UploadBatchPreview {
+  const actionableItems = items.filter((item) => !item.preview.duplicate)
+
+  return {
+    items,
+    totalFiles: items.length,
+    actionableFiles: actionableItems.length,
+    duplicateFiles: items.length - actionableItems.length,
+    totalParsed: items.reduce((sum, item) => sum + item.preview.totalParsed, 0),
+    totalLowConfidenceCount: items.reduce((sum, item) => sum + item.preview.lowConfidenceCount, 0),
+    totalSize: items.reduce((sum, item) => sum + item.preview.fileSize, 0),
+  }
+}
+
+function buildUploadBatchResult(fileResults: UploadBatchResultItem[]): UploadBatchResult {
+  const savedResults = fileResults.filter((item) => item.result.success && !item.result.duplicate)
+  const duplicateFiles = fileResults.filter((item) => item.result.duplicate).length
+
+  return {
+    success: savedResults.length > 0 || duplicateFiles > 0,
+    totalFiles: fileResults.length,
+    processedFiles: savedResults.length,
+    duplicateFiles,
+    totalParsed: fileResults.reduce((sum, item) => sum + item.result.totalParsed, 0),
+    totalSaved: fileResults.reduce((sum, item) => sum + item.result.totalSaved, 0),
+    lowConfidenceCount: fileResults.reduce((sum, item) => sum + item.result.lowConfidenceCount, 0),
+    errors: fileResults.flatMap((item) => item.result.errors),
+    suggestions: fileResults.flatMap((item) => item.result.suggestions || []),
+    transactions: fileResults.flatMap((item) => item.result.transactions),
+    fileResults,
+  }
+}
+
+export async function previewPdfImportBatch(
+  files: File[],
+  onProgress?: (completed: number, total: number) => void,
+): Promise<UploadBatchPreview> {
+  const items: UploadBatchPreviewItem[] = []
+
+  for (const [index, file] of files.entries()) {
+    const preview = await previewPdfImport(file)
+    items.push({
+      id: `${file.name}-${index}`,
+      preview: {
+        ...preview,
+        filename: file.name,
+        fileSize: file.size,
+      },
+    })
+
+    onProgress?.(index + 1, files.length)
+  }
+
+  return buildUploadBatchPreview(items)
+}
+
+export async function confirmPdfImportBatch(
+  payloads: ConfirmPdfUploadPayload[],
+  onProgress?: (completed: number, total: number) => void,
+): Promise<UploadBatchResult> {
+  const fileResults: UploadBatchResultItem[] = []
+
+  for (const [index, payload] of payloads.entries()) {
+    try {
+      const result = await confirmPdfImport(payload)
+      fileResults.push({
+        id: `${payload.filename}-${index}`,
+        filename: payload.filename,
+        result,
+      })
+    } catch (error) {
+      fileResults.push({
+        id: `${payload.filename}-${index}`,
+        filename: payload.filename,
+        result: {
+          success: false,
+          filename: payload.filename,
+          totalParsed: payload.totalParsed,
+          totalSaved: 0,
+          lowConfidenceCount: payload.transactions.filter((transaction) => transaction.confidence < 70).length,
+          errors: [error instanceof Error ? error.message : 'Import failed'],
+          suggestions: [],
+          transactions: [],
+        },
+      })
+    }
+
+    onProgress?.(index + 1, payloads.length)
+  }
+
+  return buildUploadBatchResult(fileResults)
+}
+
 // Types
 export type TransactionType = 'income' | 'expense';
 export type Currency = 'TRY' | 'USD' | 'EUR';
@@ -409,6 +502,41 @@ export interface ConfirmPdfUploadPayload {
   fileSize: number;
   totalParsed: number;
   transactions: UploadPreviewTransaction[];
+}
+
+export interface UploadBatchPreviewItem {
+  id: string;
+  preview: UploadPreview;
+}
+
+export interface UploadBatchPreview {
+  items: UploadBatchPreviewItem[];
+  totalFiles: number;
+  actionableFiles: number;
+  duplicateFiles: number;
+  totalParsed: number;
+  totalLowConfidenceCount: number;
+  totalSize: number;
+}
+
+export interface UploadBatchResultItem {
+  id: string;
+  filename: string;
+  result: UploadResult;
+}
+
+export interface UploadBatchResult {
+  success: boolean;
+  totalFiles: number;
+  processedFiles: number;
+  duplicateFiles: number;
+  totalParsed: number;
+  totalSaved: number;
+  lowConfidenceCount: number;
+  errors: string[];
+  suggestions?: string[];
+  transactions: Transaction[];
+  fileResults: UploadBatchResultItem[];
 }
 
 export interface DuplicateGroup {

@@ -74,25 +74,33 @@ test.describe('PDF Upload Review', () => {
   })
 
   test('shows import review after a successful pdf upload', async ({ page }) => {
-    await page.setInputFiles('#pdf-file-input', {
-      name: 'mart-ekstre.pdf',
-      mimeType: 'application/pdf',
-      buffer: Buffer.from('%PDF-1.4 test file'),
-    })
+    await page.setInputFiles('#pdf-file-input', [
+      {
+        name: 'mart-ekstre.pdf',
+        mimeType: 'application/pdf',
+        buffer: Buffer.from('%PDF-1.4 test file'),
+      },
+      {
+        name: 'nisan-ekstre.pdf',
+        mimeType: 'application/pdf',
+        buffer: Buffer.from('%PDF-1.4 second test file'),
+      },
+    ])
 
     await page.getByTestId('pdf-upload-submit').click()
 
     await expect(page.getByTestId('pdf-import-workbench')).toBeVisible()
-    await expect(page.getByText('Kaydetmeden once import satirlarini duzenle')).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Birden fazla PDF'i tek akista duzenle ve kaydet/i })).toBeVisible()
+    await expect(page.getByRole('button', { name: /mart-ekstre\.pdf/i })).toBeVisible()
+    await expect(page.getByRole('button', { name: /nisan-ekstre\.pdf/i })).toBeVisible()
     await page.getByRole('button', { name: /Sadece dusuk guven/i }).click()
-    await expect(page.getByText('Istanbulkart Yukleme')).toBeVisible()
+    await expect(page.getByText('Istanbulkart Yukleme').first()).toBeVisible()
     await page.getByTestId('pdf-import-confirm').click()
 
     await expect(page.getByTestId('pdf-import-review')).toBeVisible()
-    await expect(page.getByText('Import review hazir')).toBeVisible()
-    await expect(page.getByText('Kontrol gerektiren satirlar')).toBeVisible()
-    await expect(page.getByTestId('pdf-import-review').getByText('Istanbulkart Yukleme').first()).toBeVisible()
-    await expect(page.getByText('PDF arsivi (4)')).toBeVisible()
+    await expect(page.getByText('Toplu import review hazir')).toBeVisible()
+    await expect(page.getByText('Dosya bazli kalite sinyali')).toBeVisible()
+    await expect(page.getByText('PDF arsivi (7)')).toBeVisible()
   })
 })
 

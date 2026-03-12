@@ -7,6 +7,7 @@ import { StatCard } from '@/components/dashboard/StatCard'
 import { DashboardHero } from '@/components/dashboard/DashboardHero'
 import { DashboardCommandCenter } from '@/components/dashboard/DashboardCommandCenter'
 import { CashFlowForecastCard } from '@/components/dashboard/CashFlowForecastCard'
+import { FinancialAnalysisBoard } from '@/components/dashboard/FinancialAnalysisBoard'
 import { Spinner } from '@/components/ui/Spinner'
 import { usePreferences } from '@/lib/PreferencesContext'
 import { useTranslation } from '@/lib/translations'
@@ -137,6 +138,8 @@ export default function DashboardPage() {
       <DashboardCommandCenter />
 
       <CashFlowForecastCard />
+
+      <FinancialAnalysisBoard summary={summary} />
 
       {/* Smart Transaction Input - Lazy loaded */}
       <Suspense fallback={<SmartInputSkeleton />}>
