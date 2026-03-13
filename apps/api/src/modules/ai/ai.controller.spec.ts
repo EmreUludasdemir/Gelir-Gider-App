@@ -12,6 +12,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 
 describe('AiController', () => {
   let app: INestApplication
+  const originalInternalToken = process.env.AI_INTERNAL_TOKEN
 
   const spendingAnalyzer = {
     generateInsights: jest.fn(),
@@ -45,6 +46,7 @@ describe('AiController', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks()
+    process.env.AI_INTERNAL_TOKEN = 'test-internal-token'
 
     const moduleBuilder = Test.createTestingModule({
       imports: [
@@ -87,6 +89,14 @@ describe('AiController', () => {
     await app.close()
   })
 
+  afterAll(() => {
+    if (originalInternalToken === undefined) {
+      delete process.env.AI_INTERNAL_TOKEN
+      return
+    }
+    process.env.AI_INTERNAL_TOKEN = originalInternalToken
+  })
+
   it('should read transactionId from path param for anomaly analysis', async () => {
     anomalyDetector.analyzeTransaction.mockResolvedValue({ isAnomaly: false })
 
@@ -100,9 +110,19 @@ describe('AiController', () => {
   it('should reject invalid chat payloads with validation errors', async () => {
     const response = await request(app.getHttpServer())
       .post('/ai/chat')
+      .set('x-internal-ai-token', 'test-internal-token')
       .send({ message: '   ' })
 
     expect(response.status).toBe(400)
+    expect(aiChat.chat).not.toHaveBeenCalled()
+  })
+
+  it('should hide chat endpoint from non-internal callers', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/ai/chat')
+      .send({ message: 'harcama ozeti' })
+
+    expect(response.status).toBe(404)
     expect(aiChat.chat).not.toHaveBeenCalled()
   })
 
@@ -119,6 +139,7 @@ describe('AiController', () => {
     for (let attempt = 0; attempt < 5; attempt += 1) {
       const response = await request(app.getHttpServer())
         .post('/ai/chat')
+        .set('x-internal-ai-token', 'test-internal-token')
         .send({ message: `harcama ozet ${attempt}` })
 
       expect(response.status).toBe(201)
@@ -126,6 +147,7 @@ describe('AiController', () => {
 
     const throttled = await request(app.getHttpServer())
       .post('/ai/chat')
+      .set('x-internal-ai-token', 'test-internal-token')
       .send({ message: 'limit testi' })
 
     expect(throttled.status).toBe(429)

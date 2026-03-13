@@ -1,5 +1,4 @@
 ﻿import { Header } from '@/components/layout/Header'
-import { FinancialAssistant } from '@/components/dashboard/FinancialAssistant'
 import { FloatingActionButton } from '@/components/layout/FloatingActionButton'
 
 export default function DashboardLayout({
@@ -29,7 +28,6 @@ export default function DashboardLayout({
         {children}
       </main>
 
-      <FinancialAssistant />
       <FloatingActionButton />
     </div>
   )

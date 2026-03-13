@@ -20,6 +20,7 @@ test.describe('Dashboard', () => {
     await expect(page.getByTestId('financial-analysis-board')).toBeVisible()
     await expect(page.getByText('Ay sonu nakit akis tahmini')).toBeVisible()
     await expect(page.getByText('Verinin anlattigi resmi daha net gor')).toBeVisible()
+    await expect(page.getByText('Finansal icgoruler')).toBeVisible()
     await expect(page.getByText('Harcama ivmesi')).toBeVisible()
     await expect(page.getByText('Kesilebilecek alan')).toBeVisible()
     await expect(page.getByText('Aydan aya fark')).toBeVisible()
@@ -30,6 +31,8 @@ test.describe('Dashboard', () => {
     await expect(page.getByRole('heading', { name: 'Yaklaşan Faturalar' })).toBeVisible()
     await expect(page.getByTitle('Mart Maasi')).toBeVisible()
     await expect(page.getByTitle('Migros Market')).toBeVisible()
+    await expect(page.getByText('Akıllı Giriş')).toHaveCount(0)
+    await expect(page.getByLabel('Finansal Asistan')).toHaveCount(0)
   })
 
   test('marks an upcoming bill as paid from command center', async ({ page }) => {

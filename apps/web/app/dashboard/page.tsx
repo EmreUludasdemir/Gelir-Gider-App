@@ -19,7 +19,6 @@ import {
   ChartSkeleton,
   CategorySkeleton,
   AIInsightsSkeleton,
-  SmartInputSkeleton,
 } from '@/components/skeletons'
 
 // Lazy load heavy components for better initial load performance
@@ -58,22 +57,12 @@ const RecurringPayments = dynamic(
   { loading: () => <CategorySkeleton /> }
 )
 
-const SmartTransactionInput = dynamic(
-  () => import('@/components/forms/SmartTransactionInput').then(mod => ({ default: mod.SmartTransactionInput })),
-  { loading: () => <SmartInputSkeleton />, ssr: false }
-)
-
 export default function DashboardPage() {
   const { loading: authLoading } = useAuth()
-  const { data: summary, error: summaryError, isLoading: summaryLoading, mutate: mutateSummary } = useSummary()
+  const { data: summary, error: summaryError, isLoading: summaryLoading } = useSummary()
   const { data: transactions, error: transactionsError, isLoading: transactionsLoading, mutate: mutateTransactions } = useTransactions()
   const { language } = usePreferences()
   const { t } = useTranslation(language)
-
-  const handleTransactionAdded = () => {
-    mutateSummary()
-    mutateTransactions()
-  }
 
   // Wait for auth to be ready before showing data
   if (authLoading) {
@@ -91,7 +80,6 @@ export default function DashboardPage() {
           <div className="h-9 w-48 bg-muted rounded animate-pulse" />
           <div className="h-5 w-32 bg-muted rounded mt-2 animate-pulse" />
         </div>
-        <SmartInputSkeleton />
         <DashboardSkeleton.Stats />
         <AIInsightsSkeleton />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -147,10 +135,6 @@ export default function DashboardPage() {
         </div>
 
         <DashboardEmptyState />
-
-        <Suspense fallback={<SmartInputSkeleton />}>
-          <SmartTransactionInput onSuccess={handleTransactionAdded} />
-        </Suspense>
       </div>
     )
   }
@@ -171,11 +155,6 @@ export default function DashboardPage() {
       <CashFlowForecastCard />
 
       <FinancialAnalysisBoard summary={summary} />
-
-      {/* Smart Transaction Input - Lazy loaded */}
-      <Suspense fallback={<SmartInputSkeleton />}>
-        <SmartTransactionInput onSuccess={handleTransactionAdded} />
-      </Suspense>
 
       {/* Stat Cards - Not lazy loaded (critical for LCP) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

@@ -3,8 +3,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   Sparkles,
-  Loader2,
-  RefreshCw,
   Lightbulb,
   TrendingUp,
   TrendingDown,
@@ -91,8 +89,6 @@ export function AIInsights() {
   const { t } = useTranslation(language);
   const [spendingInsights, setSpendingInsights] = useState<SpendingInsight[]>([]);
   const [anomalySummary, setAnomalySummary] = useState<AnomalySummary | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasAnalyzed, setHasAnalyzed] = useState(false);
   const [activeTab, setActiveTab] = useState<'insights' | 'anomalies' | 'savings'>('insights');
   const [serviceUnavailable, setServiceUnavailable] = useState(false);
 
@@ -118,36 +114,26 @@ export function AIInsights() {
     void loadAIInsights();
   }, [loadAIInsights]);
 
-  const handleAnalyze = async () => {
-    setIsLoading(true);
-    try {
-      await loadAIInsights();
-      setHasAnalyzed(true);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
       <div className="p-4 border-b border-border dark:border-gray-700">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-primary-600" />
-            <h3 className="font-semibold text-foreground">{t('auto_insights')}</h3>
+            <div>
+              <h3 className="font-semibold text-foreground">
+                {language === 'tr' ? 'Finansal icgoruler' : 'Financial insights'}
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                {language === 'tr'
+                  ? 'Arka planda uretilen analiz sinyalleri'
+                  : 'Background-generated analysis signals'}
+              </p>
+            </div>
           </div>
-          <button
-            onClick={handleAnalyze}
-            disabled={isLoading}
-            className="px-3 py-1.5 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
-          >
-            {isLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <RefreshCw className="w-4 h-4" />
-            )}
-            {t('analyze')}
-          </button>
+          <span className="px-3 py-1.5 text-xs font-semibold rounded-full border border-primary/20 bg-primary/10 text-primary">
+            {language === 'tr' ? 'Otomatik' : 'Automatic'}
+          </span>
         </div>
 
         <div className="flex gap-1 p-1 bg-muted rounded-lg">
@@ -196,18 +182,18 @@ export function AIInsights() {
         {serviceUnavailable && (
           <div className="mb-4 rounded-lg border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
             {language === 'tr'
-              ? 'AI servisi su anda hazir degil. GEMINI_API_KEY ayari eksik olabilir.'
-              : 'AI service is currently unavailable. GEMINI_API_KEY may be missing.'}
+              ? 'Analiz motoru su anda hazir degil. Kartlar sonradan otomatik dolacak.'
+              : 'The analysis engine is currently unavailable. Cards will populate automatically later.'}
           </div>
         )}
 
         {activeTab === 'insights' && (
           <>
-            {!hasAnalyzed && spendingInsights.length === 0 ? (
+            {spendingInsights.length === 0 ? (
               <p className="text-muted-foreground text-center py-4">
                 {language === 'tr'
-                  ? 'Sunucu tarafli analizleri yenilemek icin butona tiklayin.'
-                  : 'Click Analyze to refresh server-side insights.'}
+                  ? 'Sunucu tarafli analizler hazir oldugunda oneriler burada gorunecek.'
+                  : 'Server-side insights will appear here when ready.'}
               </p>
             ) : (
               <div className="space-y-3">
@@ -371,15 +357,15 @@ export function AIInsights() {
                 </div>
               </>
             ) : (
-              <div className="text-center py-8">
-                <PiggyBank className="w-12 h-12 text-gray-300 dark:text-muted-foreground mx-auto mb-3" />
-                <p className="text-muted-foreground">
-                  {language === 'tr'
-                    ? "Tasarruf firsatlarini yuklemek icin Analiz'e tiklayin."
-                    : 'Click Analyze to load savings opportunities.'}
-                </p>
-              </div>
-            )}
+                <div className="text-center py-8">
+                  <PiggyBank className="w-12 h-12 text-gray-300 dark:text-muted-foreground mx-auto mb-3" />
+                  <p className="text-muted-foreground">
+                    {language === 'tr'
+                    ? 'Tasarruf firsatlari hazir oldugunda burada listelenecek.'
+                    : 'Savings opportunities will appear here when ready.'}
+                  </p>
+                </div>
+              )}
           </div>
         )}
       </div>

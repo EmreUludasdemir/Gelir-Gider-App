@@ -12,7 +12,9 @@ import {
   UseGuards,
   Request,
   Param,
+  Headers,
   UnauthorizedException,
+  NotFoundException,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -127,8 +129,10 @@ export class AiController {
   @Post('chat')
   async chat(
     @Request() req: { user?: { id?: string; userId?: string } },
+    @Headers('x-internal-ai-token') internalToken: string | undefined,
     @Body() body: ChatRequestDto
   ) {
+    this.assertInternalChatAccess(internalToken)
     return this.aiChat.chat(this.getUserId(req), body.message);
   }
 
@@ -147,5 +151,12 @@ export class AiController {
       throw new UnauthorizedException('User context is missing');
     }
     return userId;
+  }
+
+  private assertInternalChatAccess(internalToken?: string): void {
+    const configuredToken = process.env.AI_INTERNAL_TOKEN?.trim()
+    if (!configuredToken || internalToken?.trim() !== configuredToken) {
+      throw new NotFoundException()
+    }
   }
 }
