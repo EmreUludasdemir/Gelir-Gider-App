@@ -1,4 +1,4 @@
-# Gelir-Gider App
+ï»¿# Gelir-Gider App
 
 Monorepo yapisinda gelir-gider takip uygulamasi.
 
@@ -14,6 +14,11 @@ Temel ozellikler:
 - server-side AI endpointleri (`/ai/*`)
 - cookie tabanli web auth (`HttpOnly` access/refresh cookie)
 - realtime bildirimler
+
+## Planlama Dokumanlari
+Urun yonu ve uygulanabilir backlog burada tutulur:
+- `docs/PRODUCT_ROADMAP.md`: urun vizyonu, fazlar ve oncelik sirasi
+- `docs/PRODUCT_BACKLOG.md`: epikler, issue adaylari, acceptance criteria ve sprint onceligi
 
 ## Mimari
 - Web: `http://localhost:3000`
@@ -34,7 +39,7 @@ Web uygulamasi browser tarafinda JWT saklamaz.
 - Python 3.11+
 - Docker ve Docker Compose
 
-## Hýzlý Kurulum
+## HÄ±zlÄ± Kurulum
 ```bash
 npm ci --workspaces --include-workspace-root
 copy .env.example .env
@@ -188,3 +193,6 @@ Production icin dogrula:
 - `APP_URL` ve `FRONTEND_URL` dogru domain'e ayarli
 - `JWT_SECRET`, `JWT_REFRESH_SECRET`, `SESSION_SECRET`, `ENCRYPTION_KEY` guclu degerler
 - `GEMINI_API_KEY` sadece server-side ortamda mevcut
+
+
+
