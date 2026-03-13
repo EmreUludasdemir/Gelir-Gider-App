@@ -34,6 +34,168 @@ interface EditableBatchItem extends UploadBatchPreviewItem {
   preview: UploadBatchPreviewItem['preview']
 }
 
+type ReviewLevel = 'safe' | 'review' | 'suspicious'
+
+interface RowInsight {
+  level: ReviewLevel
+  label: 'Guvenli' | 'Incele' | 'Supheli'
+  score: number
+  reasons: string[]
+  merchantKey: string
+  suggestedCategoryId?: string
+  suggestedCategoryLabel?: string
+}
+
+interface CategorySuggestionGroup {
+  merchantKey: string
+  categoryId: string
+  categoryLabel: string
+  matchCount: number
+  rowIds: string[]
+}
+
+const CATEGORY_RULES: Array<{
+  matchers: RegExp[]
+  categoryId: string
+}> = [
+  { matchers: [/migros/i, /\ba101\b/i, /\bbim\b/i, /sok market/i, /market/i], categoryId: 'market' },
+  { matchers: [/istanbulkart/i, /metro/i, /opet/i, /shell/i, /moov/i, /taksi/i], categoryId: 'transport' },
+  { matchers: [/spotify/i, /netflix/i, /icloud/i, /youtube premium/i, /disney/i], categoryId: 'subscription' },
+  { matchers: [/yemeksepeti/i, /getir yemek/i, /trendyol yemek/i, /burger king/i, /starbucks/i], categoryId: 'restaurant' },
+  { matchers: [/elektrik/i, /internet/i, /su faturasi/i, /dogalgaz/i], categoryId: 'utilities' },
+  { matchers: [/kira/i, /rent/i], categoryId: 'rent' },
+  { matchers: [/maas/i, /salary/i, /freelance/i, /odemesi/i], categoryId: 'salary' },
+]
+
+function normalizeMerchantKey(description: string) {
+  return description
+    .toLowerCase()
+    .replace(/[0-9]/g, ' ')
+    .replace(/[^a-zA-Z\u00C0-\u024F\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(' ')
+    .slice(0, 2)
+    .join(' ')
+}
+
+function getSuggestionForDescription(description: string) {
+  const rule = CATEGORY_RULES.find((candidate) =>
+    candidate.matchers.some((matcher) => matcher.test(description)),
+  )
+
+  if (!rule) {
+    return null
+  }
+
+  const category = CATEGORIES.find((candidate) => candidate.id === rule.categoryId)
+  if (!category) {
+    return null
+  }
+
+  return {
+    categoryId: category.id,
+    categoryLabel: category.label,
+  }
+}
+
+function getReviewTone(level: ReviewLevel) {
+  if (level === 'suspicious') {
+    return 'border-destructive/25 bg-destructive/10 text-destructive'
+  }
+
+  if (level === 'review') {
+    return 'border-warning/25 bg-warning/10 text-warning'
+  }
+
+  return 'border-success/25 bg-success/10 text-success'
+}
+
+function buildRowInsights(rows: UploadPreviewTransaction[]) {
+  const expenseAmounts = rows
+    .filter((row) => row.type === 'expense')
+    .map((row) => Math.abs(Number(row.amount || 0)))
+    .sort((left, right) => left - right)
+
+  const expenseMedian = expenseAmounts.length > 0
+    ? expenseAmounts[Math.floor(expenseAmounts.length / 2)]
+    : 0
+
+  const duplicateKeys = rows.reduce<Record<string, number>>((acc, row) => {
+    const key = `${row.date.slice(0, 10)}-${normalizeMerchantKey(row.description)}-${row.type}`
+    acc[key] = (acc[key] || 0) + 1
+    return acc
+  }, {})
+
+  return rows.reduce<Record<string, RowInsight>>((acc, row) => {
+    const reasons: string[] = []
+    const confidence = Number(row.confidence || 0)
+    const merchantKey = normalizeMerchantKey(row.description)
+    const duplicateKey = `${row.date.slice(0, 10)}-${merchantKey}-${row.type}`
+    const selectedCategory = CATEGORIES.find((candidate) => candidate.id === row.categoryId)
+    const suggestion = getSuggestionForDescription(row.description)
+    const absoluteAmount = Math.abs(Number(row.amount || 0))
+
+    if (confidence < 60) {
+      reasons.push('Parser guveni kritik seviyede')
+    } else if (confidence < 75) {
+      reasons.push('Parser guveni inceleme gerektiriyor')
+    }
+
+    if (
+      expenseMedian > 0 &&
+      row.type === 'expense' &&
+      absoluteAmount > expenseMedian * 2.5 &&
+      absoluteAmount > 1000
+    ) {
+      reasons.push('Tutar dosya medyanina gore belirgin sekilde yuksek')
+    }
+
+    if (duplicateKeys[duplicateKey] > 1) {
+      reasons.push('Ayni gun benzer merchant tekrari bulundu')
+    }
+
+    if (
+      selectedCategory &&
+      ((row.type === 'income' && selectedCategory.type === 'expense') ||
+        (row.type === 'expense' && selectedCategory.type === 'income'))
+    ) {
+      reasons.push('Tip ve kategori birbiriyle uyusmuyor')
+    }
+
+    if (suggestion && suggestion.categoryId !== row.categoryId) {
+      reasons.push(`Merchant paterni ${suggestion.categoryLabel} kategorisini oneriyor`)
+    }
+
+    const level: ReviewLevel = reasons.some((reason) =>
+      reason.includes('kritik') ||
+      reason.includes('uyusmuyor') ||
+      reason.includes('belirgin'),
+    )
+      ? 'suspicious'
+      : reasons.length > 0
+        ? 'review'
+        : 'safe'
+
+    acc[row.id] = {
+      level,
+      label: level === 'suspicious' ? 'Supheli' : level === 'review' ? 'Incele' : 'Guvenli',
+      score:
+        level === 'suspicious'
+          ? Math.max(80, 100 - confidence)
+          : level === 'review'
+            ? Math.max(45, 85 - confidence)
+            : Math.max(12, 40 - confidence / 4),
+      reasons,
+      merchantKey,
+      suggestedCategoryId: suggestion?.categoryId,
+      suggestedCategoryLabel: suggestion?.categoryLabel,
+    }
+
+    return acc
+  }, {})
+}
+
 export function PdfBatchWorkbench({ batch, onConfirm, onDiscard }: PdfBatchWorkbenchProps) {
   const [items, setItems] = useState<EditableBatchItem[]>(batch.items)
   const [selectedItemId, setSelectedItemId] = useState<string | null>(batch.items[0]?.id ?? null)
@@ -49,13 +211,25 @@ export function PdfBatchWorkbench({ batch, onConfirm, onDiscard }: PdfBatchWorkb
   }, [batch])
 
   const actionableItems = useMemo(
-    () => items.filter((item) => !item.preview.duplicate && item.preview.transactions.length > 0),
+    () =>
+      items.filter(
+        (item) => item.preview.success && !item.preview.duplicate && item.preview.transactions.length > 0,
+      ),
     [items],
   )
 
   const activeItem = useMemo(() => {
     return items.find((item) => item.id === selectedItemId) || items[0] || null
   }, [items, selectedItemId])
+
+  const itemInsights = useMemo(
+    () =>
+      items.reduce<Record<string, Record<string, RowInsight>>>((acc, item) => {
+        acc[item.id] = buildRowInsights(item.preview.transactions)
+        return acc
+      }, {}),
+    [items],
+  )
 
   const activeRows = useMemo(() => {
     if (!activeItem) {
@@ -66,8 +240,42 @@ export function PdfBatchWorkbench({ batch, onConfirm, onDiscard }: PdfBatchWorkb
       return activeItem.preview.transactions
     }
 
-    return activeItem.preview.transactions.filter((row) => Number(row.confidence || 0) < 70)
-  }, [activeItem, showOnlyLowConfidence])
+    return activeItem.preview.transactions.filter((row) => {
+      const insight = itemInsights[activeItem.id]?.[row.id]
+      return Number(row.confidence || 0) < 70 || insight?.level !== 'safe'
+    })
+  }, [activeItem, itemInsights, showOnlyLowConfidence])
+
+  const activeSuggestionGroups = useMemo<CategorySuggestionGroup[]>(() => {
+    if (!activeItem) {
+      return []
+    }
+
+    const grouped = activeItem.preview.transactions.reduce<Record<string, CategorySuggestionGroup>>((acc, row) => {
+      const insight = itemInsights[activeItem.id]?.[row.id]
+      if (!insight?.suggestedCategoryId || !insight.merchantKey) {
+        return acc
+      }
+
+      const key = `${insight.merchantKey}-${insight.suggestedCategoryId}`
+      const current = acc[key] || {
+        merchantKey: insight.merchantKey,
+        categoryId: insight.suggestedCategoryId,
+        categoryLabel: insight.suggestedCategoryLabel || row.categoryLabel,
+        matchCount: 0,
+        rowIds: [],
+      }
+
+      current.matchCount += 1
+      current.rowIds.push(row.id)
+      acc[key] = current
+      return acc
+    }, {})
+
+    return Object.values(grouped)
+      .sort((left, right) => right.matchCount - left.matchCount)
+      .slice(0, 4)
+  }, [activeItem, itemInsights])
 
   const batchAnalysis = useMemo(() => {
     const rows = actionableItems.flatMap((item) => item.preview.transactions)
@@ -101,8 +309,33 @@ export function PdfBatchWorkbench({ batch, onConfirm, onDiscard }: PdfBatchWorkb
     ).sort((left, right) => right.total - left.total)
 
     const highRiskRows = [...rows]
-      .sort((left, right) => Number(left.confidence || 0) - Number(right.confidence || 0))
+      .sort((left, right) => {
+        const leftInsight = actionableItems
+          .map((item) => itemInsights[item.id]?.[left.id])
+          .find(Boolean)
+        const rightInsight = actionableItems
+          .map((item) => itemInsights[item.id]?.[right.id])
+          .find(Boolean)
+
+        const riskDelta = Number(rightInsight?.score || 0) - Number(leftInsight?.score || 0)
+        if (riskDelta !== 0) {
+          return riskDelta
+        }
+
+        return Number(left.confidence || 0) - Number(right.confidence || 0)
+      })
       .slice(0, 4)
+
+    const suspiciousCount = rows.filter((row) =>
+      actionableItems.some((item) => itemInsights[item.id]?.[row.id]?.level === 'suspicious'),
+    ).length
+
+    const reviewCount = rows.filter((row) =>
+      actionableItems.some((item) => {
+        const level = itemInsights[item.id]?.[row.id]?.level
+        return level === 'review' || level === 'suspicious'
+      }),
+    ).length
 
     return {
       rowCount: rows.length,
@@ -110,12 +343,14 @@ export function PdfBatchWorkbench({ batch, onConfirm, onDiscard }: PdfBatchWorkb
       totalIncome,
       netImpact: totalIncome - totalExpense,
       lowConfidenceCount,
+      reviewCount,
+      suspiciousCount,
       avgConfidence,
       topCategories: categoryTotals.slice(0, 3),
       topMerchants: merchantTotals.slice(0, 3),
       highRiskRows,
     }
-  }, [actionableItems])
+  }, [actionableItems, itemInsights])
 
   const handleRowChange = (
     itemId: string,
@@ -170,6 +405,40 @@ export function PdfBatchWorkbench({ batch, onConfirm, onDiscard }: PdfBatchWorkb
           preview: {
             ...item.preview,
             transactions: item.preview.transactions.filter((row) => row.id !== rowId),
+          },
+        }
+      }),
+    )
+  }
+
+  const applySuggestedCategory = (itemId: string, merchantKey: string, categoryId: string) => {
+    const category = CATEGORIES.find((candidate) => candidate.id === categoryId)
+    if (!category) {
+      return
+    }
+
+    setItems((current) =>
+      current.map((item) => {
+        if (item.id !== itemId) {
+          return item
+        }
+
+        return {
+          ...item,
+          preview: {
+            ...item.preview,
+            transactions: item.preview.transactions.map((row) => {
+              const insight = itemInsights[item.id]?.[row.id]
+              if (insight?.merchantKey !== merchantKey) {
+                return row
+              }
+
+              return {
+                ...row,
+                categoryId,
+                categoryLabel: category.label,
+              }
+            }),
           },
         }
       }),
@@ -237,9 +506,9 @@ export function PdfBatchWorkbench({ batch, onConfirm, onDiscard }: PdfBatchWorkb
       <div className="grid gap-4 md:grid-cols-5">
         <MetricCard label="Dosya" value={items.length} tone="default" />
         <MetricCard label="Islenebilir" value={actionableItems.length} tone="success" />
-        <MetricCard label="Duplicate" value={items.length - actionableItems.length} tone="warning" />
-        <MetricCard label="Satir" value={batchAnalysis.rowCount} tone="default" />
-        <MetricCard label="Review" value={batchAnalysis.lowConfidenceCount} tone="danger" />
+        <MetricCard label="Duplicate" value={batch.duplicateFiles} tone="warning" />
+        <MetricCard label="Hata" value={batch.errorFiles} tone="danger" />
+        <MetricCard label="Supheli" value={batchAnalysis.suspiciousCount} tone="danger" />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
@@ -248,7 +517,7 @@ export function PdfBatchWorkbench({ batch, onConfirm, onDiscard }: PdfBatchWorkb
             <div className="flex items-center gap-2">
               <Layers3 className="h-5 w-5 text-primary" />
               <div>
-                <h3 className="font-semibold text-foreground">Dosya kuyru gu</h3>
+                <h3 className="font-semibold text-foreground">Dosya kuyrugu</h3>
                 <p className="text-sm text-muted-foreground">Her PDF kendi kalite sinyali ve satir sayisiyla listelenir.</p>
               </div>
             </div>
@@ -276,13 +545,21 @@ export function PdfBatchWorkbench({ batch, onConfirm, onDiscard }: PdfBatchWorkb
                         </p>
                       </div>
                       <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${
-                        item.preview.duplicate
+                        !item.preview.success && !item.preview.duplicate
+                          ? 'border-destructive/25 bg-destructive/10 text-destructive'
+                          : item.preview.duplicate
                           ? 'border-warning/30 bg-warning/10 text-warning'
                           : item.preview.lowConfidenceCount > 0
                             ? 'border-destructive/20 bg-destructive/10 text-destructive'
                             : 'border-success/25 bg-success/10 text-success'
                       }`}>
-                        {item.preview.duplicate ? 'Duplicate' : item.preview.lowConfidenceCount > 0 ? 'Review' : 'Hazir'}
+                        {!item.preview.success && !item.preview.duplicate
+                          ? 'Hata'
+                          : item.preview.duplicate
+                            ? 'Duplicate'
+                            : item.preview.lowConfidenceCount > 0
+                              ? 'Review'
+                              : 'Hazir'}
                       </span>
                     </div>
                   </button>
@@ -365,7 +642,21 @@ export function PdfBatchWorkbench({ batch, onConfirm, onDiscard }: PdfBatchWorkb
 
         <div className="space-y-6">
           {activeItem ? (
-            activeItem.preview.duplicate ? (
+            !activeItem.preview.success && !activeItem.preview.duplicate ? (
+              <div className="rounded-[26px] border border-destructive/20 bg-destructive/10 p-6">
+                <h3 className="text-xl font-display font-semibold text-foreground">{activeItem.preview.filename}</h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Bu dosya parser tarafinda hata verdi. Queue icinde tutuluyor ama toplu kayit aksiyonuna dahil edilmeyecek.
+                </p>
+                <div className="mt-4 space-y-2 text-sm text-muted-foreground">
+                  {activeItem.preview.errors.map((item, index) => (
+                    <div key={`${item}-${index}`} className="rounded-2xl border border-border/70 bg-background/85 px-4 py-3">
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : activeItem.preview.duplicate ? (
               <div className="rounded-[26px] border border-warning/25 bg-warning/10 p-6">
                 <h3 className="text-xl font-display font-semibold text-foreground">{activeItem.preview.filename}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">
@@ -398,6 +689,27 @@ export function PdfBatchWorkbench({ batch, onConfirm, onDiscard }: PdfBatchWorkb
                   </span>
                 </div>
 
+                <div className="mt-4 grid gap-3 md:grid-cols-3">
+                  <div className="rounded-2xl border border-success/25 bg-success/10 p-4">
+                    <p className="text-xs uppercase tracking-[0.18em] text-success">Guvenli</p>
+                    <p className="mt-2 text-2xl font-display font-semibold text-success">
+                      {activeItem.preview.transactions.filter((row) => itemInsights[activeItem.id]?.[row.id]?.level === 'safe').length}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-warning/25 bg-warning/10 p-4">
+                    <p className="text-xs uppercase tracking-[0.18em] text-warning">Incele</p>
+                    <p className="mt-2 text-2xl font-display font-semibold text-warning">
+                      {activeItem.preview.transactions.filter((row) => itemInsights[activeItem.id]?.[row.id]?.level === 'review').length}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-destructive/20 bg-destructive/10 p-4">
+                    <p className="text-xs uppercase tracking-[0.18em] text-destructive">Supheli</p>
+                    <p className="mt-2 text-2xl font-display font-semibold text-destructive">
+                      {activeItem.preview.transactions.filter((row) => itemInsights[activeItem.id]?.[row.id]?.level === 'suspicious').length}
+                    </p>
+                  </div>
+                </div>
+
                 {activeItem.preview.errors.length > 0 && (
                   <div className="mt-4 rounded-2xl border border-warning/25 bg-warning/10 p-4 text-sm text-muted-foreground">
                     <p className="inline-flex items-center gap-2 font-semibold text-foreground">
@@ -414,6 +726,35 @@ export function PdfBatchWorkbench({ batch, onConfirm, onDiscard }: PdfBatchWorkb
                   </div>
                 )}
 
+                {activeSuggestionGroups.length > 0 && (
+                  <div className="mt-4 rounded-2xl border border-primary/20 bg-primary/10 p-4">
+                    <p className="text-sm font-semibold text-foreground">Akilli kategori hamleleri</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Ayni merchant paterni icin onerilen kategoriyi tek tikla tum eslesen satirlara uygula.
+                    </p>
+                    <div className="mt-3 grid gap-3 lg:grid-cols-2">
+                      {activeSuggestionGroups.map((group) => (
+                        <div key={`${group.merchantKey}-${group.categoryId}`} className="rounded-2xl border border-border/70 bg-background/80 p-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <p className="font-semibold text-foreground">{group.merchantKey}</p>
+                              <p className="mt-1 text-sm text-muted-foreground">
+                                {group.matchCount} satir icin {group.categoryLabel} oneriliyor
+                              </p>
+                            </div>
+                            <Button
+                              variant="outline"
+                              onClick={() => applySuggestedCategory(activeItem.id, group.merchantKey, group.categoryId)}
+                            >
+                              Uygula
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="mt-4 space-y-4">
                   {activeRows.map((row) => (
                     <div key={row.id} className="rounded-[24px] border border-border/70 bg-card/70 p-4">
@@ -423,10 +764,17 @@ export function PdfBatchWorkbench({ batch, onConfirm, onDiscard }: PdfBatchWorkb
                           <p className="mt-1 text-sm text-muted-foreground">{formatDate(row.date)} · {row.type === 'expense' ? 'Gider' : 'Gelir'}</p>
                         </div>
                         <div className="flex items-center gap-3">
+                          <span
+                            className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${
+                              getReviewTone(itemInsights[activeItem.id]?.[row.id]?.level || 'safe')
+                            }`}
+                          >
+                            {itemInsights[activeItem.id]?.[row.id]?.label || 'Guvenli'}
+                          </span>
                           <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${
                             Number(row.confidence || 0) >= 85
                               ? 'border-success/25 bg-success/10 text-success'
-                              : Number(row.confidence || 0) >= 70
+                            : Number(row.confidence || 0) >= 70
                                 ? 'border-warning/25 bg-warning/10 text-warning'
                                 : 'border-destructive/25 bg-destructive/10 text-destructive'
                           }`}>
@@ -441,6 +789,42 @@ export function PdfBatchWorkbench({ batch, onConfirm, onDiscard }: PdfBatchWorkb
                           </button>
                         </div>
                       </div>
+
+                      {itemInsights[activeItem.id]?.[row.id]?.reasons.length ? (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {itemInsights[activeItem.id]?.[row.id]?.reasons.map((reason) => (
+                            <span
+                              key={`${row.id}-${reason}`}
+                              className="inline-flex rounded-full border border-border/70 bg-background/80 px-3 py-1 text-xs font-medium text-muted-foreground"
+                            >
+                              {reason}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+
+                      {itemInsights[activeItem.id]?.[row.id]?.suggestedCategoryId &&
+                        itemInsights[activeItem.id]?.[row.id]?.suggestedCategoryId !== row.categoryId && (
+                          <div className="mt-3 rounded-2xl border border-primary/20 bg-primary/10 p-3 text-sm">
+                            <p className="font-semibold text-foreground">
+                              Oneri: {itemInsights[activeItem.id]?.[row.id]?.suggestedCategoryLabel}
+                            </p>
+                            <button
+                              type="button"
+                              className="mt-2 font-semibold text-primary transition-colors hover:text-primary/80"
+                              onClick={() =>
+                                handleRowChange(
+                                  activeItem.id,
+                                  row.id,
+                                  'categoryId',
+                                  itemInsights[activeItem.id]?.[row.id]?.suggestedCategoryId || row.categoryId,
+                                )
+                              }
+                            >
+                              Bu satira uygula
+                            </button>
+                          </div>
+                        )}
 
                       <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
                         <Input
@@ -496,7 +880,11 @@ export function PdfBatchWorkbench({ batch, onConfirm, onDiscard }: PdfBatchWorkb
                   <div key={row.id} className="rounded-2xl border border-border/70 bg-background/80 px-4 py-3">
                     <div className="flex items-center justify-between gap-3 text-sm">
                       <span className="font-medium text-foreground">{row.description}</span>
-                      <span className="text-destructive">%{Math.round(Number(row.confidence || 0))}</span>
+                      <span className="text-destructive">
+                        {Object.values(itemInsights)
+                          .map((insights) => insights[row.id]?.label)
+                          .find(Boolean) || `%${Math.round(Number(row.confidence || 0))}`}
+                      </span>
                     </div>
                   </div>
                 ))}
@@ -514,7 +902,7 @@ export function PdfBatchWorkbench({ batch, onConfirm, onDiscard }: PdfBatchWorkb
 
       <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border/70 pt-4">
         <p className="text-sm text-muted-foreground">
-          {actionableItems.length} dosya ve {batchAnalysis.rowCount} satir kayda hazir. Duplicate dosyalar otomatik atlanacak.
+          {actionableItems.length} dosya ve {batchAnalysis.rowCount} satir kayda hazir. Duplicate ve hatali dosyalar otomatik atlanacak.
         </p>
         <Button onClick={handleConfirm} loading={saving} data-testid="pdf-import-confirm">
           <Save className="mr-2 h-4 w-4" />

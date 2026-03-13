@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic'
 import { useSummary, useTransactions } from '@/lib/hooks'
 import { StatCard } from '@/components/dashboard/StatCard'
 import { DashboardHero } from '@/components/dashboard/DashboardHero'
+import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState'
 import { DashboardCommandCenter } from '@/components/dashboard/DashboardCommandCenter'
 import { CashFlowForecastCard } from '@/components/dashboard/CashFlowForecastCard'
 import { FinancialAnalysisBoard } from '@/components/dashboard/FinancialAnalysisBoard'
@@ -119,10 +120,40 @@ export default function DashboardPage() {
   }
 
   if (!summary || !transactions) {
-    return null
+    return (
+      <div className="p-4 bg-warning/10 border border-warning/20 rounded-lg">
+        <p className="text-warning">
+          {language === 'tr'
+            ? 'Dashboard verisi su an hazir degil. Lutfen yeniden deneyin.'
+            : 'Dashboard data is currently unavailable. Please try again.'}
+        </p>
+      </div>
+    )
   }
 
   const latestTransactionDate = transactions.length > 0 ? new Date(transactions[0].date) : undefined
+  const isEmptyDashboard = transactions.length === 0 || summary.totals.transactionCount === 0
+
+  if (isEmptyDashboard) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">{t('dashboard')}</h1>
+          <p className="text-muted-foreground mt-1">
+            {language === 'tr'
+              ? 'Ilk kaydi ekleyene kadar dashboard burada yonlendirme modunda kalir.'
+              : 'Dashboard stays in setup mode until the first records arrive.'}
+          </p>
+        </div>
+
+        <DashboardEmptyState />
+
+        <Suspense fallback={<SmartInputSkeleton />}>
+          <SmartTransactionInput onSuccess={handleTransactionAdded} />
+        </Suspense>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">

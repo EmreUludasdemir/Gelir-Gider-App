@@ -19,9 +19,11 @@ import {
   ConfirmEmailVerificationDto,
 } from './dto/auth.dto'
 import { EmailService } from '../notifications/email.service'
+import { CacheService } from '../../shared/cache'
 import * as bcrypt from 'bcrypt'
 import * as speakeasy from 'speakeasy'
 import * as QRCode from 'qrcode'
+import * as crypto from 'crypto'
 
 type TokenType = 'access' | 'refresh' | 'email_verification' | 'password_reset'
 
@@ -29,6 +31,7 @@ interface TokenPayload {
   sub: string
   email: string
   type: TokenType
+  jti?: string
 }
 
 interface TokenResponse {
@@ -66,11 +69,13 @@ export class AuthService {
   private readonly JWT_REFRESH_EXPIRES_IN = '7d'
   private readonly EMAIL_VERIFICATION_EXPIRES_IN = '24h'
   private readonly PASSWORD_RESET_EXPIRES_IN = '30m'
+  private readonly REFRESH_SESSION_TTL_SECONDS = 7 * 24 * 60 * 60
 
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
     private emailService: EmailService,
+    private cache: CacheService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -163,10 +168,17 @@ export class AuthService {
         throw new UnauthorizedException('User not found')
       }
 
+      await this.assertActiveRefreshSession(payload.sub, refreshToken)
+
       return this.generateTokens(user)
     } catch {
       throw new UnauthorizedException('Invalid refresh token')
     }
+  }
+
+  async logout(refreshToken?: string): Promise<{ message: string }> {
+    await this.revokeRefreshSessionFromToken(refreshToken)
+    return { message: 'Logout successful' }
   }
 
   async getProfile(userId: string): Promise<AuthenticatedUserProfile> {
@@ -267,6 +279,8 @@ export class AuthService {
       data: { password: hashedPassword },
     })
 
+    await this.revokeRefreshSession(user.id)
+
     await this.prisma.auditLog.create({
       data: {
         userId: user.id,
@@ -363,6 +377,8 @@ export class AuthService {
       where: { id: userId },
       data: { password: hashedPassword },
     })
+
+    await this.revokeRefreshSession(userId)
 
     await this.prisma.auditLog.create({
       data: {
@@ -475,6 +491,7 @@ export class AuthService {
       sub: user.id,
       email: user.email,
       type: 'refresh',
+      jti: crypto.randomUUID(),
     }
 
     const accessToken = this.jwtService.sign(accessPayload, {
@@ -485,6 +502,8 @@ export class AuthService {
       secret: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
       expiresIn: this.JWT_REFRESH_EXPIRES_IN,
     })
+
+    await this.storeRefreshSession(user.id, refreshToken)
 
     const emailVerified = await this.isEmailVerified(user.id)
 
@@ -557,6 +576,53 @@ export class AuthService {
   private getPasswordResetSecret(passwordHash: string): string {
     const base = process.env.PASSWORD_RESET_SECRET || process.env.JWT_SECRET || 'password-reset-secret-dev'
     return `${base}:${passwordHash}`
+  }
+
+  private buildRefreshSessionKey(userId: string): string {
+    return `auth:refresh:${userId}`
+  }
+
+  private hashToken(token: string): string {
+    return crypto.createHash('sha256').update(token).digest('hex')
+  }
+
+  private async storeRefreshSession(userId: string, refreshToken: string): Promise<void> {
+    await this.cache.set(
+      this.buildRefreshSessionKey(userId),
+      this.hashToken(refreshToken),
+      this.REFRESH_SESSION_TTL_SECONDS,
+    )
+  }
+
+  private async assertActiveRefreshSession(userId: string, refreshToken: string): Promise<void> {
+    const activeHash = await this.cache.get<string>(this.buildRefreshSessionKey(userId))
+    if (!activeHash || activeHash !== this.hashToken(refreshToken)) {
+      throw new UnauthorizedException('Invalid refresh token')
+    }
+  }
+
+  private async revokeRefreshSession(userId: string): Promise<void> {
+    await this.cache.del(this.buildRefreshSessionKey(userId))
+  }
+
+  private async revokeRefreshSessionFromToken(refreshToken?: string): Promise<void> {
+    const token = refreshToken?.trim()
+    if (!token) {
+      return
+    }
+
+    try {
+      const payload = this.jwtService.verify<TokenPayload>(token, {
+        secret: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
+        ignoreExpiration: true,
+      })
+
+      if (payload.type === 'refresh' && payload.sub) {
+        await this.revokeRefreshSession(payload.sub)
+      }
+    } catch {
+      // Ignore invalid refresh tokens during logout; cookie clearing still proceeds.
+    }
   }
 
   private async sendVerificationEmailSafe(userId: string, email: string, name?: string | null): Promise<void> {

@@ -14,11 +14,19 @@ import {
   Param,
   UnauthorizedException,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { SpendingAnalyzerService } from './spending-analyzer.service';
 import { AnomalyDetectorService } from './anomaly-detector.service';
 import { AutoCategorizerService } from './auto-categorizer.service';
 import { AiChatService } from './ai-chat.service';
+import {
+  CategorizeDto,
+  CategorySuggestionsQueryDto,
+  ChatRequestDto,
+  LearnCategoryDto,
+  ParseTransactionDto,
+} from './dto/ai.dto';
 
 @Controller('ai')
 @UseGuards(JwtAuthGuard)
@@ -79,7 +87,7 @@ export class AiController {
   @Post('categorize')
   async categorize(
     @Request() req: { user?: { id?: string; userId?: string } },
-    @Body() body: { description: string }
+    @Body() body: CategorizeDto
   ) {
     return this.autoCategorizer.categorize(body.description, this.getUserId(req));
   }
@@ -90,9 +98,9 @@ export class AiController {
   @Get('category-suggestions')
   async getCategorySuggestions(
     @Request() req: { user?: { id?: string; userId?: string } },
-    @Query('description') description: string
+    @Query() query: CategorySuggestionsQueryDto
   ) {
-    return this.autoCategorizer.getSuggestions(description, this.getUserId(req));
+    return this.autoCategorizer.getSuggestions(query.description, this.getUserId(req));
   }
 
   /**
@@ -101,7 +109,7 @@ export class AiController {
   @Post('learn-category')
   async learnCategory(
     @Request() req: { user?: { id?: string; userId?: string } },
-    @Body() body: { description: string; categoryId: string; categoryLabel: string }
+    @Body() body: LearnCategoryDto
   ) {
     await this.autoCategorizer.learnFromCorrection(
       this.getUserId(req),
@@ -115,18 +123,20 @@ export class AiController {
   /**
    * Chat with financial data (Gemini-backed)
    */
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('chat')
   async chat(
     @Request() req: { user?: { id?: string; userId?: string } },
-    @Body() body: { message: string }
+    @Body() body: ChatRequestDto
   ) {
     return this.aiChat.chat(this.getUserId(req), body.message);
   }
 
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('parse')
   async parseTransaction(
     @Request() req: { user?: { id?: string; userId?: string } },
-    @Body() body: { input: string }
+    @Body() body: ParseTransactionDto
   ) {
     return this.aiChat.parseTransaction(this.getUserId(req), body.input);
   }

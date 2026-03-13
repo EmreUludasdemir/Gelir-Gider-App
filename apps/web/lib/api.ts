@@ -253,13 +253,18 @@ export const confirmPdfImport = (data: ConfirmPdfUploadPayload) =>
   });
 
 function buildUploadBatchPreview(items: UploadBatchPreviewItem[]): UploadBatchPreview {
-  const actionableItems = items.filter((item) => !item.preview.duplicate)
+  const actionableItems = items.filter(
+    (item) => item.preview.success && !item.preview.duplicate && item.preview.transactions.length > 0,
+  )
+  const duplicateFiles = items.filter((item) => item.preview.duplicate).length
+  const errorFiles = items.filter((item) => !item.preview.success && !item.preview.duplicate).length
 
   return {
     items,
     totalFiles: items.length,
     actionableFiles: actionableItems.length,
-    duplicateFiles: items.length - actionableItems.length,
+    duplicateFiles,
+    errorFiles,
     totalParsed: items.reduce((sum, item) => sum + item.preview.totalParsed, 0),
     totalLowConfidenceCount: items.reduce((sum, item) => sum + item.preview.lowConfidenceCount, 0),
     totalSize: items.reduce((sum, item) => sum + item.preview.fileSize, 0),
@@ -292,7 +297,23 @@ export async function previewPdfImportBatch(
   const items: UploadBatchPreviewItem[] = []
 
   for (const [index, file] of files.entries()) {
-    const preview = await previewPdfImport(file)
+    let preview: UploadPreview
+    try {
+      preview = await previewPdfImport(file)
+    } catch (error) {
+      preview = {
+        success: false,
+        filename: file.name,
+        fileHash: `preview-error-${index + 1}`,
+        fileSize: file.size,
+        totalParsed: 0,
+        lowConfidenceCount: 0,
+        errors: [error instanceof Error ? error.message : 'PDF preview failed'],
+        suggestions: [],
+        transactions: [],
+      }
+    }
+
     items.push({
       id: `${file.name}-${index}`,
       preview: {
@@ -514,6 +535,7 @@ export interface UploadBatchPreview {
   totalFiles: number;
   actionableFiles: number;
   duplicateFiles: number;
+  errorFiles: number;
   totalParsed: number;
   totalLowConfidenceCount: number;
   totalSize: number;

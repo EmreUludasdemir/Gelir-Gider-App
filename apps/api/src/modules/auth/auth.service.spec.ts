@@ -9,9 +9,17 @@ import { PrismaService } from '../../prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { UnauthorizedException, ConflictException, BadRequestException, NotFoundException } from '@nestjs/common';
 import { EmailService } from '../notifications/email.service';
+import { CacheService } from '../../shared/cache';
 import * as bcrypt from 'bcrypt';
 import * as speakeasy from 'speakeasy';
-import { createMockUser, createMockPrismaService, createMockJwtService, createMockEmailService } from '../../../test/test-utils';
+import * as crypto from 'crypto';
+import {
+  createMockUser,
+  createMockPrismaService,
+  createMockJwtService,
+  createMockEmailService,
+  createMockCacheService,
+} from '../../../test/test-utils';
 
 jest.mock('bcrypt');
 jest.mock('speakeasy');
@@ -21,6 +29,7 @@ describe('AuthService', () => {
   let prisma: ReturnType<typeof createMockPrismaService>;
   let jwtService: ReturnType<typeof createMockJwtService>;
   let emailService: ReturnType<typeof createMockEmailService>;
+  let cacheService: ReturnType<typeof createMockCacheService>;
 
   const mockUser = createMockUser();
 
@@ -28,6 +37,7 @@ describe('AuthService', () => {
     prisma = createMockPrismaService();
     jwtService = createMockJwtService();
     emailService = createMockEmailService();
+    cacheService = createMockCacheService();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -35,6 +45,7 @@ describe('AuthService', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: JwtService, useValue: jwtService },
         { provide: EmailService, useValue: emailService },
+        { provide: CacheService, useValue: cacheService },
       ],
     }).compile();
 
@@ -132,6 +143,11 @@ describe('AuthService', () => {
       expect(result).toHaveProperty('user');
       expect(result.user.email).toBe(mockUser.email);
       expect(result.user).not.toHaveProperty('password');
+      expect(cacheService.set).toHaveBeenCalledWith(
+        `auth:refresh:${mockUser.id}`,
+        expect.any(String),
+        7 * 24 * 60 * 60,
+      );
     });
 
     it('should throw UnauthorizedException for non-existent user', async () => {
@@ -211,6 +227,9 @@ describe('AuthService', () => {
         type: 'refresh',
       });
       prisma.user.findUnique.mockResolvedValue(mockUser);
+      cacheService.get.mockResolvedValue(
+        crypto.createHash('sha256').update('valid-refresh-token').digest('hex'),
+      );
 
       const result = await service.refreshToken({ refreshToken: 'valid-refresh-token' });
 
@@ -252,6 +271,48 @@ describe('AuthService', () => {
         service.refreshToken({ refreshToken: 'expired-token' }),
       ).rejects.toThrow(UnauthorizedException);
     });
+
+    it('should reject stale refresh tokens that are no longer active', async () => {
+      jwtService.verify.mockReturnValue({
+        sub: mockUser.id,
+        email: mockUser.email,
+        type: 'refresh',
+      });
+      prisma.user.findUnique.mockResolvedValue(mockUser);
+      cacheService.get.mockResolvedValue(
+        crypto.createHash('sha256').update('different-token').digest('hex'),
+      );
+
+      await expect(
+        service.refreshToken({ refreshToken: 'stale-refresh-token' }),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+  });
+
+  describe('logout', () => {
+    it('should revoke refresh session when a valid refresh token is provided', async () => {
+      jwtService.verify.mockReturnValue({
+        sub: mockUser.id,
+        email: mockUser.email,
+        type: 'refresh',
+      });
+
+      const result = await service.logout('refresh-cookie-token');
+
+      expect(cacheService.del).toHaveBeenCalledWith(`auth:refresh:${mockUser.id}`);
+      expect(result).toEqual({ message: 'Logout successful' });
+    });
+
+    it('should ignore invalid refresh tokens during logout', async () => {
+      jwtService.verify.mockImplementation(() => {
+        throw new Error('bad token');
+      });
+
+      await expect(service.logout('broken-token')).resolves.toEqual({
+        message: 'Logout successful',
+      });
+      expect(cacheService.del).not.toHaveBeenCalled();
+    });
   });
 
   // ============================================
@@ -277,6 +338,7 @@ describe('AuthService', () => {
         where: { id: mockUser.id },
         data: { password: 'new-hashed-password' },
       });
+      expect(cacheService.del).toHaveBeenCalledWith(`auth:refresh:${mockUser.id}`);
     });
 
     it('should throw BadRequestException for wrong current password', async () => {
@@ -436,6 +498,7 @@ describe('AuthService', () => {
 
       expect(result).toEqual({ message: 'Password reset successful' });
       expect(prisma.user.update).toHaveBeenCalled();
+      expect(cacheService.del).toHaveBeenCalledWith(`auth:refresh:${mockUser.id}`);
       expect(prisma.auditLog.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({

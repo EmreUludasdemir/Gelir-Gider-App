@@ -1,7 +1,7 @@
 ﻿'use client'
 
 import { useMemo } from 'react'
-import { Activity, Radar, Target, Waves } from 'lucide-react'
+import { Activity, BadgePercent, Radar, Scissors, Target, TrendingUp, Waves } from 'lucide-react'
 import { DashboardSummary } from '@/lib/api'
 import { useBudgetStatus, useCashFlowForecast, useSubscriptionSummary } from '@/lib/hooks'
 import { formatCurrency } from '@/lib/utils'
@@ -17,16 +17,33 @@ export function FinancialAnalysisBoard({ summary }: FinancialAnalysisBoardProps)
 
   const analysis = useMemo(() => {
     const topCategory = summary.topCategories[0]
+    const acceleratingCategory = summary.topCategories.find((category) => category.trend === 'up') || topCategory
     const budgetAlerts = (budgetStatus || []).filter((budget) => budget.status === 'warning' || budget.status === 'over')
     const subscriptionLoad = summary.totals.expense > 0 && subscriptionSummary
       ? (subscriptionSummary.totalMonthly / summary.totals.expense) * 100
       : 0
+    const cutbackTarget = subscriptionSummary?.savingsOpportunities[0]
+      ? {
+          label: subscriptionSummary.savingsOpportunities[0].name,
+          monthlyImpact: subscriptionSummary.savingsOpportunities[0].monthlyCost,
+          reason: 'Recurring maliyeti en hizli azaltabilecek aday.',
+        }
+      : topCategory && topCategory.percentage >= 28
+        ? {
+            label: topCategory.categoryLabel,
+            monthlyImpact: topCategory.total * 0.12,
+            reason: 'Aylik gider dagiliminda baskin kategori oldugu icin once burada kismi kesinti aranabilir.',
+          }
+        : null
 
     return {
       topCategory,
+      acceleratingCategory,
       budgetAlerts,
       subscriptionLoad,
       balanceBuffer: cashFlow ? cashFlow.projectedEndBalance - cashFlow.bufferTarget : null,
+      expenseDelta: summary.comparison.changePercentage.expense,
+      cutbackTarget,
     }
   }, [budgetStatus, cashFlow, subscriptionSummary, summary])
 
@@ -58,7 +75,7 @@ export function FinancialAnalysisBoard({ summary }: FinancialAnalysisBoardProps)
           </div>
         </div>
 
-        <div className="grid gap-4 xl:grid-cols-4 md:grid-cols-2">
+        <div className="grid gap-4 xl:grid-cols-3 md:grid-cols-2">
           <InsightCard
             icon={Activity}
             label="Kategori baskisi"
@@ -86,6 +103,37 @@ export function FinancialAnalysisBoard({ summary }: FinancialAnalysisBoardProps)
             title={analysis.budgetAlerts.length > 0 ? `${analysis.budgetAlerts.length} kategori riskte` : 'Butce dengeli'}
             body={analysis.budgetAlerts.length > 0 ? analysis.budgetAlerts.map((budget) => budget.categoryLabel).slice(0, 2).join(', ') : 'Aktif butceler uyarı esigini asmamis gorunuyor.'}
             accent={analysis.budgetAlerts.length > 0 ? 'Aksiyon gerek' : 'Kontrol altinda'}
+          />
+          <InsightCard
+            icon={TrendingUp}
+            label="Harcama ivmesi"
+            title={analysis.acceleratingCategory ? analysis.acceleratingCategory.categoryLabel : 'Veri bekleniyor'}
+            body={
+              analysis.acceleratingCategory
+                ? analysis.acceleratingCategory.trend === 'up'
+                  ? 'Trend sinyali yukari bakiyor; bu kategori yakindan izlenmeli.'
+                  : `Aylik giderin %${analysis.acceleratingCategory.percentage.toFixed(1)} kadari burada toplaniyor.`
+                : 'Kategori ivmesi icin daha fazla hareket gerekli.'
+            }
+            accent={`${analysis.expenseDelta >= 0 ? '+' : ''}%${analysis.expenseDelta.toFixed(1)}`}
+          />
+          <InsightCard
+            icon={Scissors}
+            label="Kesilebilecek alan"
+            title={analysis.cutbackTarget ? analysis.cutbackTarget.label : 'Net aday yok'}
+            body={analysis.cutbackTarget ? analysis.cutbackTarget.reason : 'Mevcut veri, dogrudan kesinti onerisi icin yeterince baskin bir alan gostermiyor.'}
+            accent={analysis.cutbackTarget ? `Aylik potansiyel ${formatCurrency(analysis.cutbackTarget.monthlyImpact)}` : '-'}
+          />
+          <InsightCard
+            icon={BadgePercent}
+            label="Aydan aya fark"
+            title={analysis.expenseDelta <= 0 ? 'Gider temposu kontrollu' : 'Gider temposu yukseliyor'}
+            body={
+              analysis.expenseDelta <= 0
+                ? `Gecen aya gore gider degisimi ${analysis.expenseDelta.toFixed(1)}%.`
+                : `Gecen aya gore giderler %${analysis.expenseDelta.toFixed(1)} artis egiliminde.`
+            }
+            accent={formatCurrency(summary.comparison.previousMonth.expense)}
           />
         </div>
       </div>

@@ -20,6 +20,11 @@ export function DashboardHero({ summary }: DashboardHeroProps) {
   const income = Number(summary.totals.income || 0)
   const expense = Number(summary.totals.expense || 0)
   const balance = Number(summary.totals.balance || 0)
+  const previousIncome = Number(summary.comparison.previousMonth.income || 0)
+  const previousExpense = Number(summary.comparison.previousMonth.expense || 0)
+  const incomeDelta = Number(summary.comparison.changePercentage.income || 0)
+  const expenseDelta = Number(summary.comparison.changePercentage.expense || 0)
+  const topCategory = summary.topCategories[0]
 
   const savingsRate = income > 0 ? (balance / income) * 100 : 0
   const expenseRatio = income > 0 ? (expense / income) * 100 : 0
@@ -67,7 +72,7 @@ export function DashboardHero({ summary }: DashboardHeroProps) {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
             <div className="rounded-2xl border border-success/30 bg-success/10 p-3">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Tasarruf Orani</p>
               <p className={`mt-1 text-lg font-bold ${health.tone}`}>
@@ -91,6 +96,51 @@ export function DashboardHero({ summary }: DashboardHeroProps) {
               </p>
               <p className="text-xs text-muted-foreground">
                 Gelir {formatCurrency(income)} | Gider {formatCurrency(expense)}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-border/70 bg-background/75 p-3">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Aydan aya tempo</p>
+              <p className={`mt-1 text-lg font-bold ${expenseDelta <= 0 ? 'text-success' : 'text-destructive'}`}>
+                {expenseDelta >= 0 ? '+' : ''}{expenseDelta.toFixed(1)}%
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Onceki gider {formatCurrency(previousExpense)} | gelir {formatCurrency(previousIncome)}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-border/70 bg-background/75 p-3">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">En baskin kategori</p>
+              <p className="mt-1 text-lg font-bold text-foreground">
+                {topCategory?.categoryLabel || 'Veri yok'}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {topCategory
+                  ? `${formatCurrency(topCategory.total)} · %${topCategory.percentage.toFixed(1)} pay`
+                  : 'Harcama verisi geldikce kategori baskisi burada gorunur'}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="rounded-2xl border border-border/70 bg-background/75 p-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Gelir sinyali</p>
+              <p className={`mt-2 text-lg font-semibold ${incomeDelta >= 0 ? 'text-success' : 'text-destructive'}`}>
+                {incomeDelta >= 0 ? '+' : ''}{incomeDelta.toFixed(1)}%
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Bu ayki gelir gecen aya gore {incomeDelta >= 0 ? 'guclendi' : 'geriledi'}.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-border/70 bg-background/75 p-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Aksiyon notu</p>
+              <p className="mt-2 text-lg font-semibold text-foreground">
+                {expenseDelta > 0 ? 'Gider temposu yakindan izlenmeli' : 'Mevcut tempo kontrol altinda'}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {topCategory
+                  ? `${topCategory.categoryLabel} kategorisi ilk inceleme alani olarak one cikiyor.`
+                  : 'Yeni islem geldikce en baskin kategori burada aksiyona donusturulur.'}
               </p>
             </div>
           </div>

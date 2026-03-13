@@ -746,6 +746,7 @@ export async function mockAppRoutes(
   let bills = cloneBills(options?.bills)
   let subscriptions = cloneManagedSubscriptions(options?.subscriptions)
   let detectedSubscriptions = cloneDetectedSubscriptions(options?.detectedSubscriptions)
+  let previewCallCount = 0
 
   await page.route('**/*', async (route) => {
     const request = route.request()
@@ -871,6 +872,12 @@ export async function mockAppRoutes(
     }
 
     if (path === '/uploads/pdf/preview' && method === 'POST') {
+      previewCallCount += 1
+
+      if (previewCallCount === 2) {
+        return createJsonResponse(route, { message: 'PDF preview failed' }, 503)
+      }
+
       const previewTransactions = buildUploadPreviewTransactions()
 
       return createJsonResponse(route, {

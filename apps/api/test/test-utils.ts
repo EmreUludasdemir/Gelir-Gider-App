@@ -324,6 +324,15 @@ export const createMockPrismaService = () => ({
     delete: jest.fn(),
     count: jest.fn(),
   },
+  pdfUpload: {
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
+    findFirst: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    count: jest.fn(),
+  },
   $connect: jest.fn(),
   $disconnect: jest.fn(),
   $transaction: jest.fn((callback) => callback(this)),
@@ -358,6 +367,33 @@ export const createMockRedisService = () => ({
     set: jest.fn(),
     del: jest.fn(),
   }),
+});
+
+/**
+ * Create Mock Cache Service
+ */
+export const createMockCacheService = () => ({
+  isAvailable: jest.fn().mockReturnValue(true),
+  buildKey: jest.fn((prefix: string, userId: string, ...parts: string[]) =>
+    [prefix, userId, ...parts].filter(Boolean).join(':'),
+  ),
+  get: jest.fn().mockResolvedValue(null),
+  set: jest.fn().mockResolvedValue(undefined),
+  getOrSet: jest.fn(),
+  del: jest.fn().mockResolvedValue(undefined),
+  delPattern: jest.fn().mockResolvedValue(0),
+  invalidateUser: jest.fn().mockResolvedValue(undefined),
+  invalidateTransactions: jest.fn().mockResolvedValue(undefined),
+  invalidateBudgets: jest.fn().mockResolvedValue(undefined),
+  getStats: jest.fn().mockReturnValue({
+    hits: 0,
+    misses: 0,
+    hitRate: 0,
+    totalOperations: 0,
+    avgResponseTime: 0,
+    isConnected: true,
+  }),
+  flushAll: jest.fn().mockResolvedValue(undefined),
 });
 
 /**
