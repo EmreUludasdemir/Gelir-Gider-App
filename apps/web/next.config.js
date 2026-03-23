@@ -1,11 +1,10 @@
 /** @type {import('next').NextConfig} */
-const withBundleAnalyzer = require('@next/bundle-analyzer')({
-  enabled: process.env.ANALYZE === 'true',
-});
+const standaloneBuild = process.env.NEXT_BUILD_STANDALONE === 'true'
+const analyzeBuild = process.env.ANALYZE === 'true'
 
 const nextConfig = {
   reactStrictMode: true,
-  output: 'standalone',
+  output: standaloneBuild ? 'standalone' : undefined,
   async rewrites() {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL
     const destination =
@@ -19,4 +18,6 @@ const nextConfig = {
   },
 }
 
-module.exports = withBundleAnalyzer(nextConfig)
+module.exports = analyzeBuild
+  ? require('@next/bundle-analyzer')({ enabled: true })(nextConfig)
+  : nextConfig

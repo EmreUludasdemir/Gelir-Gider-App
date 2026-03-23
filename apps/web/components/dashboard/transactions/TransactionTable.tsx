@@ -9,6 +9,7 @@ import { TransactionTableHeader } from './TransactionTableHeader'
 import { TransactionTableRow } from './TransactionTableRow'
 import { TransactionMobileCard } from './TransactionMobileCard'
 import { TransactionEmptyState } from './TransactionEmptyState'
+import { BulkActionsBar } from '@/components/ui/BulkActionsBar'
 
 interface TransactionTableProps {
   transactions: Transaction[]
@@ -37,10 +38,17 @@ export function TransactionTable({
   const {
     selectedIds,
     isDeleting,
+    isCategorizing,
+    isUpdatingType,
+    isUpdatingTags,
     allPdfSelected,
     handleSelectAll,
     handleSelectOne,
     handleBulkDelete,
+    handleBulkCategorize,
+    handleBulkTypeUpdate,
+    handleBulkTagsUpdate,
+    clearSelection,
   } = useTransactionSelection(displayedTransactions, onRefresh)
 
   const hasPdfTransactions = useMemo(
@@ -102,6 +110,7 @@ export function TransactionTable({
                           checked={allPdfSelected}
                           onChange={(e) => handleSelectAll(e.target.checked)}
                           className="rounded border-border text-primary-600 focus:ring-primary/30"
+                          aria-label="Tum PDF islemlerini sec"
                           title="Tum PDF islemlerini sec"
                         />
                       </th>
@@ -156,6 +165,21 @@ export function TransactionTable({
           onSuccess={handleEditSuccess}
         />
       )}
+
+      <BulkActionsBar
+        selectedCount={selectedIds.size}
+        onCategorize={(categoryId, categoryLabel, options) =>
+          void handleBulkCategorize(categoryId, categoryLabel, options)
+        }
+        onUpdateType={(type) => void handleBulkTypeUpdate(type)}
+        onUpdateTags={(tags) => void handleBulkTagsUpdate(tags)}
+        onDelete={() => void handleBulkDelete()}
+        onDeselect={clearSelection}
+        isDeleting={isDeleting}
+        isCategorizing={isCategorizing}
+        isUpdatingType={isUpdatingType}
+        isUpdatingTags={isUpdatingTags}
+      />
     </Card>
   )
 }

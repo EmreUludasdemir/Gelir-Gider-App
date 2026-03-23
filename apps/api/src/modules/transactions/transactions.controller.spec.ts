@@ -12,6 +12,8 @@ describe("TransactionsController", () => {
     findOne: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
+    bulkCategorize: jest.fn(),
+    bulkUpdate: jest.fn(),
     delete: jest.fn(),
     getSummary: jest.fn(),
     getSuggestions: jest.fn(),
@@ -118,6 +120,53 @@ describe("TransactionsController", () => {
         "tx-1",
         updateDto
       );
+    });
+  });
+
+  describe("bulkCategorize", () => {
+    it("should bulk categorize selected transactions", async () => {
+      mockTransactionsService.bulkCategorize.mockResolvedValue({
+        updated: 2,
+        matchedSimilar: 0,
+      });
+
+      const body = {
+        transactionIds: ["tx-1", "tx-2"],
+        categoryId: "market",
+        categoryLabel: "Market",
+        applyToSimilar: true,
+      };
+
+      const result = await controller.bulkCategorize(mockUser, body);
+
+      expect(result).toEqual({ updated: 2, matchedSimilar: 0 });
+      expect(service.bulkCategorize).toHaveBeenCalledWith(
+        mockUser.id,
+        body.transactionIds,
+        body.categoryId,
+        body.categoryLabel,
+        { applyToSimilar: true }
+      );
+    });
+  });
+
+  describe("bulkUpdate", () => {
+    it("should bulk update selected transactions", async () => {
+      mockTransactionsService.bulkUpdate.mockResolvedValue({
+        updated: 2,
+        matchedSimilar: 0,
+      });
+
+      const body = {
+        transactionIds: ["tx-1", "tx-2"],
+        type: "income" as const,
+        tags: ["duzenlendi", "mart"],
+      };
+
+      const result = await controller.bulkUpdate(mockUser, body);
+
+      expect(result).toEqual({ updated: 2, matchedSimilar: 0 });
+      expect(service.bulkUpdate).toHaveBeenCalledWith(mockUser.id, body);
     });
   });
 

@@ -54,6 +54,14 @@ export interface UpdateSubscriptionDto {
   isActive?: boolean;
 }
 
+export interface DismissDetectedSubscriptionDto {
+  name: string;
+  amount: number;
+  frequency: 'weekly' | 'monthly' | 'yearly';
+  nextPayment: string;
+  categoryLabel?: string;
+}
+
 const KNOWN_SUBSCRIPTIONS = [
   { patterns: ['netflix'], name: 'Netflix', categoryLabel: 'Entertainment' },
   { patterns: ['spotify'], name: 'Spotify', categoryLabel: 'Entertainment' },
@@ -72,13 +80,22 @@ const KNOWN_SUBSCRIPTIONS = [
   { patterns: ['exxen', 'gain', 'blutv', 'puhutv'], name: 'Digital TV', categoryLabel: 'Entertainment' },
 ];
 
+const DISMISSED_DETECTION_NOTE = '[dismissed-detection]';
+
 @Injectable()
 export class SubscriptionService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll(userId: string): Promise<SubscriptionRecord[]> {
     const subscriptions = await this.prisma.subscription.findMany({
-      where: { userId },
+      where: {
+        userId,
+        NOT: {
+          notes: {
+            startsWith: DISMISSED_DETECTION_NOTE,
+          },
+        },
+      },
       orderBy: [{ isActive: 'desc' }, { nextBillingDate: 'asc' }],
     });
 
@@ -88,20 +105,38 @@ export class SubscriptionService {
   async create(userId: string, dto: CreateSubscriptionDto): Promise<SubscriptionRecord> {
     this.validateSubscriptionInput(dto.name, dto.amount, dto.nextBillingDate);
 
-    const subscription = await this.prisma.subscription.create({
-      data: {
-        userId,
-        name: dto.name.trim(),
-        amount: Math.abs(Number(dto.amount)),
-        currency: dto.currency || 'TRY',
-        billingCycle: dto.billingCycle || 'monthly',
-        nextBillingDate: new Date(dto.nextBillingDate),
-        categoryId: dto.categoryId || 'subscription',
-        categoryLabel: dto.categoryLabel || 'Abonelik',
-        isActive: dto.isActive ?? true,
-        notes: dto.notes?.trim() || null,
-      },
-    });
+    const existing = await this.findByNormalizedName(userId, dto.name);
+    const data = {
+      userId,
+      name: dto.name.trim(),
+      amount: Math.abs(Number(dto.amount)),
+      currency: dto.currency || 'TRY',
+      billingCycle: dto.billingCycle || 'monthly',
+      nextBillingDate: new Date(dto.nextBillingDate),
+      categoryId: dto.categoryId || 'subscription',
+      categoryLabel: dto.categoryLabel || 'Abonelik',
+      isActive: dto.isActive ?? true,
+      notes: dto.notes?.trim() || null,
+    };
+
+    const subscription = existing
+      ? await this.prisma.subscription.update({
+          where: { id: existing.id },
+          data: {
+            name: data.name,
+            amount: data.amount,
+            currency: data.currency,
+            billingCycle: data.billingCycle,
+            nextBillingDate: data.nextBillingDate,
+            categoryId: data.categoryId,
+            categoryLabel: data.categoryLabel,
+            isActive: data.isActive,
+            notes: data.notes,
+          },
+        })
+      : await this.prisma.subscription.create({
+          data,
+        });
 
     return this.mapSavedSubscription(subscription);
   }
@@ -158,6 +193,44 @@ export class SubscriptionService {
 
     const savedNames = new Set(savedSubscriptions.map((subscription) => this.normalizeName(subscription.name)));
     return detected.filter((subscription) => !savedNames.has(this.normalizeName(subscription.name)));
+  }
+
+  async dismissSuggestion(
+    userId: string,
+    dto: DismissDetectedSubscriptionDto,
+  ): Promise<{ success: boolean }> {
+    this.validateSubscriptionInput(dto.name, dto.amount, dto.nextPayment);
+
+    const existing = await this.findByNormalizedName(userId, dto.name);
+    if (existing && this.isDismissedDetection(existing.notes)) {
+      return { success: true };
+    }
+
+    const suggestions = await this.getDetectedSuggestions(userId);
+    const detectedSuggestion = suggestions.find(
+      (suggestion) => this.normalizeName(suggestion.name) === this.normalizeName(dto.name),
+    );
+
+    if (!detectedSuggestion) {
+      throw new NotFoundException('Detected subscription not found');
+    }
+
+    await this.prisma.subscription.create({
+      data: {
+        userId,
+        name: detectedSuggestion.name,
+        amount: Math.abs(Number(detectedSuggestion.amount)),
+        currency: 'TRY',
+        billingCycle: detectedSuggestion.frequency,
+        nextBillingDate: new Date(detectedSuggestion.nextPayment),
+        categoryId: 'subscription',
+        categoryLabel: detectedSuggestion.categoryLabel || dto.categoryLabel || 'Abonelik',
+        isActive: false,
+        notes: this.buildDismissedDetectionNote(),
+      },
+    });
+
+    return { success: true };
   }
 
   async detectSubscriptions(userId: string): Promise<DetectedSubscription[]> {
@@ -455,5 +528,37 @@ export class SubscriptionService {
 
   private capitalizeFirst(value: string) {
     return value.charAt(0).toUpperCase() + value.slice(1);
+  }
+
+  private async findByNormalizedName(userId: string, name: string) {
+    const subscriptions = await this.prisma.subscription.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        name: true,
+        notes: true,
+      },
+    });
+
+    return subscriptions.find(
+      (subscription) => this.normalizeName(subscription.name) === this.normalizeName(name),
+    );
+  }
+
+  private isDismissedDetection(notes?: string | null) {
+    return notes?.startsWith(DISMISSED_DETECTION_NOTE) ?? false;
+  }
+
+  private buildDismissedDetectionNote(existingNotes?: string | null) {
+    const trimmed = existingNotes?.trim();
+    if (!trimmed) {
+      return DISMISSED_DETECTION_NOTE;
+    }
+
+    if (this.isDismissedDetection(trimmed)) {
+      return trimmed;
+    }
+
+    return `${DISMISSED_DETECTION_NOTE} ${trimmed}`;
   }
 }

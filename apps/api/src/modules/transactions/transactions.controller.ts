@@ -91,6 +91,44 @@ export class TransactionsController {
     );
   }
 
+  @Post("bulk-categorize")
+  @HttpCode(HttpStatus.OK)
+  bulkCategorize(
+    @User() user: JwtPayload,
+    @Body()
+    body: {
+      transactionIds: string[];
+      categoryId: string;
+      categoryLabel: string;
+      applyToSimilar?: boolean;
+    }
+  ) {
+    return this.transactionsService.bulkCategorize(
+      user.id,
+      body.transactionIds,
+      body.categoryId,
+      body.categoryLabel,
+      { applyToSimilar: body.applyToSimilar }
+    );
+  }
+
+  @Post("bulk-update")
+  @HttpCode(HttpStatus.OK)
+  bulkUpdate(
+    @User() user: JwtPayload,
+    @Body()
+    body: {
+      transactionIds: string[];
+      categoryId?: string;
+      categoryLabel?: string;
+      type?: "income" | "expense";
+      tags?: string[];
+      applyToSimilar?: boolean;
+    }
+  ) {
+    return this.transactionsService.bulkUpdate(user.id, body);
+  }
+
   @Get("recurring")
   getRecurringPayments(@User() user: JwtPayload) {
     return this.transactionsService.getRecurringPayments(user.id);

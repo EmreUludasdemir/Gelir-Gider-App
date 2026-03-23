@@ -58,6 +58,21 @@ export const defaultTransactions = [
     createdAt: '2026-03-03T18:15:00.000Z',
     updatedAt: '2026-03-03T18:15:00.000Z',
   },
+  {
+    id: 'tx-expense-3',
+    date: '2026-03-02T08:00:00.000Z',
+    description: 'Kira Odemesi 2026',
+    amount: -25000,
+    currency: 'TRY',
+    type: 'expense',
+    categoryId: 'other',
+    categoryLabel: 'Diger',
+    source: 'manual',
+    confidence: 100,
+    tags: [],
+    createdAt: '2026-03-02T08:00:00.000Z',
+    updatedAt: '2026-03-02T08:00:00.000Z',
+  },
 ]
 
 export const defaultUploadTransactions = [
@@ -251,6 +266,18 @@ export const defaultAnomalies = [
 
 function normalizeName(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+}
+
+function normalizeMerchantKey(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[0-9]/g, ' ')
+    .replace(/[^a-zA-Z\u00C0-\u024F\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(' ')
+    .slice(0, 2)
+    .join(' ')
 }
 
 function calculateMonthlyCost(amount: number, billingCycle: 'weekly' | 'monthly' | 'yearly') {
@@ -973,6 +1000,109 @@ export async function mockAppRoutes(
       return createJsonResponse(route, [])
     }
 
+    if (path === '/transactions/bulk-categorize' && method === 'POST') {
+      const body = parseJson<{
+        transactionIds: string[]
+        categoryId: string
+        categoryLabel: string
+        applyToSimilar?: boolean
+      }>(route)
+
+      const selectedIds = new Set(body.transactionIds || [])
+      const selectedTransactions = transactions.filter((transaction) => selectedIds.has(transaction.id))
+      const similarityKeys = new Set(
+        selectedTransactions
+          .map((transaction) => normalizeMerchantKey(transaction.description))
+          .filter(Boolean),
+      )
+
+      transactions = transactions.map((transaction) =>
+        selectedIds.has(transaction.id) ||
+        (body.applyToSimilar &&
+          selectedTransactions.some((selected) => selected.type === transaction.type) &&
+          similarityKeys.has(normalizeMerchantKey(transaction.description)))
+          ? {
+              ...transaction,
+              categoryId: body.categoryId,
+              categoryLabel: body.categoryLabel,
+              updatedAt: forecastAnchorDate.toISOString(),
+            }
+          : transaction,
+      )
+
+      const updated = transactions.filter(
+        (transaction) =>
+          transaction.categoryId === body.categoryId &&
+          transaction.categoryLabel === body.categoryLabel &&
+          (
+            selectedIds.has(transaction.id) ||
+            (body.applyToSimilar &&
+              selectedTransactions.some((selected) => selected.type === transaction.type) &&
+              similarityKeys.has(normalizeMerchantKey(transaction.description)))
+          ),
+      ).length
+
+      return createJsonResponse(route, {
+        updated,
+        matchedSimilar: Math.max(0, updated - selectedIds.size),
+      })
+    }
+
+    if (path === '/transactions/bulk-update' && method === 'POST') {
+      const body = parseJson<{
+        transactionIds: string[]
+        categoryId?: string
+        categoryLabel?: string
+        type?: 'income' | 'expense'
+        tags?: string[]
+        applyToSimilar?: boolean
+      }>(route)
+
+      const selectedIds = new Set(body.transactionIds || [])
+      const selectedTransactions = transactions.filter((transaction) => selectedIds.has(transaction.id))
+      const similarityKeys = new Set(
+        selectedTransactions
+          .map((transaction) => normalizeMerchantKey(transaction.description))
+          .filter(Boolean),
+      )
+
+      transactions = transactions.map((transaction) => {
+        const shouldUpdate =
+          selectedIds.has(transaction.id) ||
+          (body.applyToSimilar &&
+            selectedTransactions.some((selected) => selected.type === transaction.type) &&
+            similarityKeys.has(normalizeMerchantKey(transaction.description)))
+
+        if (!shouldUpdate) {
+          return transaction
+        }
+
+        return {
+          ...transaction,
+          categoryId: body.categoryId ?? transaction.categoryId,
+          categoryLabel: body.categoryLabel ?? transaction.categoryLabel,
+          type: body.type ?? transaction.type,
+          tags: body.tags ?? transaction.tags,
+          updatedAt: forecastAnchorDate.toISOString(),
+        }
+      })
+
+      const updated = transactions.filter((transaction) => {
+        const isSelected = selectedIds.has(transaction.id)
+        const isSimilarMatch =
+          !!body.applyToSimilar &&
+          selectedTransactions.some((selected) => selected.type === transaction.type) &&
+          similarityKeys.has(normalizeMerchantKey(transaction.description))
+
+        return isSelected || isSimilarMatch
+      }).length
+
+      return createJsonResponse(route, {
+        updated,
+        matchedSimilar: Math.max(0, updated - selectedIds.size),
+      })
+    }
+
     if (path === '/budgets/status' && method === 'GET') {
       return createJsonResponse(route, budgets)
     }
@@ -1042,6 +1172,18 @@ export async function mockAppRoutes(
       )
 
       return createJsonResponse(route, createdSubscription, 201)
+    }
+
+    if (path === '/subscriptions/dismiss' && method === 'POST') {
+      const body = parseJson<{
+        name: string
+      }>(route)
+
+      detectedSubscriptions = detectedSubscriptions.filter(
+        (subscription) => normalizeName(subscription.name) !== normalizeName(body.name),
+      )
+
+      return createJsonResponse(route, { success: true })
     }
 
     if (path.match(/^\/subscriptions\/[^/]+$/) && method === 'PATCH') {

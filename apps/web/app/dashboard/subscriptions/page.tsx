@@ -1,11 +1,12 @@
 ﻿'use client'
 
 import { useMemo, useState } from 'react'
-import { CalendarClock, Layers3, Plus, Radar, Receipt, Trash2 } from 'lucide-react'
+import { CalendarClock, EyeOff, Layers3, Plus, Radar, Receipt, Trash2 } from 'lucide-react'
 import {
   createSubscription,
   deleteSubscription,
   DetectedSubscription,
+  dismissDetectedSubscription,
   updateSubscription,
 } from '@/lib/api'
 import { CATEGORIES } from '@/lib/categories'
@@ -27,6 +28,7 @@ export default function SubscriptionsPage() {
   const { data, error, isLoading, mutate } = useSubscriptionSummary()
   const { showToast } = useToast()
   const [submitting, setSubmitting] = useState(false)
+  const [dismissingId, setDismissingId] = useState<string | null>(null)
   const [form, setForm] = useState({
     name: '',
     amount: '',
@@ -73,6 +75,25 @@ export default function SubscriptionsPage() {
       showToast(err instanceof Error ? err.message : 'Abonelik kaydedilemedi.', 'error')
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleDismissSuggestion = async (subscription: DetectedSubscription) => {
+    try {
+      setDismissingId(subscription.id)
+      await dismissDetectedSubscription({
+        name: subscription.name,
+        amount: subscription.amount,
+        frequency: subscription.frequency,
+        nextPayment: subscription.nextPayment,
+        categoryLabel: subscription.categoryLabel,
+      })
+      await mutate()
+      showToast('Tekrarli odeme onerisi gizlendi.', 'success')
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Oneri gizlenemedi.', 'error')
+    } finally {
+      setDismissingId(null)
     }
   }
 
@@ -274,13 +295,23 @@ export default function SubscriptionsPage() {
                 </div>
                 <div className="mt-5 flex items-center justify-between gap-3">
                   <span className="text-base font-semibold text-foreground">{formatCurrency(subscription.amount)}</span>
-                  <Button
-                    variant="outline"
-                    onClick={() => void handleCreate(subscription)}
-                    loading={submitting}
-                  >
-                    Listeye al
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => void handleDismissSuggestion(subscription)}
+                      loading={dismissingId === subscription.id}
+                    >
+                      <EyeOff className="mr-2 h-4 w-4" />
+                      Goz ardi et
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => void handleCreate(subscription)}
+                      loading={submitting}
+                    >
+                      Listeye al
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}

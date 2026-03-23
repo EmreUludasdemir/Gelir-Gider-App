@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Keyboard } from 'lucide-react'
 import { useTransactions, useRefreshAll, useDuplicateGroups } from '@/lib/hooks'
 import { TransactionTable } from '@/components/dashboard/TransactionTable'
+import { SimilarTransactionClusters } from '@/components/dashboard/transactions/SimilarTransactionClusters'
 import { TransactionInsightsPanel } from '@/components/dashboard/transactions/TransactionInsightsPanel'
 import { ManualTransactionForm } from '@/components/forms/ManualTransactionForm'
 import { TransactionFilters } from '@/components/forms/TransactionFilters'
@@ -29,7 +30,7 @@ function isTypingTarget(target: EventTarget | null) {
 export default function TransactionsPage() {
   const [showForm, setShowForm] = useState(false)
   const [filters, setFilters] = useState<Record<string, string>>({})
-  const { data: transactions, error, isLoading } = useTransactions(filters)
+  const { data: transactions, error, isLoading, mutate: mutateTransactions } = useTransactions(filters)
   const { data: duplicateGroups } = useDuplicateGroups({ days: 90, windowDays: 1, amountTolerance: 0 })
   const refreshAll = useRefreshAll()
 
@@ -138,6 +139,15 @@ export default function TransactionsPage() {
         />
       )}
 
+      {transactions && transactions.length > 0 && (
+        <SimilarTransactionClusters
+          transactions={transactions}
+          onApplied={async () => {
+            await mutateTransactions()
+          }}
+        />
+      )}
+
       <TransactionFilters
         searchInputId={SEARCH_INPUT_ID}
         onFilterChange={setFilters}
@@ -155,6 +165,7 @@ export default function TransactionsPage() {
           transactions={transactions}
           title="Tüm İşlemler"
           duplicateIds={duplicateIds}
+          onRefresh={mutateTransactions}
         />
       ) : (
         <div className="p-8 text-center bg-card rounded-2xl border border-border">

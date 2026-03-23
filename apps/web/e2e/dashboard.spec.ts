@@ -1,5 +1,9 @@
-﻿import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
 import { mockAppRoutes, seedAuthenticatedSession } from './helpers'
+
+async function selectPdfTransactions(page: Page) {
+  await page.getByLabel('Tum PDF islemlerini sec').check()
+}
 
 test.describe('Dashboard', () => {
   test.beforeEach(async ({ page }) => {
@@ -65,5 +69,80 @@ test.describe('Dashboard', () => {
     await expect(page.getByTitle('Kira Odemesi')).toBeVisible()
     await expect(page.getByTitle('Migros Market')).toBeVisible()
     await expect(page.getByTitle('Mart Maasi')).toHaveCount(0)
+  })
+
+  test('suggests similar transaction clusters and applies a category to the whole cluster', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'Cluster suggestion smoke is covered on desktop layout.')
+    await page.goto('/dashboard/transactions')
+
+    await expect(page.getByTestId('similar-cluster-panel')).toBeVisible()
+    await page.getByTestId('similar-cluster-apply-kira-odemesi-expense').click()
+
+    await expect(page.getByText(/2 benzer islem .* kategorisine alindi/i)).toBeVisible()
+
+    const similarRow = page.locator('tr', { has: page.getByTitle('Kira Odemesi 2026', { exact: true }) })
+    await expect(similarRow.locator('td').nth(3)).toContainText('Kira')
+    await expect(page.getByTestId('similar-cluster-panel')).toHaveCount(0)
+  })
+
+  test('bulk categorizes selected pdf transactions', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'Bulk transaction smoke is covered on desktop layout.')
+    await page.goto('/dashboard/transactions')
+
+    await selectPdfTransactions(page)
+    await expect(page.getByTestId('bulk-categorize-button')).toBeVisible()
+
+    await page.getByTestId('bulk-categorize-button').click()
+    await page.getByTestId('bulk-category-option-transport').click()
+
+    await expect(page.getByText(/1 islem .* kategorisine tasindi/i)).toBeVisible()
+    const updatedRow = page.locator('tr', { has: page.getByTitle('Kira Odemesi', { exact: true }) })
+    await expect(updatedRow.getByText(/Ulasim|Ulaşım/)).toBeVisible()
+  })
+
+  test('bulk categorizes similar merchant transactions when requested', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'Bulk transaction smoke is covered on desktop layout.')
+    await page.goto('/dashboard/transactions')
+
+    await selectPdfTransactions(page)
+    await page.getByTestId('bulk-categorize-button').click()
+    await page.getByTestId('bulk-apply-similar-toggle').check()
+    await page.getByTestId('bulk-category-option-transport').click()
+
+    await expect(page.getByText(/2 islem .* kategorisine tasindi/i)).toBeVisible()
+
+    const selectedRow = page.locator('tr', { has: page.getByTitle('Kira Odemesi', { exact: true }) })
+    const similarRow = page.locator('tr', { has: page.getByTitle('Kira Odemesi 2026', { exact: true }) })
+
+    await expect(selectedRow.getByText(/Ulasim|Ulaşım/)).toBeVisible()
+    await expect(similarRow.getByText(/Ulasim|Ulaşım/)).toBeVisible()
+  })
+
+  test('bulk updates selected pdf transaction type', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'Bulk transaction smoke is covered on desktop layout.')
+    await page.goto('/dashboard/transactions')
+
+    await selectPdfTransactions(page)
+    await page.getByTestId('bulk-type-button').click()
+    await page.getByTestId('bulk-type-option-income').click()
+
+    await expect(page.getByText(/1 islem gelir tipine tasindi/i)).toBeVisible()
+    const updatedRow = page.locator('tr', { has: page.getByTitle('Kira Odemesi', { exact: true }) })
+    await expect(updatedRow.getByText('Gelir')).toBeVisible()
+  })
+
+  test('bulk applies tags to selected pdf transactions', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'Bulk transaction smoke is covered on desktop layout.')
+    await page.goto('/dashboard/transactions')
+
+    await selectPdfTransactions(page)
+    await page.getByTestId('bulk-tags-button').click()
+    await page.getByTestId('bulk-tags-input').fill('denetim, mart')
+    await page.getByTestId('bulk-tags-apply-button').click()
+
+    await expect(page.getByText(/1 islem guncellendi/i)).toBeVisible()
+    const updatedRow = page.locator('tr', { has: page.getByTitle('Kira Odemesi', { exact: true }) })
+    await expect(updatedRow.getByText('#denetim')).toBeVisible()
+    await expect(updatedRow.getByText('#mart')).toBeVisible()
   })
 })

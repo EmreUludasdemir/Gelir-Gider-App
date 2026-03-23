@@ -169,6 +169,38 @@ export const updateTransaction = (id: string, data: UpdateTransactionDto) =>
     body: JSON.stringify(data),
   });
 
+export const bulkCategorizeTransactions = (
+  transactionIds: string[],
+  categoryId: string,
+  categoryLabel: string,
+  options?: { applyToSimilar?: boolean },
+) =>
+  fetchApi<{ updated: number; matchedSimilar: number }>(`/transactions/bulk-categorize`, {
+    method: 'POST',
+    body: JSON.stringify({
+      transactionIds,
+      categoryId,
+      categoryLabel,
+      applyToSimilar: options?.applyToSimilar ?? false,
+    }),
+  });
+
+export const bulkUpdateTransactions = (data: {
+  transactionIds: string[];
+  categoryId?: string;
+  categoryLabel?: string;
+  type?: 'income' | 'expense';
+  tags?: string[];
+  applyToSimilar?: boolean;
+}) =>
+  fetchApi<{ updated: number; matchedSimilar: number }>(`/transactions/bulk-update`, {
+    method: 'POST',
+    body: JSON.stringify({
+      ...data,
+      applyToSimilar: data.applyToSimilar ?? false,
+    }),
+  });
+
 export const deleteTransaction = (id: string) =>
   fetchApi<{ success: boolean }>(`/transactions/${id}`, {
     method: 'DELETE',
@@ -706,6 +738,17 @@ export const getDetectedSubscriptions = () =>
   fetchApi<DetectedSubscription[]>('/subscriptions/detected');
 export const getSubscriptionSummary = () =>
   fetchApi<SubscriptionSummary>('/subscriptions/summary');
+export const dismissDetectedSubscription = (data: {
+  name: string;
+  amount: number;
+  frequency: 'weekly' | 'monthly' | 'yearly';
+  nextPayment: string;
+  categoryLabel?: string;
+}) =>
+  fetchApi<{ success: boolean }>('/subscriptions/dismiss', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
 export const createSubscription = (data: {
   name: string;
   amount: number;

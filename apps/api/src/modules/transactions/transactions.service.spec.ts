@@ -4,7 +4,7 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { TransactionsService } from './transactions.service';
 import { PrismaService } from '../../prisma.service';
@@ -401,6 +401,130 @@ describe('TransactionsService', () => {
           }),
         }),
       );
+    });
+  });
+
+  describe('bulkCategorize', () => {
+    it('should bulk categorize selected transactions', async () => {
+      prisma.transaction.findMany.mockResolvedValue([
+        createMockTransaction({ id: 'txn-1', type: 'expense' }),
+        createMockTransaction({ id: 'txn-2', type: 'expense', description: 'Taxi' }),
+      ]);
+      prisma.transaction.updateMany.mockResolvedValue({ count: 2 });
+
+      const result = await service.bulkCategorize(
+        userId,
+        ['txn-1', 'txn-2'],
+        'market',
+        'Market',
+      );
+
+      expect(prisma.transaction.updateMany).toHaveBeenCalledWith({
+        where: {
+          userId,
+          id: { in: ['txn-1', 'txn-2'] },
+        },
+        data: {
+          categoryId: 'market',
+          categoryLabel: 'Market',
+        },
+      });
+      expect(cache.invalidateTransactions).toHaveBeenCalledWith(userId);
+      expect(realtime.notifyTransactionUpdated).toHaveBeenCalledTimes(2);
+      expect(result).toEqual({ updated: 2, matchedSimilar: 0 });
+    });
+
+    it('should reject empty selections', async () => {
+      await expect(
+        service.bulkCategorize(userId, [], 'market', 'Market'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should fail when one of the selected transactions is missing', async () => {
+      prisma.transaction.findMany.mockResolvedValue([
+        createMockTransaction({ id: 'txn-1' }),
+      ]);
+
+      await expect(
+        service.bulkCategorize(userId, ['txn-1', 'txn-2'], 'market', 'Market'),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should apply the category to similar merchant patterns when requested', async () => {
+      prisma.transaction.findMany
+        .mockResolvedValueOnce([
+          createMockTransaction({ id: 'txn-1', type: 'expense', description: 'Kira Odemesi 03/2026' }),
+        ])
+        .mockResolvedValueOnce([
+          createMockTransaction({ id: 'txn-1', type: 'expense', description: 'Kira Odemesi 03/2026' }),
+          createMockTransaction({ id: 'txn-3', type: 'expense', description: 'Kira Odemesi' }),
+          createMockTransaction({ id: 'txn-4', type: 'expense', description: 'Migros Market' }),
+        ]);
+      prisma.transaction.updateMany.mockResolvedValue({ count: 2 });
+
+      const result = await service.bulkCategorize(
+        userId,
+        ['txn-1'],
+        'housing',
+        'Konut',
+        { applyToSimilar: true },
+      );
+
+      expect(prisma.transaction.updateMany).toHaveBeenCalledWith({
+        where: {
+          userId,
+          id: { in: ['txn-1', 'txn-3'] },
+        },
+        data: {
+          categoryId: 'housing',
+          categoryLabel: 'Konut',
+        },
+      });
+      expect(result).toEqual({ updated: 2, matchedSimilar: 1 });
+    });
+  });
+
+  describe('bulkUpdate', () => {
+    it('should bulk update type and tags for selected transactions', async () => {
+      prisma.transaction.findMany.mockResolvedValue([
+        createMockTransaction({ id: 'txn-1', type: 'expense', categoryLabel: 'Market' }),
+        createMockTransaction({ id: 'txn-2', type: 'expense', categoryLabel: 'Market' }),
+      ]);
+      prisma.transaction.updateMany.mockResolvedValue({ count: 2 });
+
+      const result = await service.bulkUpdate(userId, {
+        transactionIds: ['txn-1', 'txn-2'],
+        type: 'income',
+        tags: [' duzenlendi ', 'mart', 'duzenlendi'],
+      });
+
+      expect(prisma.transaction.updateMany).toHaveBeenCalledWith({
+        where: {
+          userId,
+          id: { in: ['txn-1', 'txn-2'] },
+        },
+        data: {
+          type: 'income',
+          tags: JSON.stringify(['duzenlendi', 'mart']),
+        },
+      });
+      expect(realtime.notifyTransactionUpdated).toHaveBeenCalledWith(
+        userId,
+        expect.objectContaining({
+          id: 'txn-1',
+          type: 'income',
+          categoryLabel: 'Market',
+        }),
+      );
+      expect(result).toEqual({ updated: 2, matchedSimilar: 0 });
+    });
+
+    it('should reject requests without any update fields', async () => {
+      await expect(
+        service.bulkUpdate(userId, {
+          transactionIds: ['txn-1'],
+        }),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 

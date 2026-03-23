@@ -118,15 +118,23 @@ test.describe('Subscription Center', () => {
     await page.goto('/dashboard/subscriptions')
   })
 
-  test('renders subscription summary and can add a detected subscription', async ({ page }) => {
+  test('renders subscription summary, can dismiss, and can add a detected subscription', async ({ page }) => {
     await expect(page.getByRole('heading', { name: /Abonelikleri tek merkezde yonet/i })).toBeVisible()
     await expect(page.getByRole('heading', { name: /Tespit edilen tekrarli odemeler/i })).toBeVisible()
     await expect(page.getByRole('heading', { name: /Kayitli abonelikler/i })).toBeVisible()
     await expect(page.getByText('Spotify')).toBeVisible()
+    await expect(page.getByText('Adobe CC')).toBeVisible()
+
+    await page.getByRole('button', { name: /Goz ardi et/i }).first().click()
+
+    await expect(page.getByText('Tekrarli odeme onerisi gizlendi.')).toBeVisible()
+    await expect(page.getByText('Spotify')).not.toBeVisible()
+    await expect(page.getByText('Adobe CC')).toBeVisible()
 
     await page.getByRole('button', { name: 'Listeye al' }).first().click()
 
     await expect(page.getByText('Tespit edilen abonelik listeye eklendi.')).toBeVisible()
+    await expect(page.getByRole('button', { name: /^Listeye al$/ })).toHaveCount(0)
     await expect(page.getByText('Aktif abonelik')).toBeVisible()
     await expect(page.getByRole('button', { name: /Pasife al/i }).first()).toBeVisible()
   })

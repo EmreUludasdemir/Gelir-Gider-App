@@ -46,7 +46,19 @@ export const TransactionTableRow = memo(function TransactionTableRow({
       </td>
       <td className="px-6 py-4 text-sm text-foreground">
         <div className="max-w-md" title={transaction.description}>
-          {transaction.description}
+          <div>{transaction.description}</div>
+          {transaction.tags.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {transaction.tags.map((tag) => (
+                <span
+                  key={`${transaction.id}-${tag}`}
+                  className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary-700"
+                >
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm">

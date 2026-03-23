@@ -216,6 +216,119 @@ export class TransactionsService {
     return entity;
   }
 
+  async bulkCategorize(
+    userId: string,
+    transactionIds: string[],
+    categoryId: string,
+    categoryLabel: string,
+    options?: { applyToSimilar?: boolean }
+  ): Promise<{ updated: number; matchedSimilar: number }> {
+    return this.bulkUpdate(userId, {
+      transactionIds,
+      categoryId,
+      categoryLabel,
+      applyToSimilar: options?.applyToSimilar,
+    });
+  }
+
+  async bulkUpdate(
+    userId: string,
+    payload: {
+      transactionIds: string[];
+      categoryId?: string;
+      categoryLabel?: string;
+      type?: TransactionType;
+      tags?: string[];
+      applyToSimilar?: boolean;
+    }
+  ): Promise<{ updated: number; matchedSimilar: number }> {
+    const uniqueIds = [...new Set(payload.transactionIds.filter(Boolean))];
+    const hasCategoryUpdate =
+      payload.categoryId !== undefined || payload.categoryLabel !== undefined;
+    const hasTypeUpdate = payload.type !== undefined;
+    const hasTagsUpdate = payload.tags !== undefined;
+
+    if (uniqueIds.length === 0) {
+      throw new BadRequestException("En az 1 islem secilmeli");
+    }
+
+    if (!hasCategoryUpdate && !hasTypeUpdate && !hasTagsUpdate) {
+      throw new BadRequestException("Toplu guncelleme icin en az bir alan secilmeli");
+    }
+
+    if (
+      hasCategoryUpdate &&
+      (!payload.categoryId?.trim() || !payload.categoryLabel?.trim())
+    ) {
+      throw new BadRequestException("Kategori bilgisi zorunlu");
+    }
+
+    if (
+      hasTypeUpdate &&
+      payload.type !== "income" &&
+      payload.type !== "expense"
+    ) {
+      throw new BadRequestException("Gecersiz islem tipi");
+    }
+
+    if (hasTagsUpdate && !Array.isArray(payload.tags)) {
+      throw new BadRequestException("Etiketler dizi olmalidir");
+    }
+
+    const tags = hasTagsUpdate ? this.normalizeTags(payload.tags || []) : undefined;
+    const targetTransactions = await this.resolveBulkTargetTransactions(
+      userId,
+      uniqueIds,
+      payload.applyToSimilar
+    );
+    const targetIds = [...new Set(targetTransactions.map((transaction) => transaction.id))];
+    const data: Prisma.TransactionUpdateManyMutationInput = {};
+
+    if (hasCategoryUpdate) {
+      data.categoryId = payload.categoryId!.trim();
+      data.categoryLabel = payload.categoryLabel!.trim();
+    }
+
+    if (hasTypeUpdate) {
+      data.type = payload.type;
+    }
+
+    if (hasTagsUpdate) {
+      data.tags = JSON.stringify(tags);
+    }
+
+    const result = await this.prisma.transaction.updateMany({
+      where: {
+        userId,
+        id: { in: targetIds },
+      },
+      data,
+    });
+
+    await this.cache.invalidateTransactions(userId);
+    this.logger.debug(
+      `Transactions bulk updated, cache invalidated for user ${userId}`,
+      {
+        context: "TransactionsService",
+      }
+    );
+
+    targetTransactions.forEach((transaction) =>
+      this.realtime.notifyTransactionUpdated(userId, {
+        id: transaction.id,
+        description: transaction.description,
+        amount: transaction.amount,
+        type: (payload.type ?? transaction.type) as "income" | "expense",
+        categoryLabel: payload.categoryLabel?.trim() || transaction.categoryLabel,
+      })
+    );
+
+    return {
+      updated: result.count,
+      matchedSimilar: Math.max(0, targetIds.length - uniqueIds.length),
+    };
+  }
+
   async delete(userId: string, id: string): Promise<{ success: boolean }> {
     const existing = await this.prisma.transaction.findFirst({
       where: { id, userId },
@@ -946,6 +1059,89 @@ export class TransactionsService {
       .replace(/[^a-z\s]/g, " ")
       .replace(/\s+/g, " ")
       .trim();
+  }
+
+  private normalizeSimilarityText(input: string): string {
+    const normalized = input
+      .toLowerCase()
+      .replace(/[0-9]/g, " ")
+      .replace(/[^a-zA-Z\u00C0-\u024F\s]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .split(" ")
+      .slice(0, 2)
+      .join(" ");
+
+    return normalized || this.normalizeDuplicateText(input);
+  }
+
+  private normalizeTags(tags: string[]): string[] {
+    return [...new Set(tags.map((tag) => tag.trim()).filter(Boolean))];
+  }
+
+  private async resolveBulkTargetTransactions(
+    userId: string,
+    transactionIds: string[],
+    applyToSimilar?: boolean
+  ) {
+    const existing = await this.prisma.transaction.findMany({
+      where: {
+        userId,
+        id: { in: transactionIds },
+      },
+      select: {
+        id: true,
+        description: true,
+        amount: true,
+        type: true,
+        categoryLabel: true,
+      },
+    });
+
+    if (existing.length !== transactionIds.length) {
+      throw new NotFoundException("Secilen islemlerden biri bulunamadi");
+    }
+
+    if (!applyToSimilar) {
+      return existing;
+    }
+
+    const similaritySeeds = new Map<TransactionType, Set<string>>();
+
+    existing.forEach((transaction) => {
+      const normalized = this.normalizeSimilarityText(transaction.description);
+      if (!normalized) {
+        return;
+      }
+
+      const current =
+        similaritySeeds.get(transaction.type as TransactionType) || new Set<string>();
+      current.add(normalized);
+      similaritySeeds.set(transaction.type as TransactionType, current);
+    });
+
+    if (similaritySeeds.size === 0) {
+      return existing;
+    }
+
+    const candidates = await this.prisma.transaction.findMany({
+      where: {
+        userId,
+        type: { in: [...similaritySeeds.keys()] },
+      },
+      select: {
+        id: true,
+        description: true,
+        amount: true,
+        type: true,
+        categoryLabel: true,
+      },
+    });
+
+    return candidates.filter((transaction) => {
+      const normalized = this.normalizeSimilarityText(transaction.description);
+      return similaritySeeds.get(transaction.type as TransactionType)?.has(normalized) ?? false;
+    });
   }
 
   private isWithinDays(a: string, b: string, days: number): boolean {

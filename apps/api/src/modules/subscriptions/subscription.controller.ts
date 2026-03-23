@@ -14,6 +14,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { User } from '../auth/user.decorator';
 import {
   CreateSubscriptionDto,
+  DismissDetectedSubscriptionDto,
   SubscriptionService,
   UpdateSubscriptionDto,
 } from './subscription.service';
@@ -42,6 +43,15 @@ export class SubscriptionController {
   @HttpCode(HttpStatus.CREATED)
   create(@User('id') userId: string, @Body() dto: CreateSubscriptionDto) {
     return this.subscriptionService.create(userId, dto);
+  }
+
+  @Post('dismiss')
+  @HttpCode(HttpStatus.OK)
+  dismissSuggestion(
+    @User('id') userId: string,
+    @Body() dto: DismissDetectedSubscriptionDto,
+  ) {
+    return this.subscriptionService.dismissSuggestion(userId, dto);
   }
 
   @Patch(':id')
