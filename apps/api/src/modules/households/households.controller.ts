@@ -51,9 +51,10 @@ export class HouseholdsController {
   async createInvite(
     @User('id') userId: string,
     @Param('id') householdId: string,
-    @Body('email') email?: string
+    @Body('email') email?: string,
+    @Body('role') role?: 'member' | 'viewer'
   ) {
-    return this.householdsService.createInvite(userId, householdId, email);
+    return this.householdsService.createInvite(userId, householdId, email, role);
   }
 
   @Post('join')

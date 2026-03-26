@@ -43,6 +43,34 @@ describe('SubscriptionService', () => {
     notes: overrides.notes ?? null,
   })
 
+  const createDetectedSubscription = (overrides: Partial<{
+    id: string
+    name: string
+    amount: number
+    frequency: 'weekly' | 'monthly' | 'yearly'
+    categoryLabel: string
+    lastPayment: Date
+    nextPayment: Date
+    isActive: boolean
+    totalSpentYear: number
+    matchSource: 'known' | 'pattern'
+    confidenceScore: number
+    reasonCodes: string[]
+  }> = {}) => ({
+    id: overrides.id || 'detected-spotify',
+    name: overrides.name || 'Spotify',
+    amount: overrides.amount ?? 59.99,
+    frequency: overrides.frequency || 'monthly',
+    categoryLabel: overrides.categoryLabel || 'Entertainment',
+    lastPayment: overrides.lastPayment || new Date('2026-02-11T00:00:00.000Z'),
+    nextPayment: overrides.nextPayment || new Date('2026-03-11T00:00:00.000Z'),
+    isActive: overrides.isActive ?? true,
+    totalSpentYear: overrides.totalSpentYear ?? 719.88,
+    matchSource: overrides.matchSource || 'known',
+    confidenceScore: overrides.confidenceScore ?? 88,
+    reasonCodes: overrides.reasonCodes || ['known_merchant_match', 'cadence_stable'],
+  })
+
   beforeEach(async () => {
     prisma = createMockPrismaService()
 
@@ -226,23 +254,23 @@ describe('SubscriptionService', () => {
   describe('dismissSuggestion', () => {
     it('stores a dismissed suggestion as hidden inactive state', async () => {
       const detectSpy = jest.spyOn(service, 'detectSubscriptions').mockResolvedValue([
-        {
-          id: 'detected-spotify',
-          name: 'Spotify',
-          amount: 59.99,
-          frequency: 'monthly',
-          categoryLabel: 'Entertainment',
-          lastPayment: new Date('2026-02-11T00:00:00.000Z'),
-          nextPayment: new Date('2026-03-11T00:00:00.000Z'),
-          isActive: true,
-          totalSpentYear: 719.88,
-          matchSource: 'known',
-        },
+        createDetectedSubscription(),
       ])
 
       prisma.subscription.findMany
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([])
+      prisma.subscriptionDetectionFeedback.upsert.mockResolvedValue({
+        id: 'feedback-1',
+        userId,
+        fingerprint: 'spotify-monthly-59.99-entertainment',
+        status: 'rejected',
+        detectedSubscriptionId: 'detected-spotify',
+        reasonCodes: JSON.stringify(['known_merchant_match', 'cadence_stable']),
+        metadata: '{}',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
       prisma.subscription.create.mockResolvedValue(
         createSavedSubscription({
           id: 'sub-dismissed',
@@ -272,6 +300,7 @@ describe('SubscriptionService', () => {
         }),
       })
       expect(result).toEqual({ success: true })
+      expect(prisma.subscriptionDetectionFeedback.upsert).toHaveBeenCalled()
 
       detectSpy.mockRestore()
     })
@@ -302,18 +331,7 @@ describe('SubscriptionService', () => {
   describe('getSubscriptionSummary', () => {
     it('returns totals, upcoming payments, and filtered detected suggestions', async () => {
       const detectSpy = jest.spyOn(service, 'detectSubscriptions').mockResolvedValue([
-        {
-          id: 'detected-spotify',
-          name: 'Spotify',
-          amount: 59.99,
-          frequency: 'monthly',
-          categoryLabel: 'Entertainment',
-          lastPayment: new Date('2026-02-11T00:00:00.000Z'),
-          nextPayment: new Date('2026-03-11T00:00:00.000Z'),
-          isActive: true,
-          totalSpentYear: 719.88,
-          matchSource: 'known',
-        },
+        createDetectedSubscription(),
       ])
 
       prisma.subscription.findMany
@@ -331,6 +349,7 @@ describe('SubscriptionService', () => {
       expect(result.upcomingPayments).toHaveLength(2)
       expect(result.detectedSuggestions).toHaveLength(1)
       expect(result.detectedSuggestions[0].name).toBe('Spotify')
+      expect(result.detectedSuggestions[0].confidenceScore).toBe(88)
       expect(result.savingsOpportunities[0].name).toBe('Adobe CC')
 
       detectSpy.mockRestore()
@@ -374,6 +393,51 @@ describe('SubscriptionService', () => {
 
       expect(result.subscriptions).toHaveLength(1)
       expect(result.subscriptions[0].name).toBe('Netflix')
+
+      detectSpy.mockRestore()
+    })
+  })
+
+  describe('submitDetectedFeedback', () => {
+    it('persists confirmed feedback using detection fingerprint', async () => {
+      const detectSpy = jest
+        .spyOn(service as any, 'buildDetectedSubscriptions')
+        .mockResolvedValue([createDetectedSubscription()])
+
+      prisma.subscriptionDetectionFeedback.upsert.mockResolvedValue({
+        id: 'feedback-1',
+        userId,
+        fingerprint: 'spotify-monthly-59.99-entertainment',
+        status: 'confirmed',
+        detectedSubscriptionId: 'detected-spotify',
+        reasonCodes: JSON.stringify(['known_merchant_match']),
+        metadata: '{}',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+
+      const result = await service.submitDetectedFeedback(userId, 'detected-spotify', {
+        status: 'confirmed',
+        reasonCodes: ['known_merchant_match'],
+      })
+
+      expect(prisma.subscriptionDetectionFeedback.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({
+            userId,
+            detectedSubscriptionId: 'detected-spotify',
+            status: 'confirmed',
+          }),
+          update: expect.objectContaining({
+            status: 'confirmed',
+          }),
+        }),
+      )
+      expect(result).toEqual({
+        success: true,
+        fingerprint: 'spotify',
+        status: 'confirmed',
+      })
 
       detectSpy.mockRestore()
     })

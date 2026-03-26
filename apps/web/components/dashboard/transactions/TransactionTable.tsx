@@ -17,6 +17,7 @@ interface TransactionTableProps {
   limit?: number
   onRefresh?: () => void
   duplicateIds?: Set<string>
+  currentUserId?: string
 }
 
 export function TransactionTable({
@@ -25,6 +26,7 @@ export function TransactionTable({
   limit,
   onRefresh,
   duplicateIds,
+  currentUserId,
 }: TransactionTableProps) {
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
 
@@ -89,6 +91,7 @@ export function TransactionTable({
                 <TransactionMobileCard
                   key={transaction.id}
                   transaction={transaction}
+                  currentUserId={currentUserId}
                   isSelected={selectedIds.has(transaction.id)}
                   hasPdfTransactions={hasPdfTransactions}
                   isDuplicate={duplicateIds?.has(transaction.id) ?? false}
@@ -143,6 +146,7 @@ export function TransactionTable({
                     <TransactionTableRow
                       key={transaction.id}
                       transaction={transaction}
+                      currentUserId={currentUserId}
                       isSelected={selectedIds.has(transaction.id)}
                       hasPdfTransactions={hasPdfTransactions}
                       isDuplicate={duplicateIds?.has(transaction.id) ?? false}

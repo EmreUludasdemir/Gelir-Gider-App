@@ -16,6 +16,8 @@ import {
   DetectedSubscription,
   SubscriptionSummary,
   CashFlowForecast,
+  SavingsAction,
+  Household,
 } from './api'
 
 function useProtectedKey(path: string | null) {
@@ -104,12 +106,26 @@ export function useCashFlowForecast(days = 30) {
   })
 }
 
+export function useSavingsActions() {
+  return useSWR<SavingsAction[]>(useProtectedKey('/analytics/savings-actions'), fetcher, {
+    refreshInterval: 60000,
+  })
+}
+
+export function useHouseholds() {
+  return useSWR<Household[]>(useProtectedKey('/households'), fetcher, {
+    refreshInterval: 60000,
+  })
+}
+
 export function useRefreshAll() {
   const { mutate: mutateTransactions } = useTransactions()
   const { mutate: mutateSummary } = useSummary()
   const { mutate: mutateSuggestions } = useSuggestions()
   const { mutate: mutateSubscriptions } = useSubscriptionSummary()
   const { mutate: mutateCashFlow } = useCashFlowForecast()
+  const { mutate: mutateSavingsActions } = useSavingsActions()
+  const { mutate: mutateHouseholds } = useHouseholds()
 
   return async () => {
     await Promise.all([
@@ -118,6 +134,8 @@ export function useRefreshAll() {
       mutateSuggestions(),
       mutateSubscriptions(),
       mutateCashFlow(),
+      mutateSavingsActions(),
+      mutateHouseholds(),
     ])
   }
 }

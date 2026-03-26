@@ -53,15 +53,16 @@ test.describe('Bank Connections', () => {
     await expect(page.getByRole('heading', { name: /Banka Bağlantıları/i })).toBeVisible()
     await expect(page.getByText('Akbank')).toBeVisible()
     await expect(page.getByText('Ana Hesap')).toBeVisible()
+    await expect(page.getByText('Bağlı')).toBeVisible()
   })
 
-  test('adds a new bank connection', async ({ page }) => {
+  test('starts the bank consent flow and completes callback', async ({ page }) => {
     await page.getByRole('button', { name: /Banka Ekle/i }).click()
     await page.selectOption('select', 'garanti')
     await page.fill('input[placeholder="Ana Hesap"]', 'Yedek Hesap')
-    await page.getByRole('button', { name: /^Bağlan$/i }).click()
+    await page.getByRole('button', { name: /İzin Akışını Başlat/i }).click()
 
-    await expect(page.getByText('Garanti BBVA')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Garanti BBVA' }).first()).toBeVisible()
     await expect(page.getByText('Yedek Hesap')).toBeVisible()
   })
 })
@@ -127,14 +128,14 @@ test.describe('Subscription Center', () => {
 
     await page.getByRole('button', { name: /Goz ardi et/i }).first().click()
 
-    await expect(page.getByText('Tekrarli odeme onerisi gizlendi.')).toBeVisible()
+    await expect(page.getByText('Tekrarli odeme onerisi reddedildi.')).toBeVisible()
     await expect(page.getByText('Spotify')).not.toBeVisible()
     await expect(page.getByText('Adobe CC')).toBeVisible()
 
-    await page.getByRole('button', { name: 'Listeye al' }).first().click()
+    await page.getByRole('button', { name: 'Onayla' }).first().click()
 
-    await expect(page.getByText('Tespit edilen abonelik listeye eklendi.')).toBeVisible()
-    await expect(page.getByRole('button', { name: /^Listeye al$/ })).toHaveCount(0)
+    await expect(page.getByText('Abonelik onaylandi ve listeye eklendi.')).toBeVisible()
+    await expect(page.getByRole('button', { name: /^Onayla$/ })).toHaveCount(0)
     await expect(page.getByText('Aktif abonelik')).toBeVisible()
     await expect(page.getByRole('button', { name: /Pasife al/i }).first()).toBeVisible()
   })

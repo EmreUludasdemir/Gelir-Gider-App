@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { ArrowRight, CopyCheck, FileUp, ListChecks, Sparkles } from 'lucide-react'
 import type { DashboardSummary } from '@/lib/api'
+import { useSavingsActions } from '@/lib/hooks'
 import { formatCurrency } from '@/lib/utils'
 
 interface DashboardHeroProps {
@@ -17,6 +18,7 @@ function getHealthLabel(savingsRate: number) {
 }
 
 export function DashboardHero({ summary }: DashboardHeroProps) {
+  const { data: savingsActions } = useSavingsActions()
   const income = Number(summary.totals.income || 0)
   const expense = Number(summary.totals.expense || 0)
   const balance = Number(summary.totals.balance || 0)
@@ -25,6 +27,12 @@ export function DashboardHero({ summary }: DashboardHeroProps) {
   const incomeDelta = Number(summary.comparison.changePercentage.income || 0)
   const expenseDelta = Number(summary.comparison.changePercentage.expense || 0)
   const topCategory = summary.topCategories[0]
+  const potentialSavings = Number(
+    (savingsActions || [])
+      .slice(0, 3)
+      .reduce((sum, action) => sum + action.estimatedMonthlySaving, 0)
+      .toFixed(2)
+  )
 
   const savingsRate = income > 0 ? (balance / income) * 100 : 0
   const expenseRatio = income > 0 ? (expense / income) * 100 : 0
@@ -72,7 +80,7 @@ export function DashboardHero({ summary }: DashboardHeroProps) {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-6">
             <div className="rounded-2xl border border-success/30 bg-success/10 p-3">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Tasarruf Orani</p>
               <p className={`mt-1 text-lg font-bold ${health.tone}`}>
@@ -118,6 +126,18 @@ export function DashboardHero({ summary }: DashboardHeroProps) {
                 {topCategory
                   ? `${formatCurrency(topCategory.total)} · %${topCategory.percentage.toFixed(1)} pay`
                   : 'Harcama verisi geldikce kategori baskisi burada gorunur'}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-success/25 bg-success/10 p-3">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Potansiyel tasarruf</p>
+              <p className="mt-1 text-lg font-bold text-success">
+                {potentialSavings > 0 ? formatCurrency(potentialSavings) : '-'}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {potentialSavings > 0
+                  ? 'Bu ay icin aksiyona donusebilecek tahmini toplam.'
+                  : 'Tasarruf aksiyonlari olustukca burada gorunur.'}
               </p>
             </div>
           </div>

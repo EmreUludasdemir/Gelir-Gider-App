@@ -11,6 +11,8 @@ import { TransactionFilters } from '@/components/forms/TransactionFilters'
 import { ExportButton } from '@/components/ui/ExportButton'
 import { Spinner } from '@/components/ui/Spinner'
 import { Button } from '@/components/ui/Button'
+import { useRealtimeRefresh } from '@/contexts/RealtimeContext'
+import { useAuth } from '@/components/auth-provider'
 
 const SEARCH_INPUT_ID = 'transactions-search-input'
 
@@ -28,11 +30,16 @@ function isTypingTarget(target: EventTarget | null) {
 }
 
 export default function TransactionsPage() {
+  const { user } = useAuth()
   const [showForm, setShowForm] = useState(false)
   const [filters, setFilters] = useState<Record<string, string>>({})
   const { data: transactions, error, isLoading, mutate: mutateTransactions } = useTransactions(filters)
   const { data: duplicateGroups } = useDuplicateGroups({ days: 90, windowDays: 1, amountTolerance: 0 })
   const refreshAll = useRefreshAll()
+
+  useRealtimeRefresh(() => {
+    void mutateTransactions()
+  }, [mutateTransactions])
 
   const duplicateIds = useMemo(() => {
     if (!duplicateGroups) return new Set<string>()
@@ -164,6 +171,7 @@ export default function TransactionsPage() {
         <TransactionTable
           transactions={transactions}
           title="Tüm İşlemler"
+          currentUserId={user?.id}
           duplicateIds={duplicateIds}
           onRefresh={mutateTransactions}
         />

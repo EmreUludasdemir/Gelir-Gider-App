@@ -6,7 +6,7 @@ import {
   createSubscription,
   deleteSubscription,
   DetectedSubscription,
-  dismissDetectedSubscription,
+  submitDetectedSubscriptionFeedback,
   updateSubscription,
 } from '@/lib/api'
 import { CATEGORIES } from '@/lib/categories'
@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Spinner } from '@/components/ui/Spinner'
 import { useToast } from '@/components/ui/Toast'
+import { describeSubscriptionReason } from '@/lib/subscription-reasons'
 import { formatCurrency, formatDate } from '@/lib/utils'
 
 const CATEGORY_OPTIONS = CATEGORIES.filter((category) => category.type === 'expense' || category.type === 'both').map((category) => ({
@@ -46,19 +47,19 @@ export default function SubscriptionsPage() {
     return data.totalMonthly > 0 ? Math.round(data.totalMonthly / Math.max(activeCount, 1)) : 0
   }, [data, activeCount])
 
-  const handleCreate = async (seed?: DetectedSubscription) => {
+  const handleCreate = async () => {
     try {
       setSubmitting(true)
 
       const category = CATEGORIES.find((item) => item.id === form.categoryId)
       await createSubscription({
-        name: seed?.name || form.name,
-        amount: seed?.amount || Number(form.amount),
-        billingCycle: seed?.frequency || (form.billingCycle as 'weekly' | 'monthly' | 'yearly'),
-        nextBillingDate: seed?.nextPayment?.slice(0, 10) || form.nextBillingDate,
+        name: form.name,
+        amount: Number(form.amount),
+        billingCycle: form.billingCycle as 'weekly' | 'monthly' | 'yearly',
+        nextBillingDate: form.nextBillingDate,
         categoryId: category?.id || 'subscription',
-        categoryLabel: seed?.categoryLabel || category?.label || 'Abonelik',
-        notes: seed ? `Detected from recurring payments (${seed.matchSource})` : form.notes,
+        categoryLabel: category?.label || 'Abonelik',
+        notes: form.notes,
       })
 
       setForm({
@@ -70,9 +71,34 @@ export default function SubscriptionsPage() {
         notes: '',
       })
       await mutate()
-      showToast(seed ? 'Tespit edilen abonelik listeye eklendi.' : 'Abonelik kaydi olusturuldu.', 'success')
+      showToast('Abonelik kaydi olusturuldu.', 'success')
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Abonelik kaydedilemedi.', 'error')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleConfirmSuggestion = async (subscription: DetectedSubscription) => {
+    try {
+      setSubmitting(true)
+      await createSubscription({
+        name: subscription.name,
+        amount: subscription.amount,
+        billingCycle: subscription.frequency,
+        nextBillingDate: subscription.nextPayment.slice(0, 10),
+        categoryId: 'subscription',
+        categoryLabel: subscription.categoryLabel,
+        notes: `Detected from recurring payments (${subscription.matchSource})`,
+      })
+      await submitDetectedSubscriptionFeedback(subscription.id, {
+        status: 'confirmed',
+        reasonCodes: subscription.reasonCodes,
+      })
+      await mutate()
+      showToast('Abonelik onaylandi ve listeye eklendi.', 'success')
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Abonelik onaylanamadi.', 'error')
     } finally {
       setSubmitting(false)
     }
@@ -81,17 +107,14 @@ export default function SubscriptionsPage() {
   const handleDismissSuggestion = async (subscription: DetectedSubscription) => {
     try {
       setDismissingId(subscription.id)
-      await dismissDetectedSubscription({
-        name: subscription.name,
-        amount: subscription.amount,
-        frequency: subscription.frequency,
-        nextPayment: subscription.nextPayment,
-        categoryLabel: subscription.categoryLabel,
+      await submitDetectedSubscriptionFeedback(subscription.id, {
+        status: 'rejected',
+        reasonCodes: subscription.reasonCodes,
       })
       await mutate()
-      showToast('Tekrarli odeme onerisi gizlendi.', 'success')
+      showToast('Tekrarli odeme onerisi reddedildi.', 'success')
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Oneri gizlenemedi.', 'error')
+      showToast(err instanceof Error ? err.message : 'Oneri reddedilemedi.', 'error')
     } finally {
       setDismissingId(null)
     }
@@ -285,13 +308,28 @@ export default function SubscriptionsPage() {
                     </p>
                   </div>
                   <span className="rounded-full border border-warning/25 bg-warning/10 px-3 py-1 text-xs font-semibold text-warning">
-                    {subscription.matchSource === 'known' ? 'Known match' : 'Pattern'}
+                    %{subscription.confidenceScore} confidence
                   </span>
                 </div>
                 <div className="mt-4 space-y-2 text-sm text-muted-foreground">
                   <p>Son odeme: {formatDate(subscription.lastPayment)}</p>
                   <p>Sonraki tahmin: {formatDate(subscription.nextPayment)}</p>
                   <p>Yillik toplam: {formatCurrency(subscription.totalSpentYear)}</p>
+                  <div className="rounded-2xl border border-border/70 bg-card/60 p-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      Neden onerildi?
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {subscription.reasonCodes.slice(0, 4).map((reasonCode) => (
+                        <span
+                          key={`${subscription.id}-${reasonCode}`}
+                          className="rounded-full border border-primary/15 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
+                        >
+                          {describeSubscriptionReason(reasonCode)}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 </div>
                 <div className="mt-5 flex items-center justify-between gap-3">
                   <span className="text-base font-semibold text-foreground">{formatCurrency(subscription.amount)}</span>
@@ -306,10 +344,10 @@ export default function SubscriptionsPage() {
                     </Button>
                     <Button
                       variant="outline"
-                      onClick={() => void handleCreate(subscription)}
+                      onClick={() => void handleConfirmSuggestion(subscription)}
                       loading={submitting}
                     >
-                      Listeye al
+                      Onayla
                     </Button>
                   </div>
                 </div>

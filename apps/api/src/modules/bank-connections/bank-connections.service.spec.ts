@@ -414,6 +414,10 @@ describe('BankConnectionsService', () => {
         syncError: 'Connection timeout',
       });
       prisma.bankConnection.findFirst.mockResolvedValue(failedConnection);
+      prisma.bankConnection.update.mockImplementation(async ({ data }) => ({
+        ...failedConnection,
+        ...data,
+      }));
 
       // Adapter will handle the retry logic
       await expect(

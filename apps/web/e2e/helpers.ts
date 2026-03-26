@@ -131,16 +131,23 @@ export const defaultConnections = [
     accountNumber: 'TR00 0000',
     accountName: 'Ana Hesap',
     accountType: 'checking',
+    expiresAt: '2026-03-06T12:00:00.000Z',
     lastSyncAt: '2026-03-06T10:00:00.000Z',
     lastSyncStatus: 'success',
+    lifecycleState: 'connected',
+    syncError: null,
+    errorReason: null,
+    providerErrorCode: null,
+    lastConsentAt: '2026-03-06T09:30:00.000Z',
+    reauthRequiredAt: null,
     isActive: true,
   },
 ]
 
 export const availableBanks = [
-  { code: 'akbank', name: 'Akbank' },
-  { code: 'garanti', name: 'Garanti BBVA' },
-  { code: 'mock', name: 'Demo Banka' },
+  { code: 'akbank', name: 'Akbank', isDemo: false },
+  { code: 'garanti', name: 'Garanti BBVA', isDemo: false },
+  { code: 'mock', name: 'Demo Banka', isDemo: true },
 ]
 
 export const defaultBudgetStatus = [
@@ -369,6 +376,8 @@ export const defaultDetectedSubscriptions = [
     isActive: true,
     totalSpentYear: 719.88,
     matchSource: 'known',
+    confidenceScore: 91,
+    reasonCodes: ['known_merchant_match', 'cadence_stable', 'amount_consistent'],
   },
   {
     id: 'detected-adobe-cc',
@@ -381,6 +390,8 @@ export const defaultDetectedSubscriptions = [
     isActive: true,
     totalSpentYear: 4799.88,
     matchSource: 'pattern',
+    confidenceScore: 82,
+    reasonCodes: ['recurring_pattern_detected', 'frequency_history_strong', 'frequency_stable'],
   },
 ]
 
@@ -1186,6 +1197,25 @@ export async function mockAppRoutes(
       return createJsonResponse(route, { success: true })
     }
 
+    if (path.match(/^\/subscriptions\/detected\/[^/]+\/feedback$/) && method === 'POST') {
+      const detectedId = path.split('/')[3]
+      const body = parseJson<{
+        status: 'confirmed' | 'rejected'
+      }>(route)
+
+      if (body.status === 'rejected') {
+        detectedSubscriptions = detectedSubscriptions.filter(
+          (subscription) => subscription.id !== detectedId,
+        )
+      }
+
+      return createJsonResponse(route, {
+        success: true,
+        fingerprint: detectedId.replace(/^detected-/, ''),
+        status: body.status,
+      })
+    }
+
     if (path.match(/^\/subscriptions\/[^/]+$/) && method === 'PATCH') {
       const subscriptionId = path.split('/')[2]
       const body = parseJson<Partial<ManagedSubscription>>(route)
@@ -1278,6 +1308,89 @@ export async function mockAppRoutes(
       return createJsonResponse(route, availableBanks)
     }
 
+    if (path === '/bank-connections/connect/start' && method === 'POST') {
+      const body = parseJson<{
+        bankCode: string
+        bankName?: string
+        accountNumber?: string
+        accountName?: string
+      }>(route)
+
+      const state = `state-${body.bankCode}`
+
+      const pendingConnection = {
+        id: `conn-${connections.length + 1}`,
+        bankCode: body.bankCode,
+        bankName: body.bankName || body.bankCode,
+        accountNumber: body.accountNumber || '',
+        accountName: body.accountName || 'Yeni Hesap',
+        accountType: 'checking',
+        expiresAt: undefined,
+        lastSyncAt: undefined,
+        lastSyncStatus: 'pending',
+        lifecycleState: 'pending_consent',
+        syncError: null,
+        errorReason: null,
+        providerErrorCode: null,
+        lastConsentAt: undefined,
+        reauthRequiredAt: null,
+        isActive: true,
+      }
+
+      connections = [...connections, pendingConnection]
+
+      return createJsonResponse(route, {
+        connectionId: pendingConnection.id,
+        state,
+        lifecycleState: 'pending_consent',
+        redirectUrl: `${baseUrl}/bank-connections?bankCode=${body.bankCode}&state=${state}&code=${body.bankCode}-sandbox-code`,
+      })
+    }
+
+    if (path === '/bank-connections/connect/callback' && method === 'GET') {
+      const bankCode = url.searchParams.get('bankCode') || 'akbank'
+      const state = url.searchParams.get('state') || ''
+      const pendingConnection = [...connections]
+        .reverse()
+        .find((connection) => connection.bankCode === bankCode && connection.lifecycleState === 'pending_consent')
+
+      const updatedConnection = {
+        ...(pendingConnection || {
+          id: `conn-${connections.length + 1}`,
+          bankCode,
+          bankName: availableBanks.find((bank) => bank.code === bankCode)?.name || bankCode,
+          accountNumber: `TR-${bankCode}-001`,
+          accountName: 'Yeni Hesap',
+          accountType: 'checking',
+          isActive: true,
+        }),
+        accountNumber: pendingConnection?.accountNumber || `TR-${bankCode}-001`,
+        accountName: pendingConnection?.accountName || 'Yeni Hesap',
+        expiresAt: '2026-03-30T12:00:00.000Z',
+        lastSyncAt: undefined,
+        lastSyncStatus: 'pending',
+        lifecycleState: 'connected',
+        syncError: null,
+        errorReason: null,
+        providerErrorCode: null,
+        lastConsentAt: '2026-03-10T09:00:00.000Z',
+        reauthRequiredAt: null,
+      }
+
+      connections = connections.map((connection) =>
+        connection.id === updatedConnection.id ? updatedConnection : connection,
+      )
+
+      if (!connections.some((connection) => connection.id === updatedConnection.id)) {
+        connections = [...connections, updatedConnection]
+      }
+
+      return createJsonResponse(route, {
+        ...updatedConnection,
+        state,
+      })
+    }
+
     if (path === '/bank-connections' && method === 'POST') {
       const body = parseJson<{
         bankCode: string
@@ -1302,7 +1415,45 @@ export async function mockAppRoutes(
       return createJsonResponse(route, newConnection, 201)
     }
 
+    if (path.match(/^\/bank-connections\/[^/]+\/reconnect$/) && method === 'POST') {
+      const connectionId = path.split('/')[2]
+      const connection = connections.find((item) => item.id === connectionId)
+      const state = `reauth-${connectionId}`
+
+      connections = connections.map((item) =>
+        item.id === connectionId
+          ? {
+              ...item,
+              lifecycleState: 'pending_consent',
+              lastSyncStatus: 'reauth_required',
+              errorReason: null,
+              syncError: null,
+            }
+          : item,
+      )
+
+      return createJsonResponse(route, {
+        connectionId,
+        state,
+        lifecycleState: 'pending_consent',
+        redirectUrl: `${baseUrl}/bank-connections?bankCode=${connection?.bankCode || 'akbank'}&state=${state}&code=reauth-code`,
+      })
+    }
+
     if (path.match(/^\/bank-connections\/[^/]+\/sync$/) && method === 'POST') {
+      const connectionId = path.split('/')[2]
+      connections = connections.map((connection) =>
+        connection.id === connectionId
+          ? {
+              ...connection,
+              lifecycleState: 'connected',
+              lastSyncStatus: 'success',
+              lastSyncAt: '2026-03-11T08:00:00.000Z',
+              errorReason: null,
+              syncError: null,
+            }
+          : connection,
+      )
       return createJsonResponse(route, { success: true })
     }
 

@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable } from "@nestjs/common";
 import { PrismaService } from "../../prisma.service";
 import { RedisService } from "../../redis.service";
 
@@ -30,6 +30,23 @@ interface Forecast {
     categoryLabel: string;
     predicted: number;
   }>;
+}
+
+export interface SavingsAction {
+  id: string;
+  estimatedMonthlySaving: number;
+  confidence: number;
+  actionType:
+    | "cancel_subscription"
+    | "reduce_category_spend"
+    | "review_recurring_charge";
+  reason: string;
+  outcome?: "accepted" | "dismissed" | "completed";
+}
+
+export interface SavingsActionOutcomeDto {
+  status: "accepted" | "dismissed" | "completed";
+  reason?: string;
 }
 
 @Injectable()
@@ -345,5 +362,256 @@ export class AnalyticsService {
       saved: Math.max(0, saved),
       target: income * 0.2, // 20% savings target
     };
+  }
+
+  async getSavingsActions(userId: string): Promise<SavingsAction[]> {
+    const cacheKey = `analytics:savings-actions:${userId}`;
+    const cached = await this.redis.get<SavingsAction[]>(cacheKey);
+    if (cached) return cached;
+
+    const [subscriptions, currentMonthExpenses, previousMonthExpenses, recentExpenses, outcomes] =
+      await Promise.all([
+        this.prisma.subscription.findMany({
+          where: { userId, isActive: true },
+          orderBy: { amount: "desc" },
+        }),
+        this.getExpenseTransactionsForMonth(userId, 0),
+        this.getExpenseTransactionsForMonth(userId, 1),
+        this.prisma.transaction.findMany({
+          where: {
+            userId,
+            type: "expense",
+            date: { gte: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) },
+          },
+          orderBy: { date: "desc" },
+        }),
+        this.prisma.savingsActionOutcome.findMany({
+          where: { userId },
+          orderBy: { updatedAt: "desc" },
+        }),
+      ]);
+
+    const outcomeMap = new Map(
+      outcomes.map((outcome) => [outcome.actionId, outcome.status as SavingsAction["outcome"]]),
+    );
+
+    const actions: SavingsAction[] = [];
+
+    subscriptions.slice(0, 3).forEach((subscription) => {
+      const monthlyCost = this.toMonthlyCost(subscription.amount, subscription.billingCycle);
+      const actionId = `cancel_subscription:${subscription.id}`;
+      const outcome = outcomeMap.get(actionId);
+      if (outcome === "dismissed" || outcome === "completed") {
+        return;
+      }
+
+      actions.push({
+        id: actionId,
+        actionType: "cancel_subscription",
+        estimatedMonthlySaving: Number(monthlyCost.toFixed(2)),
+        confidence: Math.min(95, 70 + Math.round(monthlyCost / 20)),
+        reason: `${subscription.name} aylik ${monthlyCost.toFixed(2)} TRY recurring yuk olusturuyor.`,
+        outcome,
+      });
+    });
+
+    const categoryActions = this.buildCategorySavingsActions(
+      currentMonthExpenses,
+      previousMonthExpenses,
+      outcomeMap,
+    );
+    actions.push(...categoryActions);
+
+    const recurringActions = this.buildRecurringReviewActions(
+      recentExpenses,
+      subscriptions.map((subscription) => subscription.name),
+      outcomeMap,
+    );
+    actions.push(...recurringActions);
+
+    const deduplicated = Array.from(new Map(actions.map((action) => [action.id, action])).values())
+      .sort((left, right) => {
+        const leftScore = left.estimatedMonthlySaving * (left.confidence / 100);
+        const rightScore = right.estimatedMonthlySaving * (right.confidence / 100);
+        return rightScore - leftScore;
+      })
+      .slice(0, 8);
+
+    await this.redis.set(cacheKey, deduplicated, 300);
+    return deduplicated;
+  }
+
+  async saveSavingsActionOutcome(
+    userId: string,
+    actionId: string,
+    dto: SavingsActionOutcomeDto,
+  ): Promise<{ success: boolean }> {
+    if (!["accepted", "dismissed", "completed"].includes(dto.status)) {
+      throw new BadRequestException("Savings action outcome is invalid");
+    }
+
+    const actionType = this.extractActionType(actionId);
+    if (!actionType) {
+      throw new BadRequestException("Savings action type could not be resolved");
+    }
+
+    await this.prisma.savingsActionOutcome.upsert({
+      where: {
+        userId_actionId: {
+          userId,
+          actionId,
+        },
+      },
+      create: {
+        userId,
+        actionId,
+        actionType,
+        status: dto.status,
+        reason: dto.reason || null,
+        metadata: JSON.stringify({ updatedAt: new Date().toISOString() }),
+      },
+      update: {
+        actionType,
+        status: dto.status,
+        reason: dto.reason || null,
+        metadata: JSON.stringify({ updatedAt: new Date().toISOString() }),
+      },
+    });
+
+    await this.redis.del(`analytics:savings-actions:${userId}`);
+    return { success: true };
+  }
+
+  private async getExpenseTransactionsForMonth(userId: string, monthOffset: number) {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth() - monthOffset, 1);
+    const end = new Date(now.getFullYear(), now.getMonth() - monthOffset + 1, 0, 23, 59, 59);
+
+    return this.prisma.transaction.findMany({
+      where: {
+        userId,
+        type: "expense",
+        date: { gte: start, lte: end },
+      },
+    });
+  }
+
+  private buildCategorySavingsActions(
+    currentMonthExpenses: Array<{ categoryId: string; categoryLabel: string; amount: number }>,
+    previousMonthExpenses: Array<{ categoryId: string; amount: number }>,
+    outcomeMap: Map<string, SavingsAction["outcome"]>,
+  ): SavingsAction[] {
+    const currentMap = new Map<string, { total: number; label: string }>();
+    currentMonthExpenses.forEach((transaction) => {
+      const existing = currentMap.get(transaction.categoryId) || {
+        total: 0,
+        label: transaction.categoryLabel,
+      };
+      existing.total += Math.abs(transaction.amount);
+      currentMap.set(transaction.categoryId, existing);
+    });
+
+    const previousMap = new Map<string, number>();
+    previousMonthExpenses.forEach((transaction) => {
+      previousMap.set(
+        transaction.categoryId,
+        (previousMap.get(transaction.categoryId) || 0) + Math.abs(transaction.amount),
+      );
+    });
+
+    return Array.from(currentMap.entries())
+      .filter(([, data]) => data.total >= 800)
+      .map(([categoryId, data]) => {
+        const previousTotal = previousMap.get(categoryId) || 0;
+        const growth = previousTotal > 0 ? ((data.total - previousTotal) / previousTotal) * 100 : 0;
+        const estimatedMonthlySaving = Number((data.total * (growth > 10 ? 0.15 : 0.1)).toFixed(2));
+        const actionId = `reduce_category_spend:${categoryId}`;
+        const outcome = outcomeMap.get(actionId);
+
+        return {
+          id: actionId,
+          actionType: "reduce_category_spend" as const,
+          estimatedMonthlySaving,
+          confidence: Math.min(90, Math.max(62, Math.round(60 + growth / 2))),
+          reason:
+            growth > 10
+              ? `${data.label} harcamasi gecen aya gore %${growth.toFixed(1)} arttı.`
+              : `${data.label} bu ay ${data.total.toFixed(2)} TRY seviyesinde seyrediyor.`,
+          outcome,
+        };
+      })
+      .filter((action) => action.outcome !== "dismissed" && action.outcome !== "completed")
+      .sort((left, right) => right.estimatedMonthlySaving - left.estimatedMonthlySaving)
+      .slice(0, 3);
+  }
+
+  private buildRecurringReviewActions(
+    recentExpenses: Array<{ description: string; amount: number }>,
+    subscriptionNames: string[],
+    outcomeMap: Map<string, SavingsAction["outcome"]>,
+  ): SavingsAction[] {
+    const knownSubscriptionNames = new Set(subscriptionNames.map((name) => this.normalizeName(name)));
+    const grouped = new Map<string, { label: string; amounts: number[]; count: number }>();
+
+    recentExpenses.forEach((transaction) => {
+      const normalized = this.normalizeName(transaction.description);
+      if (!normalized || normalized.length < 4 || knownSubscriptionNames.has(normalized)) {
+        return;
+      }
+
+      const existing = grouped.get(normalized) || {
+        label: transaction.description,
+        amounts: [],
+        count: 0,
+      };
+      existing.amounts.push(Math.abs(transaction.amount));
+      existing.count += 1;
+      grouped.set(normalized, existing);
+    });
+
+    return Array.from(grouped.entries())
+      .filter(([, data]) => data.count >= 2)
+      .map(([normalized, data]) => {
+        const averageAmount =
+          data.amounts.reduce((sum, amount) => sum + amount, 0) / data.amounts.length;
+        const actionId = `review_recurring_charge:${normalized}`;
+        const outcome = outcomeMap.get(actionId);
+
+        return {
+          id: actionId,
+          actionType: "review_recurring_charge" as const,
+          estimatedMonthlySaving: Number(averageAmount.toFixed(2)),
+          confidence: Math.min(88, 55 + data.count * 8),
+          reason: `${data.label} son 90 gunde ${data.count} kez goruldu; recurring charge olabilir.`,
+          outcome,
+        };
+      })
+      .filter((action) => action.outcome !== "dismissed" && action.outcome !== "completed")
+      .sort((left, right) => right.confidence - left.confidence)
+      .slice(0, 2);
+  }
+
+  private toMonthlyCost(amount: number, billingCycle: string) {
+    if (billingCycle === "weekly") {
+      return amount * 4;
+    }
+    if (billingCycle === "yearly") {
+      return amount / 12;
+    }
+    return amount;
+  }
+
+  private normalizeName(value: string) {
+    return value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  }
+
+  private extractActionType(actionId: string): SavingsAction["actionType"] | null {
+    if (actionId.startsWith("cancel_subscription:")) return "cancel_subscription";
+    if (actionId.startsWith("reduce_category_spend:")) return "reduce_category_spend";
+    if (actionId.startsWith("review_recurring_charge:")) return "review_recurring_charge";
+    return null;
   }
 }

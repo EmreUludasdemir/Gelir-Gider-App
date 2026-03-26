@@ -51,6 +51,20 @@ interface SavingsMilestone {
   targetAmount: number;
 }
 
+interface HouseholdUpdate {
+  householdId: string;
+  event: string;
+  [key: string]: unknown;
+}
+
+interface ReviewRequest {
+  transactionId: string;
+  householdId?: string;
+  ownerUserId?: string;
+  reviewerUserId?: string;
+  needsReview: boolean;
+}
+
 @WebSocketGateway({
   cors: {
     origin: getAllowedOrigins(),
@@ -226,6 +240,26 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
       type: 'sync:completed',
       data: syncResult,
       timestamp: Date.now(),
+    });
+  }
+
+  notifyHouseholdUpdated(userIds: string[], payload: HouseholdUpdate) {
+    Array.from(new Set(userIds)).forEach((userId) => {
+      this.server.to(`user:${userId}`).emit('household:updated', {
+        type: 'household:updated',
+        data: payload,
+        timestamp: Date.now(),
+      });
+    });
+  }
+
+  notifyReviewRequested(userIds: string[], payload: ReviewRequest) {
+    Array.from(new Set(userIds)).forEach((userId) => {
+      this.server.to(`user:${userId}`).emit('transaction:needs-review', {
+        type: 'transaction:needs-review',
+        data: payload,
+        timestamp: Date.now(),
+      });
     });
   }
 

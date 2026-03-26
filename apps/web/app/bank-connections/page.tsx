@@ -1,266 +1,423 @@
-﻿'use client';
+'use client'
 
-import { useState, useEffect, useCallback } from 'react';
-import BankConnectionCard from '../../components/bank/BankConnectionCard';
-import { useAuth } from '../../components/auth-provider';
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import BankConnectionCard from '@/components/bank/BankConnectionCard'
+import { useAuth } from '@/components/auth-provider'
+import { isBankConnectionsDemoEnabled } from '@/lib/feature-flags'
 
 interface BankConnection {
-    id: string;
-    bankCode: string;
-    bankName: string;
-    accountNumber?: string;
-    accountName?: string;
-    accountType: string;
-    lastSyncAt?: string;
-    lastSyncStatus?: string;
-    isActive: boolean;
+  id: string
+  bankCode: string
+  bankName: string
+  accountNumber?: string
+  accountName?: string
+  accountType: string
+  expiresAt?: string
+  lastSyncAt?: string
+  lastSyncStatus?: string
+  lifecycleState?: 'pending_consent' | 'connected' | 'reauth_required' | 'failed'
+  syncError?: string
+  errorReason?: string
+  providerErrorCode?: string
+  lastConsentAt?: string
+  reauthRequiredAt?: string
+  isActive: boolean
+  isDemoProvider?: boolean
 }
 
 interface AvailableBank {
-    code: string;
-    name: string;
+  code: string
+  name: string
+  isDemo?: boolean
 }
 
 export default function BankConnectionsPage() {
-    const { fetchWithAuth } = useAuth();
-    const [connections, setConnections] = useState<BankConnection[]>([]);
-    const [availableBanks, setAvailableBanks] = useState<AvailableBank[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [showAddForm, setShowAddForm] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+  const { fetchWithAuth } = useAuth()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const [connections, setConnections] = useState<BankConnection[]>([])
+  const [availableBanks, setAvailableBanks] = useState<AvailableBank[]>([])
+  const [loading, setLoading] = useState(true)
+  const [processingCallback, setProcessingCallback] = useState(false)
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [formData, setFormData] = useState({
+    bankCode: '',
+    bankName: '',
+    accountNumber: '',
+    accountName: '',
+  })
 
-    const [formData, setFormData] = useState({
-        bankCode: '',
-        bankName: '',
-        accountNumber: '',
-        accountName: '',
-    });
+  const loadData = useCallback(async () => {
+    try {
+      const [connectionsRes, banksRes] = await Promise.all([
+        fetchWithAuth('/bank-connections'),
+        fetchWithAuth('/bank-connections/banks'),
+      ])
 
-    const loadData = useCallback(async () => {
-        try {
-            const [connectionsRes, banksRes] = await Promise.all([
-                fetchWithAuth('/bank-connections'),
-                fetchWithAuth('/bank-connections/banks'),
-            ]);
-            const connectionsData = await connectionsRes.json();
-            const banksData = await banksRes.json();
-            setConnections(connectionsData);
-            setAvailableBanks(banksData);
-        } catch (err) {
-            setError('Banka bağlantıları yüklenirken hata oluştu');
-        } finally {
-            setLoading(false);
-        }
-    }, [fetchWithAuth]);
+      const [connectionsData, banksData] = await Promise.all([
+        connectionsRes.json(),
+        banksRes.json(),
+      ])
 
-    useEffect(() => {
-        loadData();
-    }, [loadData]);
+      setConnections(connectionsData)
+      setAvailableBanks(banksData)
+    } catch {
+      setError('Banka bağlantıları yüklenirken hata oluştu.')
+    } finally {
+      setLoading(false)
+    }
+  }, [fetchWithAuth])
 
-    const handleAddConnection = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError(null);
+  useEffect(() => {
+    void loadData()
+  }, [loadData])
 
-        try {
-            const selectedBank = availableBanks.find(b => b.code === formData.bankCode);
-            await fetchWithAuth('/bank-connections', {
-                method: 'POST',
-                body: JSON.stringify({
-                    ...formData,
-                    bankName: selectedBank?.name || formData.bankCode,
-                }),
-            });
-            setShowAddForm(false);
-            setFormData({ bankCode: '', bankName: '', accountNumber: '', accountName: '' });
-            loadData();
-        } catch (err) {
-            setError('Banka bağlantısı eklenirken hata oluştu');
-        }
-    };
+  useEffect(() => {
+    const bankCode = searchParams.get('bankCode')
+    const state = searchParams.get('state')
+    const code = searchParams.get('code')
+    const providerError = searchParams.get('error')
 
-    const handleSync = async (connectionId: string) => {
-        try {
-            await fetchWithAuth(`/bank-connections/${connectionId}/sync`, {
-                method: 'POST',
-            });
-            loadData();
-        } catch (err) {
-            setError('Senkronizasyon başarısız');
-        }
-    };
-
-    const handleDelete = async (connectionId: string) => {
-        if (!confirm('Bu banka bağlantısını silmek istediğinize emin misiniz?')) return;
-
-        try {
-            await fetchWithAuth(`/bank-connections/${connectionId}`, {
-                method: 'DELETE',
-            });
-            loadData();
-        } catch (err) {
-            setError('Bağlantı silinirken hata oluştu');
-        }
-    };
-
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-screen">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-            </div>
-        );
+    if (!bankCode || !state || (!code && !providerError)) {
+      return
     }
 
+    let cancelled = false
+
+    const processCallback = async () => {
+      setProcessingCallback(true)
+      setError(null)
+
+      try {
+        const callbackQuery = new URLSearchParams()
+        callbackQuery.set('bankCode', bankCode)
+        callbackQuery.set('state', state)
+        if (code) callbackQuery.set('code', code)
+        if (providerError) callbackQuery.set('error', providerError)
+        if (searchParams.get('error_description')) {
+          callbackQuery.set('error_description', searchParams.get('error_description') || '')
+        }
+
+        const response = await fetchWithAuth(
+          `/bank-connections/connect/callback?${callbackQuery.toString()}`
+        )
+
+        if (!response.ok) {
+          throw new Error('Banka bağlantısı doğrulanamadı.')
+        }
+
+        if (!cancelled) {
+          setSuccessMessage('Banka bağlantısı doğrulandı.')
+          await loadData()
+          router.replace('/bank-connections')
+        }
+      } catch (callbackError) {
+        if (!cancelled) {
+          setError(callbackError instanceof Error ? callbackError.message : 'Banka callback işlemi başarısız.')
+          router.replace('/bank-connections')
+        }
+      } finally {
+        if (!cancelled) {
+          setProcessingCallback(false)
+        }
+      }
+    }
+
+    void processCallback()
+
+    return () => {
+      cancelled = true
+    }
+  }, [fetchWithAuth, loadData, router, searchParams])
+
+  const visibleBanks = useMemo(
+    () =>
+      availableBanks.filter(
+        (bank) => isBankConnectionsDemoEnabled || !bank.isDemo
+      ),
+    [availableBanks]
+  )
+
+  const startConnection = useCallback(
+    async (payload: {
+      bankCode: string
+      bankName?: string
+      accountNumber?: string
+      accountName?: string
+    }) => {
+      setSubmitting(true)
+      setError(null)
+      setSuccessMessage(null)
+
+      try {
+        const response = await fetchWithAuth('/bank-connections/connect/start', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        })
+
+        if (!response.ok) {
+          throw new Error('Banka izin akışı başlatılamadı.')
+        }
+
+        const data = await response.json()
+        window.location.assign(data.redirectUrl)
+      } catch (startError) {
+        setError(startError instanceof Error ? startError.message : 'Banka izin akışı başlatılamadı.')
+      } finally {
+        setSubmitting(false)
+      }
+    },
+    [fetchWithAuth]
+  )
+
+  const handleAddConnection = async (event: React.FormEvent) => {
+    event.preventDefault()
+
+    const selectedBank = visibleBanks.find((bank) => bank.code === formData.bankCode)
+    await startConnection({
+      bankCode: formData.bankCode,
+      bankName: selectedBank?.name || formData.bankCode,
+      accountNumber: formData.accountNumber || undefined,
+      accountName: formData.accountName || undefined,
+    })
+  }
+
+  const handleReconnect = async (connectionId: string) => {
+    setError(null)
+    setSuccessMessage(null)
+
+    try {
+      const response = await fetchWithAuth(`/bank-connections/${connectionId}/reconnect`, {
+        method: 'POST',
+      })
+
+      if (!response.ok) {
+        throw new Error('Yeniden doğrulama başlatılamadı.')
+      }
+
+      const data = await response.json()
+      window.location.assign(data.redirectUrl)
+    } catch (reconnectError) {
+      setError(reconnectError instanceof Error ? reconnectError.message : 'Yeniden doğrulama başlatılamadı.')
+    }
+  }
+
+  const handleSync = async (connectionId: string) => {
+    try {
+      setError(null)
+      setSuccessMessage(null)
+      const response = await fetchWithAuth(`/bank-connections/${connectionId}/sync`, {
+        method: 'POST',
+      })
+
+      if (!response.ok) {
+        throw new Error('Senkronizasyon başarısız.')
+      }
+
+      setSuccessMessage('Banka hareketleri güncellendi.')
+      await loadData()
+    } catch (syncError) {
+      setError(syncError instanceof Error ? syncError.message : 'Senkronizasyon başarısız.')
+    }
+  }
+
+  const handleDelete = async (connectionId: string) => {
+    if (!confirm('Bu banka bağlantısını silmek istediğinize emin misiniz?')) {
+      return
+    }
+
+    try {
+      setError(null)
+      setSuccessMessage(null)
+      const response = await fetchWithAuth(`/bank-connections/${connectionId}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        throw new Error('Bağlantı silinirken hata oluştu.')
+      }
+
+      setSuccessMessage('Banka bağlantısı silindi.')
+      await loadData()
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : 'Bağlantı silinirken hata oluştu.')
+    }
+  }
+
+  if (loading || processingCallback) {
     return (
-        <div className="container mx-auto px-4 py-8 max-w-4xl">
-            <div className="flex justify-between items-center mb-8">
-                <div>
-                    <h1 className="text-2xl font-bold text-foreground">Banka Bağlantıları</h1>
-                    <p className="text-muted-foreground mt-1">
-                        Banka hesaplarınızı bağlayarak işlemlerinizi otomatik olarak içe aktarın
-                    </p>
-                </div>
-                <button
-                    onClick={() => setShowAddForm(true)}
-                    className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2"
-                >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    Banka Ekle
-                </button>
-            </div>
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-primary-600" />
+      </div>
+    )
+  }
 
-            {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-                    {error}
-                    <button onClick={() => setError(null)} className="float-right font-bold">×</button>
-                </div>
-            )}
-
-            {/* Add Bank Form Modal */}
-            {showAddForm && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-card rounded-xl p-6 w-full max-w-md">
-                        <h2 className="text-xl font-semibold mb-4">Yeni Banka Bağlantısı</h2>
-                        <form onSubmit={handleAddConnection}>
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Banka Seçin
-                                    </label>
-                                    <select
-                                        value={formData.bankCode}
-                                        onChange={(e) => setFormData({ ...formData, bankCode: e.target.value })}
-                                        className="w-full border border-border rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                                        required
-                                    >
-                                        <option value="">Banka seçin...</option>
-                                        {availableBanks.map((bank) => (
-                                            <option key={bank.code} value={bank.code}>
-                                                {bank.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Hesap Numarası (Opsiyonel)
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={formData.accountNumber}
-                                        onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value })}
-                                        className="w-full border border-border rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                                        placeholder="1234567890"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Hesap Adı (Opsiyonel)
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={formData.accountName}
-                                        onChange={(e) => setFormData({ ...formData, accountName: e.target.value })}
-                                        className="w-full border border-border rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                                        placeholder="Ana Hesap"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="flex gap-3 mt-6">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowAddForm(false)}
-                                    className="flex-1 px-4 py-2 border border-border rounded-lg text-gray-700 hover:bg-muted/40"
-                                >
-                                    İptal
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-                                >
-                                    Bağlan
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            {/* Connections List */}
-            {connections.length === 0 ? (
-                <div className="text-center py-12 bg-muted/40 rounded-xl">
-                    <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                    </svg>
-                    <h3 className="text-lg font-medium text-foreground mb-2">Henüz banka bağlantısı yok</h3>
-                    <p className="text-muted-foreground mb-4">
-                        Banka hesabınızı bağlayarak işlemlerinizi otomatik olarak içe aktarabilirsiniz
-                    </p>
-                    <button
-                        onClick={() => setShowAddForm(true)}
-                        className="inline-flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700"
-                    >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
-                        İlk Banka Bağlantısını Ekle
-                    </button>
-                </div>
-            ) : (
-                <div className="grid gap-4">
-                    {connections.map((connection) => (
-                        <BankConnectionCard
-                            key={connection.id}
-                            connection={connection}
-                            onSync={() => handleSync(connection.id)}
-                            onDelete={() => handleDelete(connection.id)}
-                        />
-                    ))}
-                </div>
-            )}
-
-            {/* Info Box */}
-            <div className="mt-8 bg-blue-50 border border-blue-200 rounded-xl p-4">
-                <div className="flex gap-3">
-                    <svg className="w-6 h-6 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <div>
-                        <h4 className="font-medium text-blue-900">Demo Mod</h4>
-                        <p className="text-sm text-blue-700 mt-1">
-                            Şu anda demo banka adaptörü kullanılmaktadır. Gerçek banka entegrasyonları için
-                            Open Banking API'leri gelecekte eklenecektir. Demo mod, test amaçlı rastgele
-                            işlemler oluşturur.
-                        </p>
-                    </div>
-                </div>
-            </div>
+  return (
+    <div className="container mx-auto max-w-5xl px-4 py-8">
+      <div className="mb-8 flex items-start justify-between gap-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Banka Bağlantıları</h1>
+          <p className="mt-1 text-muted-foreground">
+            Open Banking izin akışı ile banka hesaplarınızı bağlayın ve senkron durumunu takip edin.
+          </p>
         </div>
-    );
+        <button
+          onClick={() => setShowAddForm(true)}
+          className="flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-white transition-colors hover:bg-primary-700"
+        >
+          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Banka Ekle
+        </button>
+      </div>
+
+      {error && (
+        <div className="mb-6 rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3 text-destructive">
+          {error}
+          <button onClick={() => setError(null)} className="float-right font-bold">×</button>
+        </div>
+      )}
+
+      {successMessage && (
+        <div className="mb-6 rounded-lg border border-success/20 bg-success/10 px-4 py-3 text-success">
+          {successMessage}
+          <button onClick={() => setSuccessMessage(null)} className="float-right font-bold">×</button>
+        </div>
+      )}
+
+      {showAddForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-md rounded-xl bg-card p-6">
+            <h2 className="mb-4 text-xl font-semibold">Yeni Banka Bağlantısı</h2>
+            <form onSubmit={handleAddConnection}>
+              <div className="space-y-4">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-foreground">
+                    Banka Seçin
+                  </label>
+                  <select
+                    value={formData.bankCode}
+                    onChange={(event) => {
+                      const selected = visibleBanks.find((bank) => bank.code === event.target.value)
+                      setFormData((current) => ({
+                        ...current,
+                        bankCode: event.target.value,
+                        bankName: selected?.name || '',
+                      }))
+                    }}
+                    className="w-full rounded-lg border border-border px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-primary-500"
+                    required
+                  >
+                    <option value="">Banka seçin...</option>
+                    {visibleBanks.map((bank) => (
+                      <option key={bank.code} value={bank.code}>
+                        {bank.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-foreground">
+                    Hesap Numarası
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.accountNumber}
+                    onChange={(event) => setFormData((current) => ({ ...current, accountNumber: event.target.value }))}
+                    className="w-full rounded-lg border border-border px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-primary-500"
+                    placeholder="TR00 0000..."
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-foreground">
+                    Hesap Adı
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.accountName}
+                    onChange={(event) => setFormData((current) => ({ ...current, accountName: event.target.value }))}
+                    className="w-full rounded-lg border border-border px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-primary-500"
+                    placeholder="Ana Hesap"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-6 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowAddForm(false)}
+                  className="flex-1 rounded-lg border border-border px-4 py-2 text-foreground hover:bg-muted/40"
+                >
+                  İptal
+                </button>
+                <button
+                  type="submit"
+                  disabled={!formData.bankCode || submitting}
+                  className="flex-1 rounded-lg bg-primary-600 px-4 py-2 text-white hover:bg-primary-700 disabled:opacity-60"
+                >
+                  {submitting ? 'Başlatılıyor...' : 'İzin Akışını Başlat'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {connections.length === 0 ? (
+        <div className="rounded-xl bg-muted/40 py-12 text-center">
+          <svg className="mx-auto mb-4 h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+          </svg>
+          <h3 className="mb-2 text-lg font-medium text-foreground">Henüz banka bağlantısı yok</h3>
+          <p className="mb-4 text-muted-foreground">
+            Banka hesabınızı bağlayarak işlemlerinizi otomatik olarak içe aktarabilirsiniz.
+          </p>
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-white hover:bg-primary-700"
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            İlk Banka Bağlantısını Ekle
+          </button>
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          {connections.map((connection) => (
+            <BankConnectionCard
+              key={connection.id}
+              connection={connection}
+              onSync={() => handleSync(connection.id)}
+              onReconnect={() => handleReconnect(connection.id)}
+              onDelete={() => handleDelete(connection.id)}
+            />
+          ))}
+        </div>
+      )}
+
+      {isBankConnectionsDemoEnabled && (
+        <div className="mt-8 rounded-xl border border-blue-200 bg-blue-50 p-4">
+          <div className="flex gap-3">
+            <svg className="h-6 w-6 flex-shrink-0 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <h4 className="font-medium text-blue-900">Demo Mod</h4>
+              <p className="mt-1 text-sm text-blue-700">
+                Demo sağlayıcı ve otomatik callback akışı sadece feature flag açıkken görünür.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
-
-

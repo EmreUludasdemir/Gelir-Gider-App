@@ -1,51 +1,25 @@
-/**
- * Garanti BBVA Open Banking API Adapter
- *
- * Bu adapter Garanti BBVA'nın Open Banking API'sini kullanarak
- * hesap bilgileri ve işlem geçmişini çeker.
- *
- * API: https://developer.garantibbva.com
- */
-
+import { BaseBankAdapter } from "./base-bank.adapter";
 import {
+  AccountsResult,
+  AuthorizationStartParams,
+  AuthorizationStartResult,
+  BankConnectionCredentials,
   IBankAdapter,
-  BankAccount,
-  BankTransaction,
-  ConnectionResult,
+  NormalizedBankError,
+  TokenExchangeParams,
+  TokenExchangeResult,
   TransactionFetchResult,
 } from "./bank-adapter.interface";
 
-interface GarantiCredentials {
-  accessToken: string | null;
-  refreshToken: string | null;
-}
-
-interface GarantiTokenResponse {
-  access_token: string;
-  refresh_token?: string;
-}
-
-interface GarantiAccountsResponse {
-  Data?: {
-    Account?: any[];
-  };
-}
-
-interface GarantiTransactionsResponse {
-  Data?: {
-    Transaction?: any[];
-  };
-}
-
-export class GarantiAdapter implements IBankAdapter {
-  private readonly API_BASE = "https://api.garantibbva.com.tr/v1";
-  private readonly SANDBOX_API_BASE =
-    "https://sandbox.garantibbva.com.tr/api/v1";
-
-  private accessToken: string | null = null;
-  private refreshToken: string | null = null;
-  private connected = false;
-  private useSandbox = true;
+export class GarantiAdapter extends BaseBankAdapter implements IBankAdapter {
+  protected readonly authBaseUrl =
+    process.env.GARANTI_AUTH_URL ||
+    "https://api.garantibbva.com.tr/oauth/authorize";
+  protected readonly tokenUrl =
+    process.env.GARANTI_TOKEN_URL ||
+    "https://api.garantibbva.com.tr/oauth/token";
+  private readonly apiBase =
+    process.env.GARANTI_API_URL || "https://api.garantibbva.com.tr/v1";
 
   getBankCode(): string {
     return "garanti";
@@ -55,187 +29,294 @@ export class GarantiAdapter implements IBankAdapter {
     return "Garanti BBVA";
   }
 
-  private getBaseUrl(): string {
-    return this.useSandbox ? this.SANDBOX_API_BASE : this.API_BASE;
+  async startConnection(
+    params: AuthorizationStartParams
+  ): Promise<AuthorizationStartResult> {
+    return this.buildStartResult(params);
   }
 
-  async connect(credentials: GarantiCredentials): Promise<ConnectionResult> {
+  async exchangeAuthorizationCode(
+    params: TokenExchangeParams
+  ): Promise<TokenExchangeResult> {
+    if (this.useSandboxSimulation()) {
+      return this.buildSimulatedExchangeResult(params);
+    }
+
     try {
-      this.accessToken = credentials.accessToken;
-      this.refreshToken = credentials.refreshToken;
+      const response = await fetch(this.tokenUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          grant_type: "authorization_code",
+          code: params.code,
+          redirect_uri: params.redirectUri,
+          client_id: this.getClientId(),
+          client_secret: this.getClientSecret(),
+        }),
+      });
 
-      const accounts = await this.getAccounts();
-      this.connected = true;
+      if (!response.ok) {
+        return {
+          success: false,
+          error: this.normalizeProviderError({
+            statusCode: response.status,
+            providerMessage: response.statusText,
+          }),
+        };
+      }
 
-      return { success: true, accounts };
+      const data = (await response.json()) as {
+        access_token?: string;
+        refresh_token?: string;
+        expires_in?: number;
+      };
+      const credentials = {
+        accessToken: data.access_token || null,
+        refreshToken: data.refresh_token || null,
+        expiresAt: data.expires_in
+          ? new Date(Date.now() + data.expires_in * 1000)
+          : null,
+      };
+      const accounts = await this.getAccounts(credentials);
+
+      return {
+        success: accounts.success,
+        credentials,
+        accounts: accounts.accounts,
+        error: accounts.error,
+      };
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Bağlantı hatası";
       return {
         success: false,
-        error: `Garanti BBVA bağlantısı başarısız: ${errorMessage}`,
+        error: this.normalizeProviderError(error),
       };
     }
   }
 
-  async disconnect(): Promise<void> {
-    this.accessToken = null;
-    this.refreshToken = null;
-    this.connected = false;
-  }
+  async refreshAccessToken(
+    credentials: BankConnectionCredentials
+  ): Promise<TokenExchangeResult> {
+    if (!credentials.refreshToken) {
+      return {
+        success: false,
+        error: this.normalizeProviderError({
+          providerCode: "missing_refresh_token",
+          providerMessage: "Refresh token is required",
+        }),
+      };
+    }
 
-  isConnected(): boolean {
-    return this.connected && this.accessToken !== null;
-  }
-
-  async refreshConnection(): Promise<boolean> {
-    if (!this.refreshToken) return false;
+    if (this.useSandboxSimulation()) {
+      return this.buildSimulatedRefreshResult(credentials);
+    }
 
     try {
-      const response = await fetch(`${this.getBaseUrl()}/oauth2/token`, {
+      const response = await fetch(this.tokenUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
         body: new URLSearchParams({
           grant_type: "refresh_token",
-          refresh_token: this.refreshToken,
+          refresh_token: credentials.refreshToken,
+          client_id: this.getClientId(),
+          client_secret: this.getClientSecret(),
         }),
       });
 
-      if (!response.ok) return false;
-
-      const data = (await response.json()) as GarantiTokenResponse;
-      this.accessToken = data.access_token;
-      if (data.refresh_token) this.refreshToken = data.refresh_token;
-
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  async getAccounts(): Promise<BankAccount[]> {
-    if (!this.accessToken) throw new Error("Token gerekli");
-
-    const response = await fetch(`${this.getBaseUrl()}/accounts`, {
-      headers: {
-        Authorization: `Bearer ${this.accessToken}`,
-        "Content-Type": "application/json",
-        "X-Correlation-ID": this.generateCorrelationId(),
-      },
-    });
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        const refreshed = await this.refreshConnection();
-        if (refreshed) return this.getAccounts();
+      if (!response.ok) {
+        return {
+          success: false,
+          error: this.normalizeProviderError({
+            statusCode: response.status,
+            providerMessage: response.statusText,
+          }),
+        };
       }
-      throw new Error(`Hesap bilgileri alınamadı: ${response.statusText}`);
+
+      const data = (await response.json()) as {
+        access_token?: string;
+        refresh_token?: string;
+        expires_in?: number;
+      };
+
+      return {
+        success: true,
+        credentials: {
+          accessToken: data.access_token || null,
+          refreshToken: data.refresh_token || credentials.refreshToken,
+          expiresAt: data.expires_in
+            ? new Date(Date.now() + data.expires_in * 1000)
+            : null,
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: this.normalizeProviderError(error),
+      };
     }
-
-    const data = (await response.json()) as GarantiAccountsResponse;
-
-    return (data.Data?.Account || []).map((acc: any) => ({
-      id: acc.AccountId,
-      accountNumber: acc.Account?.[0]?.Identification || acc.AccountId,
-      accountName: acc.Nickname || acc.Account?.[0]?.Name || "Hesap",
-      accountType: this.mapAccountType(acc.AccountType || acc.AccountSubType),
-      balance: 0, // Fetch separately if needed
-      currency: acc.Currency || "TRY",
-    }));
   }
 
-  async getTransactions(
-    accountId: string,
-    fromDate: Date,
-    toDate: Date
-  ): Promise<TransactionFetchResult> {
-    if (!this.accessToken) {
-      return { success: false, error: "Token gerekli" };
+  async getAccounts(
+    credentials: BankConnectionCredentials
+  ): Promise<AccountsResult> {
+    if (!credentials.accessToken) {
+      return {
+        success: false,
+        error: this.normalizeProviderError({
+          providerCode: "missing_token",
+          providerMessage: "Access token is required",
+        }),
+      };
+    }
+
+    if (this.useSandboxSimulation()) {
+      return {
+        success: true,
+        accounts: this.getSimulatedAccounts(),
+      };
     }
 
     try {
-      const params = new URLSearchParams({
-        fromBookingDateTime: fromDate.toISOString(),
-        toBookingDateTime: toDate.toISOString(),
+      const response = await fetch(`${this.apiBase}/accounts`, {
+        headers: {
+          Authorization: `Bearer ${credentials.accessToken}`,
+          "Content-Type": "application/json",
+        },
       });
 
+      if (!response.ok) {
+        return {
+          success: false,
+          error: this.normalizeProviderError({
+            statusCode: response.status,
+            providerMessage: response.statusText,
+          }),
+        };
+      }
+
+      const payload = (await response.json()) as {
+        accounts?: Array<{
+          id?: string;
+          iban?: string;
+          nickname?: string;
+          accountType?: string;
+        }>;
+      };
+
+      return {
+        success: true,
+        accounts: (payload.accounts || []).map((account, index) => ({
+          id: account.id || `garanti-account-${index + 1}`,
+          accountNumber: account.iban || `TRGAR${index + 1}`,
+          accountName: account.nickname || `Garanti Hesap ${index + 1}`,
+          accountType:
+            account.accountType === "savings" ? "savings" : "checking",
+          balance: 0,
+          currency: "TRY",
+        })),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: this.normalizeProviderError(error),
+      };
+    }
+  }
+
+  async getTransactions(
+    _accountId: string,
+    fromDate: Date,
+    toDate: Date,
+    credentials: BankConnectionCredentials
+  ): Promise<TransactionFetchResult> {
+    if (!credentials.accessToken) {
+      return {
+        success: false,
+        error: this.normalizeProviderError({
+          providerCode: "missing_token",
+          providerMessage: "Access token is required",
+        }),
+      };
+    }
+
+    if (this.useSandboxSimulation()) {
+      return {
+        success: true,
+        transactions: this.getSimulatedTransactions(fromDate, toDate),
+      };
+    }
+
+    try {
       const response = await fetch(
-        `${this.getBaseUrl()}/accounts/${accountId}/transactions?${params}`,
+        `${this.apiBase}/transactions?fromDate=${fromDate.toISOString()}&toDate=${toDate.toISOString()}`,
         {
           headers: {
-            Authorization: `Bearer ${this.accessToken}`,
+            Authorization: `Bearer ${credentials.accessToken}`,
             "Content-Type": "application/json",
-            "X-Correlation-ID": this.generateCorrelationId(),
           },
         }
       );
 
       if (!response.ok) {
-        if (response.status === 401) {
-          const refreshed = await this.refreshConnection();
-          if (refreshed)
-            return this.getTransactions(accountId, fromDate, toDate);
-        }
         return {
           success: false,
-          error: `İşlem geçmişi alınamadı: ${response.statusText}`,
+          error: this.normalizeProviderError({
+            statusCode: response.status,
+            providerMessage: response.statusText,
+          }),
         };
       }
 
-      const data = (await response.json()) as GarantiTransactionsResponse;
+      const payload = (await response.json()) as {
+        transactions?: Array<{
+          id?: string;
+          date?: string;
+          description?: string;
+          amount?: number | string;
+          direction?: "credit" | "debit";
+        }>;
+      };
 
-      const transactions: BankTransaction[] = (
-        data.Data?.Transaction || []
-      ).map((tx: any) => ({
-        id: tx.TransactionId,
-        date: new Date(tx.BookingDateTime || tx.ValueDateTime),
-        description:
-          tx.TransactionInformation ||
-          tx.MerchantDetails?.MerchantName ||
-          "İşlem",
-        amount: Math.abs(parseFloat(tx.Amount?.Amount || 0)),
-        type: tx.CreditDebitIndicator === "Credit" ? "income" : "expense",
-        balance: tx.Balance
-          ? parseFloat(tx.Balance.Amount?.Amount || 0)
-          : undefined,
-        category: this.categorizeTransaction(tx.TransactionInformation || ""),
-        merchantName: tx.MerchantDetails?.MerchantName,
-      }));
-
-      return { success: true, transactions };
+      return {
+        success: true,
+        transactions: (payload.transactions || []).map((transaction, index) => ({
+          id: transaction.id || `garanti-tx-${index + 1}`,
+          date: new Date(transaction.date || Date.now()),
+          description: transaction.description || "İşlem",
+          amount: Math.abs(Number(transaction.amount || 0)),
+          type: transaction.direction === "credit" ? "income" : "expense",
+          merchantName: transaction.description,
+        })),
+      };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : "Bilinmeyen hata",
+        error: this.normalizeProviderError(error),
       };
     }
   }
 
-  private generateCorrelationId(): string {
-    return `gbb-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-  }
+  normalizeProviderError(error: unknown): NormalizedBankError {
+    if (typeof error === "object" && error !== null) {
+      const payload = error as {
+        providerCode?: string;
+        providerMessage?: string;
+        statusCode?: number;
+      };
+      return this.buildNormalizedError(
+        payload,
+        "Garanti BBVA bağlantısı işlenemedi."
+      );
+    }
 
-  private mapAccountType(type: string): "checking" | "savings" | "credit" {
-    const typeMap: Record<string, "checking" | "savings" | "credit"> = {
-      CurrentAccount: "checking",
-      SavingsAccount: "savings",
-      CreditCard: "credit",
+    return {
+      code: "provider_error",
+      message: "Garanti BBVA bağlantısı işlenemedi.",
+      detail: error instanceof Error ? error.message : undefined,
     };
-    return typeMap[type] || "checking";
-  }
-
-  private categorizeTransaction(description: string): string {
-    const desc = description.toLowerCase();
-
-    if (["migros", "bim", "a101", "market"].some((k) => desc.includes(k)))
-      return "market";
-    if (["akaryakıt", "petrol", "shell"].some((k) => desc.includes(k)))
-      return "ulasim";
-    if (["restaurant", "cafe", "yemek"].some((k) => desc.includes(k)))
-      return "yemek";
-    if (["elektrik", "su", "fatura"].some((k) => desc.includes(k)))
-      return "fatura";
-
-    return "diger";
   }
 }

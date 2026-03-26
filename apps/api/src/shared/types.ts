@@ -26,6 +26,10 @@ export interface PrismaTransaction {
   confidence: number;
   tags: string;
   notes: string | null;
+  householdId?: string | null;
+  ownerUserId?: string | null;
+  reviewerUserId?: string | null;
+  needsReview?: boolean;
   creditCardId: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -46,6 +50,12 @@ export interface TransactionEntity {
   confidence: number;     // 0-100
   tags: string[];
   notes?: string;
+  householdId?: string;
+  ownerUserId?: string;
+  ownerName?: string;
+  reviewerUserId?: string;
+  reviewerName?: string;
+  needsReview?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -144,6 +154,10 @@ export interface UploadPreviewTransaction {
   confidence: number;
   tags: string[];
   notes?: string;
+  householdId?: string;
+  ownerUserId?: string;
+  reviewerUserId?: string;
+  needsReview?: boolean;
 }
 
 export interface UploadPreview {

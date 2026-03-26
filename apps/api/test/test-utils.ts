@@ -57,6 +57,10 @@ export const createMockTransaction = (overrides: Partial<MockTransaction> = {}):
   confidence: 100,
   tags: '[]',
   notes: null,
+  householdId: null,
+  ownerUserId: 'user-test-123',
+  reviewerUserId: null,
+  needsReview: false,
   createdAt: new Date('2024-01-15'),
   updatedAt: new Date('2024-01-15'),
   ...overrides,
@@ -77,6 +81,10 @@ export interface MockTransaction {
   confidence: number;
   tags: string;
   notes: string | null;
+  householdId: string | null;
+  ownerUserId: string | null;
+  reviewerUserId: string | null;
+  needsReview: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -164,6 +172,15 @@ export const createMockBankConnection = (overrides: Partial<MockBankConnection> 
   accountType: 'checking',
   accessToken: 'mock-access-token',
   refreshToken: 'mock-refresh-token',
+  expiresAt: new Date('2024-01-16'),
+  oauthState: null,
+  lifecycleState: 'connected',
+  providerConnectionId: null,
+  providerErrorCode: null,
+  providerErrorMessage: null,
+  connectionMetadata: null,
+  lastConsentAt: new Date('2024-01-15'),
+  reauthRequiredAt: null,
   lastSyncAt: new Date('2024-01-15'),
   lastSyncStatus: 'success',
   syncError: null,
@@ -183,6 +200,15 @@ export interface MockBankConnection {
   accountType: string;
   accessToken: string;
   refreshToken: string;
+  expiresAt: Date | null;
+  oauthState: string | null;
+  lifecycleState: string;
+  providerConnectionId: string | null;
+  providerErrorCode: string | null;
+  providerErrorMessage: string | null;
+  connectionMetadata: string | null;
+  lastConsentAt: Date | null;
+  reauthRequiredAt: Date | null;
   lastSyncAt: Date | null;
   lastSyncStatus: string;
   syncError: string | null;
@@ -282,6 +308,24 @@ export const createMockPrismaService = () => ({
     update: jest.fn(),
     delete: jest.fn(),
   },
+  subscriptionDetectionFeedback: {
+    findUnique: jest.fn(),
+    findMany: jest.fn().mockResolvedValue([]),
+    findFirst: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    upsert: jest.fn(),
+    delete: jest.fn(),
+  },
+  savingsActionOutcome: {
+    findUnique: jest.fn(),
+    findMany: jest.fn().mockResolvedValue([]),
+    findFirst: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    upsert: jest.fn(),
+    delete: jest.fn(),
+  },
   bill: {
     findUnique: jest.fn(),
     findMany: jest.fn().mockResolvedValue([]),
@@ -335,9 +379,38 @@ export const createMockPrismaService = () => ({
     delete: jest.fn(),
     count: jest.fn(),
   },
+  household: {
+    findUnique: jest.fn(),
+    findMany: jest.fn().mockResolvedValue([]),
+    findFirst: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  },
+  householdMember: {
+    findUnique: jest.fn(),
+    findMany: jest.fn().mockResolvedValue([]),
+    findFirst: jest.fn().mockResolvedValue(null),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  },
+  householdInvite: {
+    findUnique: jest.fn(),
+    findMany: jest.fn().mockResolvedValue([]),
+    findFirst: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  },
   $connect: jest.fn(),
   $disconnect: jest.fn(),
-  $transaction: jest.fn((callback) => callback(this)),
+  $transaction: jest.fn((input) => {
+    if (typeof input === 'function') {
+      return input(createMockPrismaService())
+    }
+    return Promise.resolve(input)
+  }),
   $queryRaw: jest.fn(),
   $executeRaw: jest.fn(),
 });

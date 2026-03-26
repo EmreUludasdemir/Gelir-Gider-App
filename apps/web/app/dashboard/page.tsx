@@ -2,7 +2,7 @@
 
 import { Suspense } from 'react'
 import dynamic from 'next/dynamic'
-import { useSummary, useTransactions } from '@/lib/hooks'
+import { useRefreshAll, useSummary, useTransactions } from '@/lib/hooks'
 import { StatCard } from '@/components/dashboard/StatCard'
 import { DashboardHero } from '@/components/dashboard/DashboardHero'
 import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState'
@@ -13,6 +13,7 @@ import { Spinner } from '@/components/ui/Spinner'
 import { usePreferences } from '@/lib/PreferencesContext'
 import { useTranslation } from '@/lib/translations'
 import { useAuth } from '@/components/auth-provider'
+import { useRealtimeRefresh } from '@/contexts/RealtimeContext'
 import {
   DashboardSkeleton,
   TableSkeleton,
@@ -58,11 +59,16 @@ const RecurringPayments = dynamic(
 )
 
 export default function DashboardPage() {
-  const { loading: authLoading } = useAuth()
+  const { loading: authLoading, user } = useAuth()
   const { data: summary, error: summaryError, isLoading: summaryLoading } = useSummary()
   const { data: transactions, error: transactionsError, isLoading: transactionsLoading, mutate: mutateTransactions } = useTransactions()
+  const refreshAll = useRefreshAll()
   const { language } = usePreferences()
   const { t } = useTranslation(language)
+
+  useRealtimeRefresh(() => {
+    void refreshAll()
+  }, [refreshAll])
 
   // Wait for auth to be ready before showing data
   if (authLoading) {
@@ -214,6 +220,7 @@ export default function DashboardPage() {
           transactions={transactions}
           title={t('recent_transactions')}
           limit={10}
+          currentUserId={user?.id}
           onRefresh={mutateTransactions}
         />
       </Suspense>

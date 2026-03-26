@@ -15,6 +15,7 @@ import { User } from '../auth/user.decorator';
 import {
   CreateSubscriptionDto,
   DismissDetectedSubscriptionDto,
+  SubscriptionFeedbackDto,
   SubscriptionService,
   UpdateSubscriptionDto,
 } from './subscription.service';
@@ -52,6 +53,16 @@ export class SubscriptionController {
     @Body() dto: DismissDetectedSubscriptionDto,
   ) {
     return this.subscriptionService.dismissSuggestion(userId, dto);
+  }
+
+  @Post('detected/:id/feedback')
+  @HttpCode(HttpStatus.OK)
+  submitDetectedFeedback(
+    @User('id') userId: string,
+    @Param('id') id: string,
+    @Body() dto: SubscriptionFeedbackDto,
+  ) {
+    return this.subscriptionService.submitDetectedFeedback(userId, id, dto);
   }
 
   @Patch(':id')

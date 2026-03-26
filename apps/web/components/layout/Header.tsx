@@ -18,6 +18,7 @@ import {
   Target,
   Wallet,
   Copy,
+  Users,
 } from 'lucide-react'
 import { SettingsModal } from '@/components/ui/SettingsModal'
 import { usePreferences } from '@/lib/PreferencesContext'
@@ -68,6 +69,7 @@ export function Header() {
     { href: '/dashboard/duplicates', label: t('duplicates'), icon: Copy },
     { href: '/dashboard/upload', label: 'PDF', icon: FileUp },
     { href: '/dashboard/subscriptions', label: 'Abonelikler', icon: Repeat2 },
+    { href: '/dashboard/households', label: 'Households', icon: Users },
     { href: '/dashboard/goals', label: t('savings_goals'), icon: Target },
     { href: '/dashboard/budgets', label: t('budget') || 'Butce', icon: Wallet },
   ]

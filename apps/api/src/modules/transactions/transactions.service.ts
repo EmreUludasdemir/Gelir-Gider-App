@@ -59,7 +59,11 @@ export class TransactionsService {
     return this.cache.getOrSet(
       cacheKey,
       async () => {
-        const where: Prisma.TransactionWhereInput = { userId };
+        const visibilityScope = await this.buildTransactionVisibilityScope(userId);
+        const where: Prisma.TransactionWhereInput = this.mergeTransactionWhere(
+          visibilityScope,
+          {}
+        );
 
         if (query) {
           if (query.type) where.type = query.type;
@@ -89,7 +93,9 @@ export class TransactionsService {
           skip: query?.offset,
         });
 
-        return transactions.map(this.mapToEntity);
+        return this.withActorNames(
+          transactions.map((transaction) => this.mapToEntity(transaction))
+        );
       },
       CacheTTL.MEDIUM
     );
@@ -97,14 +103,18 @@ export class TransactionsService {
 
   async findOne(userId: string, id: string): Promise<TransactionEntity> {
     const transaction = await this.prisma.transaction.findFirst({
-      where: { id, userId },
+      where: this.mergeTransactionWhere(
+        await this.buildTransactionVisibilityScope(userId),
+        { id }
+      ),
     });
 
     if (!transaction) {
       throw new NotFoundException(`Transaction with ID ${id} not found`);
     }
 
-    return this.mapToEntity(transaction);
+    const [entity] = await this.withActorNames([this.mapToEntity(transaction)]);
+    return entity;
   }
 
   async create(
@@ -127,6 +137,8 @@ export class TransactionsService {
       confidence = classification.confidence;
     }
 
+    const householdContext = await this.resolveHouseholdContext(userId, confidence);
+
     const transaction = await this.prisma.transaction.create({
       data: {
         userId,
@@ -142,6 +154,10 @@ export class TransactionsService {
         confidence,
         tags: JSON.stringify(dto.tags || []),
         notes: dto.notes,
+        householdId: householdContext.householdId,
+        ownerUserId: householdContext.ownerUserId,
+        reviewerUserId: householdContext.reviewerUserId,
+        needsReview: householdContext.needsReview,
       },
     });
 
@@ -154,7 +170,7 @@ export class TransactionsService {
       }
     );
 
-    const entity = this.mapToEntity(transaction);
+    const [entity] = await this.withActorNames([this.mapToEntity(transaction)]);
 
     // Notify via WebSocket
     this.realtime.notifyNewTransaction(userId, {
@@ -164,6 +180,8 @@ export class TransactionsService {
       type: entity.type as "income" | "expense",
       categoryLabel: entity.categoryLabel,
     });
+
+    this.notifyReviewIfNeeded(entity);
 
     return entity;
   }
@@ -202,7 +220,7 @@ export class TransactionsService {
       }
     );
 
-    const entity = this.mapToEntity(updated);
+    const [entity] = await this.withActorNames([this.mapToEntity(updated)]);
 
     // Notify via WebSocket
     this.realtime.notifyTransactionUpdated(userId, {
@@ -822,12 +840,19 @@ export class TransactionsService {
     startDate.setDate(endDate.getDate() - days);
 
     const transactions = await this.prisma.transaction.findMany({
-      where: { userId, date: { gte: startDate } },
+      where: this.mergeTransactionWhere(
+        await this.buildTransactionVisibilityScope(userId),
+        {
+          date: { gte: startDate },
+        }
+      ),
       orderBy: { date: "asc" },
       take: 2000,
     });
 
-    const entities = transactions.map(this.mapToEntity);
+    const entities = await this.withActorNames(
+      transactions.map((transaction) => this.mapToEntity(transaction))
+    );
     const groups = this.buildDuplicateGroups(
       entities,
       windowDays,
@@ -918,9 +943,133 @@ export class TransactionsService {
       confidence: prismaTx.confidence,
       tags: JSON.parse(prismaTx.tags || "[]"),
       notes: prismaTx.notes ?? undefined,
+      householdId: prismaTx.householdId ?? undefined,
+      ownerUserId: prismaTx.ownerUserId ?? undefined,
+      reviewerUserId: prismaTx.reviewerUserId ?? undefined,
+      needsReview: prismaTx.needsReview ?? false,
       createdAt: prismaTx.createdAt.toISOString(),
       updatedAt: prismaTx.updatedAt.toISOString(),
     };
+  }
+
+  private async withActorNames(
+    transactions: TransactionEntity[]
+  ): Promise<TransactionEntity[]> {
+    const userIds = Array.from(
+      new Set(
+        transactions.flatMap((transaction) =>
+          [transaction.ownerUserId, transaction.reviewerUserId].filter(
+            (value): value is string => Boolean(value)
+          )
+        )
+      )
+    );
+
+    if (userIds.length === 0) {
+      return transactions;
+    }
+
+    const users =
+      (await this.prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, name: true, email: true },
+    })) || [];
+
+    const userMap = new Map(
+      users.map((user) => [user.id, user.name || user.email])
+    );
+
+    return transactions.map((transaction) => ({
+      ...transaction,
+      ownerName: transaction.ownerUserId
+        ? userMap.get(transaction.ownerUserId)
+        : undefined,
+      reviewerName: transaction.reviewerUserId
+        ? userMap.get(transaction.reviewerUserId)
+        : undefined,
+    }));
+  }
+
+  private async resolveHouseholdContext(userId: string, confidence: number) {
+    const membership = await this.prisma.householdMember.findFirst({
+      where: { userId },
+      include: {
+        household: {
+          select: {
+            id: true,
+            ownerId: true,
+          },
+        },
+      },
+    });
+
+    if (!membership) {
+      return {
+        householdId: null,
+        ownerUserId: userId,
+        reviewerUserId: null,
+        needsReview: false,
+      };
+    }
+
+    const reviewerUserId =
+      confidence < 70 && membership.household.ownerId !== userId
+        ? membership.household.ownerId
+        : null;
+
+    return {
+      householdId: membership.household.id,
+      ownerUserId: userId,
+      reviewerUserId,
+      needsReview: confidence < 70 && !!reviewerUserId,
+    };
+  }
+
+  private async buildTransactionVisibilityScope(
+    userId: string
+  ): Promise<Prisma.TransactionWhereInput> {
+    const membership = await this.prisma.householdMember.findFirst({
+      where: { userId },
+      select: { householdId: true },
+    });
+
+    if (!membership) {
+      return { userId };
+    }
+
+    return {
+      OR: [{ userId }, { householdId: membership.householdId }],
+    };
+  }
+
+  private mergeTransactionWhere(
+    visibilityScope: Prisma.TransactionWhereInput,
+    extra: Prisma.TransactionWhereInput
+  ): Prisma.TransactionWhereInput {
+    if ("OR" in visibilityScope) {
+      return {
+        AND: [visibilityScope, extra],
+      };
+    }
+
+    return {
+      ...visibilityScope,
+      ...extra,
+    };
+  }
+
+  private notifyReviewIfNeeded(transaction: TransactionEntity) {
+    if (!transaction.needsReview || !transaction.reviewerUserId) {
+      return;
+    }
+
+    this.realtime.notifyReviewRequested([transaction.reviewerUserId], {
+      transactionId: transaction.id,
+      householdId: transaction.householdId,
+      ownerUserId: transaction.ownerUserId,
+      reviewerUserId: transaction.reviewerUserId,
+      needsReview: true,
+    });
   }
 
   private async resolveCategory(

@@ -14,12 +14,14 @@ interface RealtimeConfig {
   onTransactionCreated?: (data: TransactionEvent) => void;
   onTransactionUpdated?: (data: TransactionEvent) => void;
   onTransactionDeleted?: (data: { id: string }) => void;
+  onTransactionNeedsReview?: (data: ReviewEvent) => void;
   onBudgetAlert?: (data: BudgetAlert) => void;
   onBudgetUpdated?: (data: BudgetUpdate) => void;
   onBillReminder?: (data: BillReminder) => void;
   onSavingsMilestone?: (data: SavingsMilestone) => void;
   onSavingsUpdated?: (data: SavingsUpdate) => void;
   onSyncCompleted?: (data: SyncResult) => void;
+  onHouseholdUpdated?: (data: HouseholdEvent) => void;
 }
 
 interface TransactionEvent {
@@ -70,6 +72,20 @@ interface SyncResult {
   source: string;
   imported: number;
   timestamp: string;
+}
+
+interface ReviewEvent {
+  transactionId: string;
+  householdId?: string;
+  ownerUserId?: string;
+  reviewerUserId?: string;
+  needsReview: boolean;
+}
+
+interface HouseholdEvent {
+  householdId: string;
+  event: string;
+  [key: string]: unknown;
 }
 
 interface RealtimeMessage<T = unknown> {
@@ -157,6 +173,15 @@ export function useRealtime(config: RealtimeConfig) {
       }
     });
 
+    socket.on('transaction:needs-review', (message: RealtimeMessage<ReviewEvent>) => {
+      config.onTransactionNeedsReview?.(message.data);
+      if (showToasts) {
+        toast.warning('Islem inceleme bekliyor', {
+          description: 'Household review gerektiren yeni bir islem geldi.',
+        });
+      }
+    });
+
     socket.on('budget:alert', (message: RealtimeMessage<BudgetAlert>) => {
       config.onBudgetAlert?.(message.data);
       if (showToasts) {
@@ -193,11 +218,18 @@ export function useRealtime(config: RealtimeConfig) {
       config.onSyncCompleted?.(message.data);
     });
 
+    socket.on('household:updated', (message: RealtimeMessage<HouseholdEvent>) => {
+      config.onHouseholdUpdated?.(message.data);
+      if (showToasts) {
+        toast.info('Household guncellendi');
+      }
+    });
+
     return () => {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [config.enabled, config.onBillReminder, config.onBudgetAlert, config.onBudgetUpdated, config.onConnect, config.onDisconnect, config.onSavingsMilestone, config.onSavingsUpdated, config.onSyncCompleted, config.onTransactionCreated, config.onTransactionDeleted, config.onTransactionUpdated, config.showToasts, config.token]);
+  }, [config.enabled, config.onBillReminder, config.onBudgetAlert, config.onBudgetUpdated, config.onConnect, config.onDisconnect, config.onHouseholdUpdated, config.onSavingsMilestone, config.onSavingsUpdated, config.onSyncCompleted, config.onTransactionCreated, config.onTransactionDeleted, config.onTransactionNeedsReview, config.onTransactionUpdated, config.showToasts, config.token]);
 
   const subscribe = useCallback((channels: string[]) => {
     socketRef.current?.emit('subscribe', { channels });

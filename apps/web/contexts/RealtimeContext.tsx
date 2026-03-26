@@ -71,6 +71,10 @@ export function RealtimeProvider({ children }: RealtimeProviderProps) {
     triggerRefresh();
   }, [triggerRefresh]);
 
+  const handleTransactionNeedsReview = useCallback(() => {
+    triggerRefresh();
+  }, [triggerRefresh]);
+
   const handleBudgetAlert = useCallback((data: BudgetAlert) => {
     setLastBudgetAlert(data);
   }, []);
@@ -97,17 +101,23 @@ export function RealtimeProvider({ children }: RealtimeProviderProps) {
     triggerRefresh();
   }, [triggerRefresh]);
 
+  const handleHouseholdUpdated = useCallback(() => {
+    triggerRefresh();
+  }, [triggerRefresh]);
+
   const { isConnected, error, subscribe, unsubscribe } = useRealtime({
     enabled: isAuthenticated,
     showToasts: true,
     onTransactionCreated: handleTransactionCreated,
     onTransactionUpdated: handleTransactionUpdated,
     onTransactionDeleted: handleTransactionDeleted,
+    onTransactionNeedsReview: handleTransactionNeedsReview,
     onBudgetAlert: handleBudgetAlert,
     onBudgetUpdated: handleBudgetUpdated,
     onSavingsUpdated: handleSavingsUpdated,
     onSavingsMilestone: handleSavingsMilestone,
     onSyncCompleted: handleSyncCompleted,
+    onHouseholdUpdated: handleHouseholdUpdated,
   });
 
   return (

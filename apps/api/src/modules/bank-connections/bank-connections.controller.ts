@@ -6,6 +6,7 @@ import {
   Delete,
   Param,
   Body,
+  Query,
   UseGuards,
 } from "@nestjs/common";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
@@ -13,7 +14,9 @@ import { User } from "../auth/user.decorator";
 import { BankConnectionsService } from "./bank-connections.service";
 import {
   CreateBankConnectionDto,
+  StartBankConnectionDto,
   UpdateBankConnectionDto,
+  BankConnectionCallbackDto,
 } from "./dto/bank-connection.dto";
 
 @Controller("bank-connections")
@@ -27,6 +30,22 @@ export class BankConnectionsController {
   @Get("banks")
   async getAvailableBanks() {
     return this.bankConnectionsService.getAvailableBanks();
+  }
+
+  @Post("connect/start")
+  async startConnection(
+    @User("id") userId: string,
+    @Body() dto: StartBankConnectionDto
+  ) {
+    return this.bankConnectionsService.startConnection(userId, dto);
+  }
+
+  @Get("connect/callback")
+  async handleCallback(
+    @User("id") userId: string,
+    @Query() query: BankConnectionCallbackDto
+  ) {
+    return this.bankConnectionsService.handleCallback(userId, query);
   }
 
   // Create new bank connection
@@ -48,6 +67,11 @@ export class BankConnectionsController {
   @Get(":id")
   async findOne(@User("id") userId: string, @Param("id") id: string) {
     return this.bankConnectionsService.findOne(userId, id);
+  }
+
+  @Post(":id/reconnect")
+  async reconnect(@User("id") userId: string, @Param("id") id: string) {
+    return this.bankConnectionsService.reconnect(userId, id);
   }
 
   // Update connection

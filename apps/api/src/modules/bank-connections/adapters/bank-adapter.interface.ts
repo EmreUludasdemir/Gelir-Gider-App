@@ -1,5 +1,14 @@
-// Bank Adapter Interface
-// Defines the contract for bank-specific implementations
+export type BankLifecycleState =
+  | "pending_consent"
+  | "connected"
+  | "reauth_required"
+  | "failed";
+
+export type BankSyncStatus =
+  | "pending"
+  | "success"
+  | "failed"
+  | "reauth_required";
 
 export interface BankAccount {
   id: string;
@@ -21,38 +30,89 @@ export interface BankTransaction {
   merchantName?: string;
 }
 
-export interface ConnectionResult {
+export interface BankConnectionCredentials {
+  accessToken?: string | null;
+  refreshToken?: string | null;
+  expiresAt?: Date | null;
+  metadata?: Record<string, unknown>;
+}
+
+export interface BankProviderErrorPayload {
+  providerCode?: string;
+  providerMessage?: string;
+  statusCode?: number;
+  detail?: string;
+}
+
+export interface NormalizedBankError {
+  code: string;
+  message: string;
+  detail?: string;
+  reauthRequired?: boolean;
+  retryable?: boolean;
+}
+
+export interface AuthorizationStartParams {
+  state: string;
+  redirectUri: string;
+  reconnect?: boolean;
+}
+
+export interface AuthorizationStartResult {
+  success: boolean;
+  authorizationUrl?: string;
+  providerConnectionId?: string;
+  error?: NormalizedBankError;
+}
+
+export interface TokenExchangeParams {
+  code: string;
+  redirectUri: string;
+}
+
+export interface TokenExchangeResult {
+  success: boolean;
+  credentials?: BankConnectionCredentials;
+  accounts?: BankAccount[];
+  error?: NormalizedBankError;
+}
+
+export interface AccountsResult {
   success: boolean;
   accounts?: BankAccount[];
-  error?: string;
+  refreshedCredentials?: BankConnectionCredentials;
+  error?: NormalizedBankError;
 }
 
 export interface TransactionFetchResult {
   success: boolean;
   transactions?: BankTransaction[];
-  error?: string;
+  refreshedCredentials?: BankConnectionCredentials;
+  error?: NormalizedBankError;
+}
+
+export interface ProviderDescriptor {
+  code: string;
+  name: string;
+  isDemo: boolean;
 }
 
 export interface IBankAdapter {
-  // Bank identification
   getBankCode(): string;
   getBankName(): string;
+  isDemoProvider(): boolean;
 
-  // Connection lifecycle
-  connect(credentials: Record<string, any>): Promise<ConnectionResult>;
-  disconnect(): Promise<void>;
-  isConnected(): boolean;
-
-  // Refresh token if needed
-  refreshConnection?(): Promise<boolean>;
-
-  // Account operations
-  getAccounts(): Promise<BankAccount[]>;
-
-  // Transaction fetching
+  startConnection(params: AuthorizationStartParams): Promise<AuthorizationStartResult>;
+  exchangeAuthorizationCode(params: TokenExchangeParams): Promise<TokenExchangeResult>;
+  refreshAccessToken(
+    credentials: BankConnectionCredentials
+  ): Promise<TokenExchangeResult>;
+  getAccounts(credentials: BankConnectionCredentials): Promise<AccountsResult>;
   getTransactions(
     accountId: string,
     fromDate: Date,
-    toDate: Date
+    toDate: Date,
+    credentials: BankConnectionCredentials
   ): Promise<TransactionFetchResult>;
+  normalizeProviderError(error: unknown): NormalizedBankError;
 }

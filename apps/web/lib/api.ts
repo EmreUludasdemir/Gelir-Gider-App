@@ -415,6 +415,12 @@ export interface Transaction {
   confidence: number;
   tags: string[];
   notes?: string;
+  householdId?: string;
+  ownerUserId?: string;
+  ownerName?: string;
+  reviewerUserId?: string;
+  reviewerName?: string;
+  needsReview?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -534,6 +540,10 @@ export interface UploadPreviewTransaction {
   confidence: number;
   tags: string[];
   notes?: string;
+  householdId?: string;
+  ownerUserId?: string;
+  reviewerUserId?: string;
+  needsReview?: boolean;
 }
 
 export interface UploadPreview {
@@ -711,6 +721,8 @@ export interface DetectedSubscription {
   isActive: boolean;
   totalSpentYear: number;
   matchSource: 'known' | 'pattern';
+  confidenceScore: number;
+  reasonCodes: string[];
 }
 
 export interface SubscriptionSummary {
@@ -749,6 +761,21 @@ export const dismissDetectedSubscription = (data: {
     method: 'POST',
     body: JSON.stringify(data),
   });
+export const submitDetectedSubscriptionFeedback = (
+  id: string,
+  data: {
+    status: 'confirmed' | 'rejected';
+    reasonCodes?: string[];
+    note?: string;
+  }
+) =>
+  fetchApi<{ success: boolean; fingerprint: string; status: 'confirmed' | 'rejected' }>(
+    `/subscriptions/detected/${id}/feedback`,
+    {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }
+  );
 export const createSubscription = (data: {
   name: string;
   amount: number;
@@ -785,6 +812,121 @@ export const updateSubscription = (
 export const deleteSubscription = (id: string) =>
   fetchApi<{ success: boolean }>(`/subscriptions/${id}`, {
     method: 'DELETE',
+  });
+
+export interface SavingsAction {
+  id: string;
+  estimatedMonthlySaving: number;
+  confidence: number;
+  actionType: 'cancel_subscription' | 'reduce_category_spend' | 'review_recurring_charge';
+  reason: string;
+  outcome?: 'accepted' | 'dismissed' | 'completed';
+}
+
+export const getSavingsActions = () => fetchApi<SavingsAction[]>('/analytics/savings-actions');
+export const saveSavingsActionOutcome = (
+  id: string,
+  data: { status: 'accepted' | 'dismissed' | 'completed'; reason?: string }
+) =>
+  fetchApi<{ success: boolean }>(`/analytics/savings-actions/${id}/outcome`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+
+export interface HouseholdMember {
+  id: string;
+  userId: string;
+  role: 'owner' | 'admin' | 'member' | 'viewer';
+  joinedAt: string;
+  updatedAt?: string;
+  user: {
+    id: string;
+    name?: string;
+    email: string;
+  };
+}
+
+export interface HouseholdInvite {
+  id: string;
+  householdId: string;
+  code: string;
+  email?: string;
+  role: 'member' | 'viewer';
+  expiresAt: string;
+  usedAt?: string;
+  usedBy?: string;
+  createdAt: string;
+}
+
+export interface HouseholdBudget {
+  id: string;
+  categoryId: string;
+  categoryLabel: string;
+  limitAmount: number;
+  period: string;
+  alertThreshold: number;
+  isActive: boolean;
+}
+
+export interface Household {
+  id: string;
+  name: string;
+  ownerId: string;
+  createdAt: string;
+  updatedAt: string;
+  members: HouseholdMember[];
+  invites?: HouseholdInvite[];
+  sharedBudgets?: HouseholdBudget[];
+  _count?: {
+    members: number;
+  };
+}
+
+export const getHouseholds = () => fetchApi<Household[]>('/households');
+export const getHousehold = (id: string) => fetchApi<Household>(`/households/${id}`);
+export const createHousehold = (data: { name: string }) =>
+  fetchApi<Household>('/households', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+export const updateHousehold = (id: string, data: { name: string }) =>
+  fetchApi<Household>(`/households/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+export const deleteHousehold = (id: string) =>
+  fetchApi<{ success: boolean }>(`/households/${id}`, {
+    method: 'DELETE',
+  });
+export const createHouseholdInvite = (
+  id: string,
+  data: { email?: string; role?: 'member' | 'viewer' }
+) =>
+  fetchApi<HouseholdInvite>(`/households/${id}/invites`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+export const joinHouseholdByCode = (data: { code: string }) =>
+  fetchApi<HouseholdMember>('/households/join', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+export const leaveHousehold = (id: string) =>
+  fetchApi<{ success: boolean }>(`/households/${id}/leave`, {
+    method: 'DELETE',
+  });
+export const removeHouseholdMember = (id: string, memberId: string) =>
+  fetchApi<{ success: boolean }>(`/households/${id}/members/${memberId}`, {
+    method: 'DELETE',
+  });
+export const updateHouseholdMemberRole = (
+  id: string,
+  memberId: string,
+  data: { role: 'admin' | 'member' | 'viewer' }
+) =>
+  fetchApi<HouseholdMember>(`/households/${id}/members/${memberId}/role`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
   });
 
 // Cash Flow

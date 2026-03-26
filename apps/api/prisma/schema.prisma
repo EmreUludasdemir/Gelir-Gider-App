@@ -47,6 +47,8 @@ model User {
   bills             Bill[]
   debts             Debt[]
   subscriptions     Subscription[]
+  subscriptionDetectionFeedback SubscriptionDetectionFeedback[]
+  savingsActionOutcomes SavingsActionOutcome[]
   telegramLinks     TelegramLink[]
   telegramLinkCodes TelegramLinkCode[]
   householdMembers  HouseholdMember[]
@@ -68,10 +70,18 @@ model BankConnection {
   accessToken  String?
   refreshToken String?
   expiresAt    DateTime?
+  oauthState   String?
+  lifecycleState String @default("pending_consent") // 'pending_consent' | 'connected' | 'reauth_required' | 'failed'
+  providerConnectionId String?
+  providerErrorCode String?
+  providerErrorMessage String?
+  connectionMetadata String?
+  lastConsentAt DateTime?
+  reauthRequiredAt DateTime?
 
   // Sync metadata
   lastSyncAt     DateTime?
-  lastSyncStatus String? // 'success' | 'failed' | 'pending'
+  lastSyncStatus String? // 'success' | 'failed' | 'pending' | 'reauth_required'
   syncError      String?
 
   isActive  Boolean  @default(true)
@@ -101,6 +111,10 @@ model Transaction {
 
   tags  String // Stored as JSON string or comma separated
   notes String?
+  householdId   String?
+  ownerUserId   String?
+  reviewerUserId String?
+  needsReview   Boolean @default(false)
 
   // Credit card relation
   creditCardId String?
@@ -116,6 +130,8 @@ model Transaction {
   @@index([userId, type])           // Filter by transaction type (income/expense)
   @@index([userId, categoryId])     // Filter by category
   @@index([type])                   // Global type filter
+  @@index([householdId])
+  @@index([needsReview])
 }
 
 model PdfUpload {
@@ -328,6 +344,40 @@ model Subscription {
   @@index([isActive])
 }
 
+model SubscriptionDetectionFeedback {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fingerprint String
+  status     String   // 'confirmed' | 'rejected'
+  detectedSubscriptionId String?
+  reasonCodes String?
+  metadata   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([userId, fingerprint])
+  @@index([userId])
+  @@index([status])
+}
+
+model SavingsActionOutcome {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  actionId   String
+  actionType String
+  status     String   // 'accepted' | 'dismissed' | 'completed'
+  reason     String?
+  metadata   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([userId, actionId])
+  @@index([userId])
+  @@index([status])
+}
+
 // Telegram Integration
 model TelegramLink {
   id         String @id @default(uuid())
@@ -376,7 +426,7 @@ model HouseholdMember {
   household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
   userId      String
   user        User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role        String @default("member") // 'owner' | 'admin' | 'member'
+  role        String @default("member") // 'owner' | 'admin' | 'member' | 'viewer'
 
   joinedAt  DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -412,6 +462,7 @@ model HouseholdInvite {
 
   code      String   @unique
   email     String?
+  role      String   @default("member") // 'member' | 'viewer'
   expiresAt DateTime
   usedAt    DateTime?
   usedBy    String?

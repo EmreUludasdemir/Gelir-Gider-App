@@ -9,6 +9,7 @@ import { getCategoryColor } from './utils'
 
 interface TransactionMobileCardProps {
   transaction: Transaction
+  currentUserId?: string
   isSelected: boolean
   hasPdfTransactions: boolean
   isDuplicate: boolean
@@ -18,18 +19,21 @@ interface TransactionMobileCardProps {
 
 export const TransactionMobileCard = memo(function TransactionMobileCard({
   transaction,
+  currentUserId,
   isSelected,
   hasPdfTransactions,
   isDuplicate,
   onSelect,
   onEdit,
 }: TransactionMobileCardProps) {
+  const canEdit = !transaction.ownerUserId || transaction.ownerUserId === currentUserId
+
   return (
     <div className="p-4 transition-colors hover:bg-primary/[0.07]">
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 space-y-2">
           <div className="flex items-center gap-2">
-            {hasPdfTransactions && transaction.source === 'pdf' && (
+            {hasPdfTransactions && transaction.source === 'pdf' && canEdit && (
               <input
                 type="checkbox"
                 checked={isSelected}
@@ -45,6 +49,19 @@ export const TransactionMobileCard = memo(function TransactionMobileCard({
               <p className="text-sm text-muted-foreground">
                 {formatDate(transaction.date)}
               </p>
+              {(transaction.ownerName || transaction.reviewerName || transaction.needsReview) && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {transaction.ownerName && (
+                    <Badge variant="default">Owner: {transaction.ownerName}</Badge>
+                  )}
+                  {transaction.reviewerName && (
+                    <Badge variant="warning">Reviewer: {transaction.reviewerName}</Badge>
+                  )}
+                  {transaction.needsReview && (
+                    <Badge variant="danger">Needs review</Badge>
+                  )}
+                </div>
+              )}
               {transaction.tags.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-2">
                   {transaction.tags.map((tag) => (
@@ -84,9 +101,10 @@ export const TransactionMobileCard = memo(function TransactionMobileCard({
               size="sm"
               variant="outline"
               className="font-semibold"
+              disabled={!canEdit}
               onClick={() => onEdit(transaction)}
             >
-              Duzenle
+              {canEdit ? 'Duzenle' : 'Salt okunur'}
             </Button>
           </div>
         </div>

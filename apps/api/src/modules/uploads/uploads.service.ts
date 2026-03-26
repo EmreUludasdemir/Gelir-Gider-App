@@ -14,6 +14,7 @@ import { CATEGORIES, classifyTransaction } from '../../shared/categories';
 import { PrismaService } from '../../prisma.service';
 import { CacheService } from '../../shared/cache';
 import { AutoCategorizerService } from '../ai/auto-categorizer.service';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 
 interface ParsedTransaction {
   date: string;
@@ -54,6 +55,7 @@ export class UploadsService {
     private readonly prisma: PrismaService,
     private readonly cache: CacheService,
     private readonly autoCategorizer: AutoCategorizerService,
+    private readonly realtime: RealtimeGateway,
   ) {}
 
   async processPdf(userId: string, file: Express.Multer.File): Promise<UploadResult> {
@@ -177,7 +179,24 @@ export class UploadsService {
         const saved = await this.prisma.transaction.create({
           data: await this.mapPreviewToCreateData(userId, dto.filename, transaction),
         });
-        savedTransactions.push(this.mapToEntity(saved));
+        const entity = this.mapToEntity(saved);
+        savedTransactions.push(entity);
+        this.realtime.notifyNewTransaction(userId, {
+          id: entity.id,
+          description: entity.description,
+          amount: entity.amount,
+          type: entity.type as 'income' | 'expense',
+          categoryLabel: entity.categoryLabel,
+        });
+        if (entity.needsReview && entity.reviewerUserId) {
+          this.realtime.notifyReviewRequested([entity.reviewerUserId], {
+            transactionId: entity.id,
+            householdId: entity.householdId,
+            ownerUserId: entity.ownerUserId,
+            reviewerUserId: entity.reviewerUserId,
+            needsReview: true,
+          });
+        }
       } catch (error) {
         errors.push(`Transaction ${index + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
@@ -327,6 +346,9 @@ export class UploadsService {
       confidence = classification.confidence;
     }
 
+    const normalizedConfidence = Math.max(0, Math.min(100, confidence));
+    const householdContext = await this.resolveHouseholdContext(userId, normalizedConfidence);
+
     return {
       userId,
       accountId: 'pdf-upload',
@@ -338,9 +360,50 @@ export class UploadsService {
       type,
       categoryId,
       categoryLabel,
-      confidence: Math.max(0, Math.min(100, confidence)),
+      confidence: normalizedConfidence,
       tags: JSON.stringify(transaction.tags?.length ? transaction.tags : ['pdf-upload']),
       notes: transaction.notes?.trim() || `Parsed from ${filename}`,
+      householdId: householdContext.householdId,
+      ownerUserId: householdContext.ownerUserId,
+      reviewerUserId: householdContext.reviewerUserId,
+      needsReview: householdContext.needsReview,
+    };
+  }
+
+  private async resolveHouseholdContext(userId: string, confidence: number) {
+    const membership = await this.prisma.householdMember.findFirst({
+      where: { userId },
+      include: {
+        household: {
+          select: {
+            id: true,
+            ownerId: true,
+          },
+        },
+      },
+    });
+
+    if (!membership) {
+      return {
+        householdId: null,
+        ownerUserId: userId,
+        reviewerUserId: null,
+        needsReview: false,
+      };
+    }
+
+    const reviewerUserId =
+      confidence < UploadsService.LOW_CONFIDENCE_THRESHOLD &&
+      membership.household.ownerId !== userId
+        ? membership.household.ownerId
+        : null;
+
+    return {
+      householdId: membership.household.id,
+      ownerUserId: userId,
+      reviewerUserId,
+      needsReview:
+        confidence < UploadsService.LOW_CONFIDENCE_THRESHOLD && !!reviewerUserId,
     };
   }
 
@@ -410,6 +473,10 @@ export class UploadsService {
       confidence: prismaTx.confidence,
       tags: JSON.parse(prismaTx.tags || '[]'),
       notes: prismaTx.notes ?? undefined,
+      householdId: prismaTx.householdId ?? undefined,
+      ownerUserId: prismaTx.ownerUserId ?? undefined,
+      reviewerUserId: prismaTx.reviewerUserId ?? undefined,
+      needsReview: prismaTx.needsReview ?? false,
       createdAt: prismaTx.createdAt.toISOString(),
       updatedAt: prismaTx.updatedAt.toISOString(),
     };

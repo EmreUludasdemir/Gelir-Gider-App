@@ -9,6 +9,7 @@ import { getCategoryColor } from './utils'
 
 interface TransactionTableRowProps {
   transaction: Transaction
+  currentUserId?: string
   isSelected: boolean
   hasPdfTransactions: boolean
   isDuplicate: boolean
@@ -18,17 +19,20 @@ interface TransactionTableRowProps {
 
 export const TransactionTableRow = memo(function TransactionTableRow({
   transaction,
+  currentUserId,
   isSelected,
   hasPdfTransactions,
   isDuplicate,
   onSelect,
   onEdit,
 }: TransactionTableRowProps) {
+  const canEdit = !transaction.ownerUserId || transaction.ownerUserId === currentUserId
+
   return (
     <tr className="odd:bg-card even:bg-muted/[0.18] hover:bg-primary/[0.08] transition-colors">
       {hasPdfTransactions && (
         <td className="px-4 py-4 text-center">
-          {transaction.source === 'pdf' ? (
+          {transaction.source === 'pdf' && canEdit ? (
             <input
               type="checkbox"
               checked={isSelected}
@@ -47,6 +51,19 @@ export const TransactionTableRow = memo(function TransactionTableRow({
       <td className="px-6 py-4 text-sm text-foreground">
         <div className="max-w-md" title={transaction.description}>
           <div>{transaction.description}</div>
+          {(transaction.ownerName || transaction.reviewerName || transaction.needsReview) && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {transaction.ownerName && (
+                <Badge variant="default">Owner: {transaction.ownerName}</Badge>
+              )}
+              {transaction.reviewerName && (
+                <Badge variant="warning">Reviewer: {transaction.reviewerName}</Badge>
+              )}
+              {transaction.needsReview && (
+                <Badge variant="danger">Needs review</Badge>
+              )}
+            </div>
+          )}
           {transaction.tags.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-2">
               {transaction.tags.map((tag) => (
@@ -92,9 +109,10 @@ export const TransactionTableRow = memo(function TransactionTableRow({
           size="sm"
           variant="outline"
           className="font-semibold"
+          disabled={!canEdit}
           onClick={() => onEdit(transaction)}
         >
-          Duzenle
+          {canEdit ? 'Duzenle' : 'Salt okunur'}
         </Button>
       </td>
     </tr>

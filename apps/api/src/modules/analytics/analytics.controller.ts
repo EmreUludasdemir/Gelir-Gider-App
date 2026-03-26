@@ -1,5 +1,8 @@
-import { Controller, Get, Query, UseGuards } from "@nestjs/common";
-import { AnalyticsService } from "./analytics.service";
+import { Body, Controller, Get, Param, Post, Query, UseGuards } from "@nestjs/common";
+import {
+  AnalyticsService,
+  SavingsActionOutcomeDto,
+} from "./analytics.service";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { User } from "../auth/user.decorator";
 import { JwtPayload } from "../../shared/types";
@@ -59,5 +62,19 @@ export class AnalyticsController {
   @Get("savings")
   async getSavingsRate(@User() user: JwtPayload) {
     return this.analyticsService.getSavingsRate(user.id);
+  }
+
+  @Get("savings-actions")
+  async getSavingsActions(@User() user: JwtPayload) {
+    return this.analyticsService.getSavingsActions(user.id);
+  }
+
+  @Post("savings-actions/:id/outcome")
+  async saveSavingsActionOutcome(
+    @User() user: JwtPayload,
+    @Param("id") id: string,
+    @Body() dto: SavingsActionOutcomeDto
+  ) {
+    return this.analyticsService.saveSavingsActionOutcome(user.id, id, dto);
   }
 }

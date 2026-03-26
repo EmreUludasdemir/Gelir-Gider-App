@@ -31,7 +31,7 @@ export class BankSyncService {
       const connections = await this.prisma.bankConnection.findMany({
         where: {
           isActive: true,
-          lastSyncStatus: { not: 'disabled' },
+          lifecycleState: 'connected',
         },
         include: {
           user: { select: { id: true, email: true } },
@@ -78,7 +78,7 @@ export class BankSyncService {
   async triggerSync(userId?: string) {
     const where: any = {
       isActive: true,
-      lastSyncStatus: { not: 'disabled' },
+      lifecycleState: 'connected',
     };
 
     if (userId) {

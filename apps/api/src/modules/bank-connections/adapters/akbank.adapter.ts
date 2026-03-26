@@ -1,51 +1,23 @@
-/**
- * Akbank Open Banking API Adapter
- *
- * Bu adapter Akbank'ın Open Banking API'sini kullanarak
- * hesap bilgileri ve işlem geçmişini çeker.
- *
- * Sandbox API: https://developer.akbank.com
- *
- * NOT: Gerçek kullanım için Akbank Developer Portal'dan
- * API key almanız gerekmektedir.
- */
-
+import { BaseBankAdapter } from "./base-bank.adapter";
 import {
+  AccountsResult,
+  AuthorizationStartParams,
+  AuthorizationStartResult,
+  BankConnectionCredentials,
   IBankAdapter,
-  BankAccount,
-  BankTransaction,
-  ConnectionResult,
+  NormalizedBankError,
+  TokenExchangeParams,
+  TokenExchangeResult,
   TransactionFetchResult,
 } from "./bank-adapter.interface";
 
-interface AkbankCredentials {
-  accessToken: string | null;
-  refreshToken: string | null;
-  clientId?: string;
-  clientSecret?: string;
-}
-
-interface AkbankTokenResponse {
-  access_token: string;
-  refresh_token?: string;
-}
-
-interface AkbankAccountsResponse {
-  accounts?: any[];
-}
-
-interface AkbankTransactionsResponse {
-  transactions?: any[];
-}
-
-export class AkbankAdapter implements IBankAdapter {
-  private readonly API_BASE = "https://api.akbank.com/v1"; // Production
-  private readonly SANDBOX_API_BASE = "https://sandbox.akbank.com/api/v1"; // Sandbox
-
-  private accessToken: string | null = null;
-  private refreshToken: string | null = null;
-  private connected = false;
-  private useSandbox = true; // Default to sandbox for development
+export class AkbankAdapter extends BaseBankAdapter implements IBankAdapter {
+  protected readonly authBaseUrl =
+    process.env.AKBANK_AUTH_URL || "https://api.akbank.com/oauth/authorize";
+  protected readonly tokenUrl =
+    process.env.AKBANK_TOKEN_URL || "https://api.akbank.com/oauth/token";
+  private readonly apiBase =
+    process.env.AKBANK_API_URL || "https://api.akbank.com/v1";
 
   getBankCode(): string {
     return "akbank";
@@ -55,235 +27,294 @@ export class AkbankAdapter implements IBankAdapter {
     return "Akbank";
   }
 
-  private getBaseUrl(): string {
-    return this.useSandbox ? this.SANDBOX_API_BASE : this.API_BASE;
+  async startConnection(
+    params: AuthorizationStartParams
+  ): Promise<AuthorizationStartResult> {
+    return this.buildStartResult(params);
   }
 
-  async connect(credentials: AkbankCredentials): Promise<ConnectionResult> {
+  async exchangeAuthorizationCode(
+    params: TokenExchangeParams
+  ): Promise<TokenExchangeResult> {
+    if (this.useSandboxSimulation()) {
+      return this.buildSimulatedExchangeResult(params);
+    }
+
     try {
-      this.accessToken = credentials.accessToken;
-      this.refreshToken = credentials.refreshToken;
+      const response = await fetch(this.tokenUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          grant_type: "authorization_code",
+          code: params.code,
+          redirect_uri: params.redirectUri,
+          client_id: this.getClientId(),
+          client_secret: this.getClientSecret(),
+        }),
+      });
 
-      // Validate token by fetching accounts
-      const accounts = await this.getAccounts();
+      if (!response.ok) {
+        return {
+          success: false,
+          error: this.normalizeProviderError({
+            statusCode: response.status,
+            providerMessage: response.statusText,
+          }),
+        };
+      }
 
-      this.connected = true;
+      const data = (await response.json()) as {
+        access_token?: string;
+        refresh_token?: string;
+        expires_in?: number;
+      };
+
+      const credentials = {
+        accessToken: data.access_token || null,
+        refreshToken: data.refresh_token || null,
+        expiresAt: data.expires_in
+          ? new Date(Date.now() + data.expires_in * 1000)
+          : null,
+      };
+      const accounts = await this.getAccounts(credentials);
 
       return {
-        success: true,
-        accounts,
+        success: accounts.success,
+        credentials,
+        accounts: accounts.accounts,
+        error: accounts.error,
       };
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Bağlantı hatası";
       return {
         success: false,
-        error: `Akbank bağlantısı başarısız: ${errorMessage}`,
+        error: this.normalizeProviderError(error),
       };
     }
   }
 
-  async disconnect(): Promise<void> {
-    this.accessToken = null;
-    this.refreshToken = null;
-    this.connected = false;
-  }
+  async refreshAccessToken(
+    credentials: BankConnectionCredentials
+  ): Promise<TokenExchangeResult> {
+    if (!credentials.refreshToken) {
+      return {
+        success: false,
+        error: this.normalizeProviderError({
+          providerCode: "missing_refresh_token",
+          providerMessage: "Refresh token is required",
+        }),
+      };
+    }
 
-  isConnected(): boolean {
-    return this.connected && this.accessToken !== null;
-  }
-
-  async refreshConnection(): Promise<boolean> {
-    if (!this.refreshToken) {
-      return false;
+    if (this.useSandboxSimulation()) {
+      return this.buildSimulatedRefreshResult(credentials);
     }
 
     try {
-      // OAuth2 token refresh
-      const response = await fetch(`${this.getBaseUrl()}/oauth/token`, {
+      const response = await fetch(this.tokenUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
         },
         body: new URLSearchParams({
           grant_type: "refresh_token",
-          refresh_token: this.refreshToken,
+          refresh_token: credentials.refreshToken,
+          client_id: this.getClientId(),
+          client_secret: this.getClientSecret(),
         }),
       });
 
       if (!response.ok) {
-        return false;
+        return {
+          success: false,
+          error: this.normalizeProviderError({
+            statusCode: response.status,
+            providerMessage: response.statusText,
+          }),
+        };
       }
 
-      const data = (await response.json()) as AkbankTokenResponse;
-      this.accessToken = data.access_token;
-      if (data.refresh_token) {
-        this.refreshToken = data.refresh_token;
-      }
+      const data = (await response.json()) as {
+        access_token?: string;
+        refresh_token?: string;
+        expires_in?: number;
+      };
 
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  async getAccounts(): Promise<BankAccount[]> {
-    if (!this.accessToken) {
-      throw new Error("Token gerekli");
-    }
-
-    const response = await fetch(`${this.getBaseUrl()}/accounts`, {
-      headers: {
-        Authorization: `Bearer ${this.accessToken}`,
-        "Content-Type": "application/json",
-        "X-Request-ID": this.generateRequestId(),
-      },
-    });
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        // Try to refresh token
-        const refreshed = await this.refreshConnection();
-        if (refreshed) {
-          return this.getAccounts(); // Retry
-        }
-      }
-      throw new Error(`Hesap bilgileri alınamadı: ${response.statusText}`);
-    }
-
-    const data = (await response.json()) as AkbankAccountsResponse;
-
-    // Map Akbank response to our interface
-    return (data.accounts || []).map((acc: any) => ({
-      id: acc.accountId || acc.id,
-      accountNumber: acc.iban || acc.accountNumber,
-      accountName: acc.alias || acc.name || "Hesap",
-      accountType: this.mapAccountType(acc.accountType),
-      balance: parseFloat(acc.balance?.amount || acc.currentBalance || 0),
-      currency: acc.balance?.currency || acc.currency || "TRY",
-    }));
-  }
-
-  async getTransactions(
-    accountId: string,
-    fromDate: Date,
-    toDate: Date
-  ): Promise<TransactionFetchResult> {
-    if (!this.accessToken) {
+      return {
+        success: true,
+        credentials: {
+          accessToken: data.access_token || null,
+          refreshToken: data.refresh_token || credentials.refreshToken,
+          expiresAt: data.expires_in
+            ? new Date(Date.now() + data.expires_in * 1000)
+            : null,
+        },
+      };
+    } catch (error) {
       return {
         success: false,
-        error: "Token gerekli",
+        error: this.normalizeProviderError(error),
+      };
+    }
+  }
+
+  async getAccounts(
+    credentials: BankConnectionCredentials
+  ): Promise<AccountsResult> {
+    if (!credentials.accessToken) {
+      return {
+        success: false,
+        error: this.normalizeProviderError({
+          providerCode: "missing_token",
+          providerMessage: "Access token is required",
+        }),
+      };
+    }
+
+    if (this.useSandboxSimulation()) {
+      return {
+        success: true,
+        accounts: this.getSimulatedAccounts(),
       };
     }
 
     try {
-      const params = new URLSearchParams({
-        fromDate: fromDate.toISOString().split("T")[0],
-        toDate: toDate.toISOString().split("T")[0],
+      const response = await fetch(`${this.apiBase}/accounts`, {
+        headers: {
+          Authorization: `Bearer ${credentials.accessToken}`,
+          "Content-Type": "application/json",
+        },
       });
 
+      if (!response.ok) {
+        return {
+          success: false,
+          error: this.normalizeProviderError({
+            statusCode: response.status,
+            providerMessage: response.statusText,
+          }),
+        };
+      }
+
+      const payload = (await response.json()) as {
+        accounts?: Array<{
+          id?: string;
+          iban?: string;
+          name?: string;
+          accountType?: string;
+          balance?: { amount?: string; currency?: string };
+        }>;
+      };
+
+      return {
+        success: true,
+        accounts: (payload.accounts || []).map((account, index) => ({
+          id: account.id || `akbank-account-${index + 1}`,
+          accountNumber: account.iban || `TRAKB${index + 1}`,
+          accountName: account.name || `Akbank Hesap ${index + 1}`,
+          accountType:
+            account.accountType === "savings" ? "savings" : "checking",
+          balance: Number(account.balance?.amount || 0),
+          currency: account.balance?.currency || "TRY",
+        })),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: this.normalizeProviderError(error),
+      };
+    }
+  }
+
+  async getTransactions(
+    _accountId: string,
+    fromDate: Date,
+    toDate: Date,
+    credentials: BankConnectionCredentials
+  ): Promise<TransactionFetchResult> {
+    if (!credentials.accessToken) {
+      return {
+        success: false,
+        error: this.normalizeProviderError({
+          providerCode: "missing_token",
+          providerMessage: "Access token is required",
+        }),
+      };
+    }
+
+    if (this.useSandboxSimulation()) {
+      return {
+        success: true,
+        transactions: this.getSimulatedTransactions(fromDate, toDate),
+      };
+    }
+
+    try {
       const response = await fetch(
-        `${this.getBaseUrl()}/accounts/${accountId}/transactions?${params}`,
+        `${this.apiBase}/transactions?fromDate=${fromDate.toISOString()}&toDate=${toDate.toISOString()}`,
         {
           headers: {
-            Authorization: `Bearer ${this.accessToken}`,
+            Authorization: `Bearer ${credentials.accessToken}`,
             "Content-Type": "application/json",
-            "X-Request-ID": this.generateRequestId(),
           },
         }
       );
 
       if (!response.ok) {
-        if (response.status === 401) {
-          const refreshed = await this.refreshConnection();
-          if (refreshed) {
-            return this.getTransactions(accountId, fromDate, toDate);
-          }
-        }
         return {
           success: false,
-          error: `İşlem geçmişi alınamadı: ${response.statusText}`,
+          error: this.normalizeProviderError({
+            statusCode: response.status,
+            providerMessage: response.statusText,
+          }),
         };
       }
 
-      const data = (await response.json()) as AkbankTransactionsResponse;
-
-      const transactions: BankTransaction[] = (data.transactions || []).map(
-        (tx: any) => ({
-          id: tx.transactionId || tx.id,
-          date: new Date(tx.bookingDate || tx.date),
-          description: tx.description || tx.remittanceInformation || "İşlem",
-          amount: Math.abs(parseFloat(tx.amount?.amount || tx.amount || 0)),
-          type: this.determineTransactionType(tx),
-          balance: tx.balanceAfterTransaction
-            ? parseFloat(tx.balanceAfterTransaction)
-            : undefined,
-          category: this.categorizeTransaction(tx.description || ""),
-          merchantName: tx.merchantName || tx.creditorName || tx.debtorName,
-        })
-      );
+      const payload = (await response.json()) as {
+        transactions?: Array<{
+          id?: string;
+          date?: string;
+          description?: string;
+          amount?: number | string;
+          direction?: "credit" | "debit";
+          merchantName?: string;
+        }>;
+      };
 
       return {
         success: true,
-        transactions,
+        transactions: (payload.transactions || []).map((transaction, index) => ({
+          id: transaction.id || `akbank-tx-${index + 1}`,
+          date: new Date(transaction.date || Date.now()),
+          description: transaction.description || "İşlem",
+          amount: Math.abs(Number(transaction.amount || 0)),
+          type: transaction.direction === "credit" ? "income" : "expense",
+          merchantName: transaction.merchantName,
+        })),
       };
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Bilinmeyen hata";
       return {
         success: false,
-        error: errorMessage,
+        error: this.normalizeProviderError(error),
       };
     }
   }
 
-  // Helper methods
-  private generateRequestId(): string {
-    return `akb-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-  }
-
-  private mapAccountType(type: string): "checking" | "savings" | "credit" {
-    const typeMap: Record<string, "checking" | "savings" | "credit"> = {
-      VADESIZ: "checking",
-      CHECKING: "checking",
-      CURRENT: "checking",
-      VADELI: "savings",
-      SAVINGS: "savings",
-      DEPOSIT: "savings",
-      KREDI: "credit",
-      CREDIT: "credit",
-      CREDITCARD: "credit",
-    };
-    return typeMap[type?.toUpperCase()] || "checking";
-  }
-
-  private determineTransactionType(tx: any): "income" | "expense" {
-    const amount = parseFloat(tx.amount?.amount || tx.amount || 0);
-    if (amount > 0) return "income";
-    if (amount < 0) return "expense";
-
-    // Fallback to credit/debit indicator
-    const indicator = tx.creditDebitIndicator || tx.type;
-    return indicator === "CREDIT" ? "income" : "expense";
-  }
-
-  private categorizeTransaction(description: string): string {
-    const desc = description.toLowerCase();
-
-    const categoryMap: Record<string, string[]> = {
-      market: ["migros", "bim", "a101", "carrefour", "şok", "market"],
-      ulasim: ["akaryakıt", "petrol", "opet", "shell", "bp", "metro", "otobüs"],
-      yemek: ["restaurant", "cafe", "yemek", "pizza", "burger", "döner"],
-      fatura: ["elektrik", "su", "doğalgaz", "internet", "telefon", "fatura"],
-      abonelik: ["spotify", "netflix", "youtube", "amazon", "subscription"],
-    };
-
-    for (const [category, keywords] of Object.entries(categoryMap)) {
-      if (keywords.some((keyword) => desc.includes(keyword))) {
-        return category;
-      }
+  normalizeProviderError(error: unknown): NormalizedBankError {
+    if (typeof error === "object" && error !== null) {
+      const payload = error as {
+        providerCode?: string;
+        providerMessage?: string;
+        statusCode?: number;
+      };
+      return this.buildNormalizedError(payload, "Akbank bağlantısı işlenemedi.");
     }
 
-    return "diger";
+    return {
+      code: "provider_error",
+      message: "Akbank bağlantısı işlenemedi.",
+      detail: error instanceof Error ? error.message : undefined,
+    };
   }
 }

@@ -1,9 +1,11 @@
 ﻿'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Activity, BadgePercent, Radar, Scissors, Target, TrendingUp, Waves } from 'lucide-react'
-import { DashboardSummary } from '@/lib/api'
-import { useBudgetStatus, useCashFlowForecast, useSubscriptionSummary } from '@/lib/hooks'
+import { DashboardSummary, saveSavingsActionOutcome } from '@/lib/api'
+import { useBudgetStatus, useCashFlowForecast, useSavingsActions, useSubscriptionSummary } from '@/lib/hooks'
+import { Button } from '@/components/ui/Button'
+import { useToast } from '@/components/ui/Toast'
 import { formatCurrency } from '@/lib/utils'
 
 interface FinancialAnalysisBoardProps {
@@ -14,6 +16,9 @@ export function FinancialAnalysisBoard({ summary }: FinancialAnalysisBoardProps)
   const { data: cashFlow } = useCashFlowForecast(30)
   const { data: subscriptionSummary } = useSubscriptionSummary()
   const { data: budgetStatus } = useBudgetStatus()
+  const { data: savingsActions, mutate: mutateSavingsActions } = useSavingsActions()
+  const { showToast } = useToast()
+  const [processingActionId, setProcessingActionId] = useState<string | null>(null)
 
   const analysis = useMemo(() => {
     const topCategory = summary.topCategories[0]
@@ -46,6 +51,24 @@ export function FinancialAnalysisBoard({ summary }: FinancialAnalysisBoardProps)
       cutbackTarget,
     }
   }, [budgetStatus, cashFlow, subscriptionSummary, summary])
+
+  const topSavingsActions = (savingsActions || []).slice(0, 3)
+
+  const handleOutcome = async (
+    actionId: string,
+    status: 'accepted' | 'dismissed' | 'completed',
+  ) => {
+    try {
+      setProcessingActionId(actionId)
+      await saveSavingsActionOutcome(actionId, { status })
+      await mutateSavingsActions()
+      showToast('Tasarruf aksiyonu guncellendi.', 'success')
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Aksiyon guncellenemedi.', 'error')
+    } finally {
+      setProcessingActionId(null)
+    }
+  }
 
   return (
     <section
@@ -135,6 +158,106 @@ export function FinancialAnalysisBoard({ summary }: FinancialAnalysisBoardProps)
             }
             accent={formatCurrency(summary.comparison.previousMonth.expense)}
           />
+        </div>
+
+        <div className="rounded-[28px] border border-border/70 bg-background/80 p-5 backdrop-blur-sm">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                Savings Actions
+              </p>
+              <h3 className="mt-2 text-xl font-semibold text-foreground">
+                Potansiyel aylik tasarruf
+              </h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                En etkili oneriler outcome kaydi ile takip edilir.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-success/25 bg-success/10 px-4 py-3">
+              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                Toplam potansiyel
+              </p>
+              <p className="mt-2 text-2xl font-display font-semibold text-success">
+                {formatCurrency(
+                  topSavingsActions.reduce(
+                    (sum, action) => sum + action.estimatedMonthlySaving,
+                    0,
+                  ),
+                )}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-4 lg:grid-cols-3">
+            {topSavingsActions.length > 0 ? topSavingsActions.map((action) => (
+              <div
+                key={action.id}
+                className="rounded-[24px] border border-border/70 bg-card/70 p-4"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">
+                      {action.actionType === 'cancel_subscription'
+                        ? 'Aboneligi gozden gecir'
+                        : action.actionType === 'reduce_category_spend'
+                          ? 'Kategori kesintisi'
+                          : 'Recurring charge incele'}
+                    </p>
+                    <p className="mt-1 text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                      %{action.confidence} confidence
+                    </p>
+                  </div>
+                  {action.outcome && (
+                    <span className="rounded-full border border-primary/15 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                      {action.outcome === 'accepted'
+                        ? 'Accepted'
+                        : action.outcome === 'completed'
+                          ? 'Completed'
+                          : 'Dismissed'}
+                    </span>
+                  )}
+                </div>
+
+                <p className="mt-4 text-2xl font-display font-semibold text-success">
+                  {formatCurrency(action.estimatedMonthlySaving)}
+                </p>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">{action.reason}</p>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {action.outcome !== 'accepted' && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      loading={processingActionId === action.id}
+                      onClick={() => void handleOutcome(action.id, 'accepted')}
+                    >
+                      Kabul et
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    loading={processingActionId === action.id}
+                    onClick={() => void handleOutcome(action.id, 'dismissed')}
+                  >
+                    Gizle
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    loading={processingActionId === action.id}
+                    onClick={() => void handleOutcome(action.id, 'completed')}
+                  >
+                    Tamamlandi
+                  </Button>
+                </div>
+              </div>
+            )) : (
+              <div className="rounded-[24px] border border-dashed border-border/80 bg-card/50 p-6 text-sm text-muted-foreground lg:col-span-3">
+                Henuz tasarruf aksiyonu onerisi yok. Daha fazla islem ve abonelik verisi geldikce burada oneriler listelenecek.
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </section>
