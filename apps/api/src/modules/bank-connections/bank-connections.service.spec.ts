@@ -8,6 +8,7 @@ import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { BankConnectionsService } from './bank-connections.service';
 import { PrismaService } from '../../prisma.service';
 import { EncryptionService } from '../../shared/encryption';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { CreateBankConnectionDto } from './dto/bank-connection.dto';
 import {
   createMockBankConnection,
@@ -18,12 +19,24 @@ import {
 describe('BankConnectionsService', () => {
   let service: BankConnectionsService;
   let prisma: ReturnType<typeof createMockPrismaService>;
+  let realtime: {
+    notifyNewTransaction: jest.Mock;
+    notifySync: jest.Mock;
+    notifyHouseholdUpdated: jest.Mock;
+    notifyReviewRequested: jest.Mock;
+  };
 
   const userId = 'user-test-123';
   const mockConnection = createMockBankConnection();
 
   beforeEach(async () => {
     prisma = createMockPrismaService();
+    realtime = {
+      notifyNewTransaction: jest.fn(),
+      notifySync: jest.fn(),
+      notifyHouseholdUpdated: jest.fn(),
+      notifyReviewRequested: jest.fn(),
+    };
 
     const mockEncryption = {
       encrypt: jest.fn((val) => val ? `encrypted:${val}` : ''),
@@ -36,6 +49,7 @@ describe('BankConnectionsService', () => {
         BankConnectionsService,
         { provide: PrismaService, useValue: prisma },
         { provide: EncryptionService, useValue: mockEncryption },
+        { provide: RealtimeGateway, useValue: realtime },
       ],
     }).compile();
 
@@ -297,6 +311,7 @@ describe('BankConnectionsService', () => {
         lastSyncStatus: 'success',
       });
       prisma.transaction.findFirst.mockResolvedValue(null);
+      prisma.householdMember.findFirst.mockResolvedValue(null);
 
       await service.syncTransactions(userId, mockConnection.id);
 
@@ -310,6 +325,62 @@ describe('BankConnectionsService', () => {
       );
     });
 
+    it('should notify owner sync and household members after bank import', async () => {
+      prisma.bankConnection.findFirst.mockResolvedValue(mockConnection);
+      prisma.bankConnection.update.mockResolvedValue({
+        ...mockConnection,
+        lastSyncAt: new Date(),
+        lastSyncStatus: 'success',
+      });
+      prisma.transaction.findFirst.mockResolvedValue(null);
+      prisma.householdMember.findFirst.mockResolvedValue({
+        householdId: 'household-1',
+        userId,
+        household: {
+          id: 'household-1',
+          ownerId: 'owner-1',
+        },
+      });
+      prisma.householdMember.findMany.mockResolvedValue([
+        { householdId: 'household-1', userId },
+        { householdId: 'household-1', userId: 'partner-1' },
+      ]);
+      prisma.transaction.create.mockResolvedValue(
+        createMockTransaction({
+          householdId: 'household-1',
+          ownerUserId: userId,
+          reviewerUserId: null,
+          needsReview: false,
+          source: `bank:${mockConnection.bankCode}`,
+        }),
+      );
+
+      await service.syncTransactions(userId, mockConnection.id);
+
+      expect(realtime.notifySync).toHaveBeenCalledWith(
+        userId,
+        expect.objectContaining({
+          source: `bank:${mockConnection.bankCode}`,
+          imported: 4,
+          timestamp: expect.any(Date),
+        }),
+      );
+      expect(realtime.notifyNewTransaction).toHaveBeenCalledWith(
+        userId,
+        expect.objectContaining({
+          description: expect.any(String),
+        }),
+      );
+      expect(realtime.notifyHouseholdUpdated).toHaveBeenCalledWith(
+        [userId, 'partner-1'],
+        expect.objectContaining({
+          householdId: 'household-1',
+          event: 'transactions_synced',
+          imported: 4,
+        }),
+      );
+    });
+
     it('should skip duplicate transactions during sync', async () => {
       const existingTransaction = createMockTransaction({
         source: `bank:${mockConnection.bankCode}`,
@@ -317,6 +388,7 @@ describe('BankConnectionsService', () => {
       prisma.bankConnection.findFirst.mockResolvedValue(mockConnection);
       prisma.bankConnection.update.mockResolvedValue(mockConnection);
       prisma.transaction.findFirst.mockResolvedValue(existingTransaction);
+      prisma.householdMember.findFirst.mockResolvedValue(null);
 
       const result = await service.syncTransactions(userId, mockConnection.id);
 

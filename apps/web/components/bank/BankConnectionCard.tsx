@@ -112,6 +112,7 @@ export default function BankConnectionCard({
 
   const lifecycleBadge = getLifecycleBadge(connection)
   const syncBadge = getSyncBadge(connection)
+  const requiresReauth = connection.lifecycleState === 'reauth_required'
 
   const handleSync = async () => {
     setSyncing(true)
@@ -130,8 +131,6 @@ export default function BankConnectionCard({
       setReconnecting(false)
     }
   }
-
-  const requiresReauth = connection.lifecycleState === 'reauth_required'
 
   return (
     <div className="rounded-2xl border border-border bg-card p-5 shadow-sm transition-shadow hover:shadow-md">
@@ -164,7 +163,7 @@ export default function BankConnectionCard({
               <p>Son onay: {formatDate(connection.lastConsentAt)}</p>
               {connection.expiresAt && <p>Token bitişi: {formatDate(connection.expiresAt)}</p>}
               {connection.errorReason && (
-                <p className="md:col-span-2 text-destructive">
+                <p className="text-destructive md:col-span-2">
                   Hata nedeni: {connection.errorReason}
                   {connection.providerErrorCode ? ` (${connection.providerErrorCode})` : ''}
                 </p>

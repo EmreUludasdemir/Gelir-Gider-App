@@ -8,6 +8,7 @@ import { randomUUID } from "crypto";
 import { Transaction } from "@prisma/client";
 import { PrismaService } from "../../prisma.service";
 import { EncryptionService } from "../../shared/encryption";
+import { RealtimeGateway } from "../realtime/realtime.gateway";
 import {
   CreateBankConnectionDto,
   StartBankConnectionDto,
@@ -38,7 +39,8 @@ export class BankConnectionsService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly encryption: EncryptionService
+    private readonly encryption: EncryptionService,
+    private readonly realtime: RealtimeGateway
   ) {
     this.registerAdapter(new MockBankAdapter());
     this.registerAdapter(new AkbankAdapter());
@@ -362,6 +364,8 @@ export class BankConnectionsService {
       },
     });
 
+    await this.notifySyncEvents(userId, connection.bankCode, createdTransactions);
+
     return {
       syncedCount: createdTransactions.length,
       connection: this.mapConnection(updatedConnection),
@@ -633,10 +637,91 @@ export class BankConnectionsService {
         },
       });
 
-      created.push(newTx);
+      if (newTx) {
+        created.push(newTx);
+      }
     }
 
     return created;
+  }
+
+  private async notifySyncEvents(
+    userId: string,
+    bankCode: string,
+    transactions: Transaction[]
+  ) {
+    const createdTransactions = transactions.filter(
+      (transaction): transaction is Transaction => !!transaction
+    );
+
+    this.realtime.notifySync(userId, {
+      source: `bank:${bankCode}`,
+      imported: createdTransactions.length,
+      timestamp: new Date(),
+    });
+
+    for (const transaction of createdTransactions) {
+      this.realtime.notifyNewTransaction(transaction.ownerUserId || userId, {
+        id: transaction.id,
+        description: transaction.description,
+        amount: Number(transaction.amount),
+        type: transaction.type as "income" | "expense",
+        categoryLabel: transaction.categoryLabel,
+      });
+
+      if (transaction.needsReview && transaction.reviewerUserId) {
+        this.realtime.notifyReviewRequested([transaction.reviewerUserId], {
+          transactionId: transaction.id,
+          householdId: transaction.householdId || undefined,
+          ownerUserId: transaction.ownerUserId || userId,
+          reviewerUserId: transaction.reviewerUserId,
+          needsReview: true,
+        });
+      }
+    }
+
+    const householdIds = Array.from(
+      new Set(
+        createdTransactions
+          .map((transaction) => transaction.householdId)
+          .filter((householdId): householdId is string => !!householdId)
+      )
+    );
+
+    if (householdIds.length === 0) {
+      return;
+    }
+
+    const memberships = await this.prisma.householdMember.findMany({
+      where: {
+        householdId: { in: householdIds },
+      },
+      select: {
+        householdId: true,
+        userId: true,
+      },
+    });
+
+    for (const householdId of householdIds) {
+      const memberUserIds = memberships
+        .filter((membership) => membership.householdId === householdId)
+        .map((membership) => membership.userId);
+
+      if (memberUserIds.length === 0) {
+        continue;
+      }
+
+      const imported = transactions.filter(
+        (transaction) => !!transaction && transaction.householdId === householdId
+      ).length;
+
+      this.realtime.notifyHouseholdUpdated(memberUserIds, {
+        householdId,
+        event: "transactions_synced",
+        source: `bank:${bankCode}`,
+        imported,
+      });
+    }
   }
 
   private async resolveHouseholdContext(userId: string, confidence: number) {

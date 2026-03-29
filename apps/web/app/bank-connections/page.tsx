@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import BankConnectionCard from '@/components/bank/BankConnectionCard'
 import { useAuth } from '@/components/auth-provider'
@@ -36,6 +36,12 @@ export default function BankConnectionsPage() {
   const { fetchWithAuth } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
+  const processedCallbackRef = useRef<string | null>(null)
+  const bankCode = searchParams.get('bankCode')
+  const callbackState = searchParams.get('state')
+  const callbackCode = searchParams.get('code')
+  const providerError = searchParams.get('error')
+  const errorDescription = searchParams.get('error_description') || ''
   const [connections, setConnections] = useState<BankConnection[]>([])
   const [availableBanks, setAvailableBanks] = useState<AvailableBank[]>([])
   const [loading, setLoading] = useState(true)
@@ -77,15 +83,16 @@ export default function BankConnectionsPage() {
   }, [loadData])
 
   useEffect(() => {
-    const bankCode = searchParams.get('bankCode')
-    const state = searchParams.get('state')
-    const code = searchParams.get('code')
-    const providerError = searchParams.get('error')
-
-    if (!bankCode || !state || (!code && !providerError)) {
+    if (!bankCode || !callbackState || (!callbackCode && !providerError)) {
       return
     }
 
+    const callbackKey = [bankCode, callbackState, callbackCode || providerError || '', errorDescription].join(':')
+    if (processedCallbackRef.current === callbackKey) {
+      return
+    }
+
+    processedCallbackRef.current = callbackKey
     let cancelled = false
 
     const processCallback = async () => {
@@ -95,12 +102,10 @@ export default function BankConnectionsPage() {
       try {
         const callbackQuery = new URLSearchParams()
         callbackQuery.set('bankCode', bankCode)
-        callbackQuery.set('state', state)
-        if (code) callbackQuery.set('code', code)
+        callbackQuery.set('state', callbackState)
+        if (callbackCode) callbackQuery.set('code', callbackCode)
         if (providerError) callbackQuery.set('error', providerError)
-        if (searchParams.get('error_description')) {
-          callbackQuery.set('error_description', searchParams.get('error_description') || '')
-        }
+        if (errorDescription) callbackQuery.set('error_description', errorDescription)
 
         const response = await fetchWithAuth(
           `/bank-connections/connect/callback?${callbackQuery.toString()}`
@@ -110,14 +115,27 @@ export default function BankConnectionsPage() {
           throw new Error('Banka bağlantısı doğrulanamadı.')
         }
 
+        const callbackConnection = (await response.json()) as BankConnection
+
         if (!cancelled) {
+          setConnections((current) => {
+            const next = current.filter((connection) => connection.id !== callbackConnection.id)
+            return [callbackConnection, ...next]
+          })
+          setLoading(false)
           setSuccessMessage('Banka bağlantısı doğrulandı.')
-          await loadData()
+          setProcessingCallback(false)
           router.replace('/bank-connections')
+          void loadData()
         }
       } catch (callbackError) {
         if (!cancelled) {
-          setError(callbackError instanceof Error ? callbackError.message : 'Banka callback işlemi başarısız.')
+          setError(
+            callbackError instanceof Error
+              ? callbackError.message
+              : 'Banka callback işlemi başarısız.'
+          )
+          setProcessingCallback(false)
           router.replace('/bank-connections')
         }
       } finally {
@@ -132,13 +150,19 @@ export default function BankConnectionsPage() {
     return () => {
       cancelled = true
     }
-  }, [fetchWithAuth, loadData, router, searchParams])
+  }, [
+    bankCode,
+    callbackCode,
+    callbackState,
+    errorDescription,
+    fetchWithAuth,
+    loadData,
+    providerError,
+    router,
+  ])
 
   const visibleBanks = useMemo(
-    () =>
-      availableBanks.filter(
-        (bank) => isBankConnectionsDemoEnabled || !bank.isDemo
-      ),
+    () => availableBanks.filter((bank) => isBankConnectionsDemoEnabled || !bank.isDemo),
     [availableBanks]
   )
 
@@ -166,7 +190,11 @@ export default function BankConnectionsPage() {
         const data = await response.json()
         window.location.assign(data.redirectUrl)
       } catch (startError) {
-        setError(startError instanceof Error ? startError.message : 'Banka izin akışı başlatılamadı.')
+        setError(
+          startError instanceof Error
+            ? startError.message
+            : 'Banka izin akışı başlatılamadı.'
+        )
       } finally {
         setSubmitting(false)
       }
@@ -202,7 +230,11 @@ export default function BankConnectionsPage() {
       const data = await response.json()
       window.location.assign(data.redirectUrl)
     } catch (reconnectError) {
-      setError(reconnectError instanceof Error ? reconnectError.message : 'Yeniden doğrulama başlatılamadı.')
+      setError(
+        reconnectError instanceof Error
+          ? reconnectError.message
+          : 'Yeniden doğrulama başlatılamadı.'
+      )
     }
   }
 
@@ -248,14 +280,6 @@ export default function BankConnectionsPage() {
     }
   }
 
-  if (loading || processingCallback) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-primary-600" />
-      </div>
-    )
-  }
-
   return (
     <div className="container mx-auto max-w-5xl px-4 py-8">
       <div className="mb-8 flex items-start justify-between gap-6">
@@ -276,17 +300,30 @@ export default function BankConnectionsPage() {
         </button>
       </div>
 
+      {(loading || processingCallback) && (
+        <div className="mb-6 flex items-center gap-3 rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+          <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-primary-600" />
+          {processingCallback
+            ? 'Banka bağlantısı doğrulanıyor...'
+            : 'Banka bağlantıları yükleniyor...'}
+        </div>
+      )}
+
       {error && (
         <div className="mb-6 rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3 text-destructive">
           {error}
-          <button onClick={() => setError(null)} className="float-right font-bold">×</button>
+          <button onClick={() => setError(null)} className="float-right font-bold">
+            ×
+          </button>
         </div>
       )}
 
       {successMessage && (
         <div className="mb-6 rounded-lg border border-success/20 bg-success/10 px-4 py-3 text-success">
           {successMessage}
-          <button onClick={() => setSuccessMessage(null)} className="float-right font-bold">×</button>
+          <button onClick={() => setSuccessMessage(null)} className="float-right font-bold">
+            ×
+          </button>
         </div>
       )}
 
@@ -371,6 +408,11 @@ export default function BankConnectionsPage() {
       )}
 
       {connections.length === 0 ? (
+        loading ? (
+          <div className="rounded-xl bg-muted/40 py-12 text-center text-muted-foreground">
+            Banka bağlantıları yükleniyor...
+          </div>
+        ) : (
         <div className="rounded-xl bg-muted/40 py-12 text-center">
           <svg className="mx-auto mb-4 h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
@@ -389,6 +431,7 @@ export default function BankConnectionsPage() {
             İlk Banka Bağlantısını Ekle
           </button>
         </div>
+        )
       ) : (
         <div className="grid gap-4">
           {connections.map((connection) => (

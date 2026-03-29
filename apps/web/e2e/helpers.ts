@@ -785,6 +785,7 @@ export async function mockAppRoutes(
   let subscriptions = cloneManagedSubscriptions(options?.subscriptions)
   let detectedSubscriptions = cloneDetectedSubscriptions(options?.detectedSubscriptions)
   let previewCallCount = 0
+  const connectionIdByState = new Map<string, string>()
 
   await page.route('**/*', async (route) => {
     const request = route.request()
@@ -1316,7 +1317,7 @@ export async function mockAppRoutes(
         accountName?: string
       }>(route)
 
-      const state = `state-${body.bankCode}`
+      const state = `state-${body.bankCode}-${connections.length + 1}`
 
       const pendingConnection = {
         id: `conn-${connections.length + 1}`,
@@ -1338,6 +1339,7 @@ export async function mockAppRoutes(
       }
 
       connections = [...connections, pendingConnection]
+      connectionIdByState.set(state, pendingConnection.id)
 
       return createJsonResponse(route, {
         connectionId: pendingConnection.id,
@@ -1350,13 +1352,19 @@ export async function mockAppRoutes(
     if (path === '/bank-connections/connect/callback' && method === 'GET') {
       const bankCode = url.searchParams.get('bankCode') || 'akbank'
       const state = url.searchParams.get('state') || ''
-      const pendingConnection = [...connections]
-        .reverse()
-        .find((connection) => connection.bankCode === bankCode && connection.lifecycleState === 'pending_consent')
+      const connectionId = connectionIdByState.get(state)
+      const currentConnection =
+        (connectionId ? connections.find((connection) => connection.id === connectionId) : null) ||
+        [...connections]
+          .reverse()
+          .find((connection) => connection.bankCode === bankCode && connection.lifecycleState === 'pending_consent') ||
+        [...connections]
+          .reverse()
+          .find((connection) => connection.bankCode === bankCode && connection.lifecycleState === 'connected')
 
       const updatedConnection = {
-        ...(pendingConnection || {
-          id: `conn-${connections.length + 1}`,
+        ...(currentConnection || {
+          id: connectionId || `conn-${connections.length + 1}`,
           bankCode,
           bankName: availableBanks.find((bank) => bank.code === bankCode)?.name || bankCode,
           accountNumber: `TR-${bankCode}-001`,
@@ -1364,8 +1372,12 @@ export async function mockAppRoutes(
           accountType: 'checking',
           isActive: true,
         }),
-        accountNumber: pendingConnection?.accountNumber || `TR-${bankCode}-001`,
-        accountName: pendingConnection?.accountName || 'Yeni Hesap',
+        bankName:
+          currentConnection?.bankName ||
+          availableBanks.find((bank) => bank.code === bankCode)?.name ||
+          bankCode,
+        accountNumber: currentConnection?.accountNumber || `TR-${bankCode}-001`,
+        accountName: currentConnection?.accountName || 'Yeni Hesap',
         expiresAt: '2026-03-30T12:00:00.000Z',
         lastSyncAt: undefined,
         lastSyncStatus: 'pending',
@@ -1384,6 +1396,8 @@ export async function mockAppRoutes(
       if (!connections.some((connection) => connection.id === updatedConnection.id)) {
         connections = [...connections, updatedConnection]
       }
+
+      connectionIdByState.delete(state)
 
       return createJsonResponse(route, {
         ...updatedConnection,
@@ -1431,6 +1445,7 @@ export async function mockAppRoutes(
             }
           : item,
       )
+      connectionIdByState.set(state, connectionId)
 
       return createJsonResponse(route, {
         connectionId,
