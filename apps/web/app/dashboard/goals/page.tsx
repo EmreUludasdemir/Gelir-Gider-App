@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Plus, Target, Trash2, Edit2, X, Check } from 'lucide-react'
 import { usePreferences } from '@/lib/PreferencesContext'
 import { useTranslation } from '@/lib/translations'
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
 import { SavingsGoal } from '@/lib/types'
 
 // Mock data - in real app, this would come from backend
@@ -67,7 +68,14 @@ export default function GoalsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" id="main-content">
+      {/* Breadcrumbs */}
+      <Breadcrumbs
+        items={[
+          { label: t('savings_goals'), icon: <Target className="w-4 h-4" /> }
+        ]}
+      />
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">{t('savings_goals')}</h1>

@@ -1,11 +1,12 @@
-﻿import { cn } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 
 interface SpinnerProps {
   size?: 'sm' | 'md' | 'lg'
   className?: string
+  label?: string
 }
 
-export function Spinner({ size = 'md', className }: SpinnerProps) {
+export function Spinner({ size = 'md', className, label = 'Yükleniyor' }: SpinnerProps) {
   const sizes = {
     sm: 'h-4 w-4',
     md: 'h-8 w-8',
@@ -13,11 +14,16 @@ export function Spinner({ size = 'md', className }: SpinnerProps) {
   }
 
   return (
-    <div className={cn('flex items-center justify-center', className)}>
+    <div 
+      className={cn('flex items-center justify-center', className)}
+      role="status"
+      aria-label={label}
+    >
       <svg
         className={cn('animate-spin text-primary-600', sizes[size])}
         fill="none"
         viewBox="0 0 24 24"
+        aria-hidden="true"
       >
         <circle
           className="opacity-25"
@@ -33,6 +39,7 @@ export function Spinner({ size = 'md', className }: SpinnerProps) {
           d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
         />
       </svg>
+      <span className="sr-only">{label}</span>
     </div>
   )
 }

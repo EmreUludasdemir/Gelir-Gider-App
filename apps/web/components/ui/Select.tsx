@@ -1,29 +1,47 @@
-﻿import { cn } from '@/lib/utils'
+import { cn } from '@/lib/utils'
+import { useId } from 'react'
 
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   label?: string
   error?: string
+  hint?: string
   options?: Array<{ value: string; label: string }>
 }
 
-export function Select({ label, error, options, className, children, ...props }: SelectProps) {
+export function Select({ label, error, hint, options, className, children, required, id: providedId, ...props }: SelectProps) {
+  const generatedId = useId()
+  const selectId = providedId || generatedId
+  const errorId = `${selectId}-error`
+  const hintId = `${selectId}-hint`
+
   return (
     <div className="w-full">
       {label && (
-        <label className="block text-sm font-medium text-foreground mb-1">
+        <label htmlFor={selectId} className="block text-sm font-medium text-foreground mb-1.5">
           {label}
+          {required && (
+            <span className="text-destructive ml-0.5" aria-hidden="true">*</span>
+          )}
         </label>
       )}
       <select
+        id={selectId}
         className={cn(
-          'w-full px-3 py-2 border border-border rounded-xl',
+          'w-full px-3 py-2.5 border border-border rounded-xl',
           'bg-card text-foreground placeholder:text-muted-foreground',
-          'focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-transparent',
+          'focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary',
           'disabled:bg-muted/40 disabled:cursor-not-allowed',
-          'transition-colors',
-          error && 'border-red-500',
+          'transition-all duration-200',
+          error && 'border-destructive focus:ring-destructive/30 focus:border-destructive',
           className
         )}
+        required={required}
+        aria-required={required}
+        aria-invalid={error ? 'true' : undefined}
+        aria-describedby={cn(
+          error && errorId,
+          hint && !error && hintId
+        ) || undefined}
         {...props}
       >
         {options ? (
@@ -36,7 +54,17 @@ export function Select({ label, error, options, className, children, ...props }:
           children
         )}
       </select>
-      {error && <p className="mt-1 text-sm text-destructive">{error}</p>}
+      {hint && !error && (
+        <p id={hintId} className="mt-1.5 text-xs text-muted-foreground">
+          {hint}
+        </p>
+      )}
+      {error && (
+        <p id={errorId} className="mt-1.5 text-sm text-destructive flex items-center gap-1" role="alert">
+          <span aria-hidden="true">⚠</span>
+          {error}
+        </p>
+      )}
     </div>
   )
 }

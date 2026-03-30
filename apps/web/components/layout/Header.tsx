@@ -138,15 +138,21 @@ export function Header() {
                 </span>
               </div>
 
-              <button className="relative p-2 rounded-xl hover:bg-muted transition-colors" aria-label="Notifications">
+              <button 
+                className="relative p-2.5 rounded-xl hover:bg-muted transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center" 
+                aria-label="Bildirimler"
+                title="Bildirimler"
+              >
                 <Bell className="w-5 h-5 text-muted-foreground" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full" />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full" aria-hidden="true" />
+                <span className="sr-only">3 yeni bildirim</span>
               </button>
 
               <button
                 onClick={toggleDarkMode}
-                className="p-2 rounded-xl hover:bg-muted transition-colors"
-                title={isDark ? 'Light Mode' : 'Dark Mode'}
+                className="p-2.5 rounded-xl hover:bg-muted transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                aria-label={isDark ? 'Açık moda geç' : 'Koyu moda geç'}
+                title={isDark ? 'Açık Mod' : 'Koyu Mod'}
               >
                 {isDark ? (
                   <Sun className="w-5 h-5 text-amber-500" />
@@ -157,7 +163,8 @@ export function Header() {
 
               <button
                 onClick={() => setShowSettings(true)}
-                className="p-2 rounded-xl hover:bg-muted transition-colors"
+                className="p-2.5 rounded-xl hover:bg-muted transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                aria-label="Ayarları aç"
                 title={t('settings')}
               >
                 <Settings className="w-5 h-5 text-muted-foreground" />
@@ -172,7 +179,7 @@ export function Header() {
                   onClick={logout}
                   data-testid="logout-button"
                   aria-label={t('logout')}
-                  className="p-2 rounded-xl hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                  className="p-2.5 rounded-xl hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
                   title={t('logout')}
                 >
                   <LogOut className="w-5 h-5" />
@@ -181,8 +188,10 @@ export function Header() {
 
               <button
                 onClick={() => setShowMobileMenu(!showMobileMenu)}
-                className="md:hidden p-2 rounded-xl hover:bg-muted transition-colors"
-                aria-label="Menu"
+                className="md:hidden p-2.5 rounded-xl hover:bg-muted transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                aria-label={showMobileMenu ? 'Menüyü kapat' : 'Menüyü aç'}
+                aria-expanded={showMobileMenu}
+                aria-controls="mobile-menu"
               >
                 {showMobileMenu ? (
                   <X className="w-5 h-5 text-foreground" />

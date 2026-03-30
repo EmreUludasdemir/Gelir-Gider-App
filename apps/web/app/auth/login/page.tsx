@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/components/auth-provider';
 import { Eye, EyeOff, Mail, Lock, ArrowRight, LineChart, Landmark, FileText } from 'lucide-react';
-import { loginUser } from '@/lib/api';
+import { ApiError, loginUser } from '@/lib/api';
 
 export default function LoginPage() {
     const { login } = useAuth();
@@ -23,8 +23,28 @@ export default function LoginPage() {
             const data = await loginUser({ email, password });
             await login(data.user);
         } catch (err) {
-            const message = err instanceof Error ? err.message : 'Login failed';
-            setError(message.includes('401') ? 'E-posta veya şifre hatalı' : 'Giris yapilamadi');
+            if (err instanceof ApiError) {
+                switch (err.status) {
+                    case 401:
+                        setError('E-posta veya şifre hatalı. Lütfen bilgilerinizi kontrol edin.');
+                        break;
+                    case 403:
+                        setError('Hesabınız kilitlenmiş. Lütfen destek ile iletişime geçin.');
+                        break;
+                    case 429:
+                        setError('Çok fazla deneme yaptınız. Lütfen birkaç dakika bekleyin.');
+                        break;
+                    case 500:
+                        setError('Sunucu hatası oluştu. Lütfen daha sonra tekrar deneyin.');
+                        break;
+                    default:
+                        setError('Giriş yapılamadı. Lütfen tekrar deneyin.');
+                }
+            } else if (err instanceof Error && err.message.includes('fetch')) {
+                setError('Sunucuya bağlanılamıyor. İnternet bağlantınızı kontrol edin.');
+            } else {
+                setError('Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.');
+            }
         } finally {
             setLoading(false);
         }

@@ -1,11 +1,13 @@
 ﻿'use client'
 
 import { useState, useMemo, useEffect } from 'react'
+import { Wallet } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { useToast } from '@/components/ui/Toast'
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
 import { BudgetAlerts } from '@/components/dashboard/BudgetAlerts'
 import { CATEGORIES } from '@/lib/categories'
 import { useTransactions } from '@/lib/hooks'
@@ -115,7 +117,14 @@ export default function BudgetsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" id="main-content">
+      {/* Breadcrumbs */}
+      <Breadcrumbs
+        items={[
+          { label: 'Bütçeler', icon: <Wallet className="w-4 h-4" /> }
+        ]}
+      />
+
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-foreground dark:text-white">Bütçe Yönetimi</h1>

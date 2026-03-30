@@ -60,7 +60,7 @@ const RecurringPayments = dynamic(
 
 export default function DashboardPage() {
   const { loading: authLoading, user } = useAuth()
-  const { data: summary, error: summaryError, isLoading: summaryLoading } = useSummary()
+  const { data: summary, error: summaryError, isLoading: summaryLoading, mutate: mutateSummary } = useSummary()
   const { data: transactions, error: transactionsError, isLoading: transactionsLoading, mutate: mutateTransactions } = useTransactions()
   const refreshAll = useRefreshAll()
   const { language } = usePreferences()
@@ -102,13 +102,39 @@ export default function DashboardPage() {
   }
 
   if (summaryError || transactionsError) {
+    const errorMessage = summaryError?.message || transactionsError?.message || '';
+    const isNetworkError = errorMessage.includes('fetch') || errorMessage.includes('network');
+    
     return (
-      <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
-        <p className="text-destructive">
-          {language === 'tr'
-            ? 'Veri yuklenirken hata olustu. Backend servisi calisiyor mu?'
-            : 'Error loading data. Is the backend service running?'}
-        </p>
+      <div className="p-6 bg-destructive/10 border border-destructive/20 rounded-xl" id="main-content">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-full bg-destructive/20 flex items-center justify-center flex-shrink-0">
+            <span className="text-2xl">⚠️</span>
+          </div>
+          <div>
+            <h3 className="font-semibold text-destructive mb-1">
+              {language === 'tr' ? 'Veri yüklenemedi' : 'Failed to load data'}
+            </h3>
+            <p className="text-destructive/80 mb-3">
+              {isNetworkError
+                ? (language === 'tr' 
+                    ? 'Sunucuya bağlanılamıyor. İnternet bağlantınızı kontrol edin.' 
+                    : 'Cannot connect to server. Check your internet connection.')
+                : (language === 'tr'
+                    ? 'Backend servisi çalışmıyor olabilir veya bir hata oluştu.'
+                    : 'Backend service may be down or an error occurred.')}
+            </p>
+            <button
+              onClick={() => {
+                mutateSummary();
+                mutateTransactions();
+              }}
+              className="px-4 py-2 bg-destructive text-destructive-foreground rounded-lg hover:opacity-90 transition-opacity text-sm font-medium"
+            >
+              {language === 'tr' ? 'Tekrar Dene' : 'Try Again'}
+            </button>
+          </div>
+        </div>
       </div>
     )
   }

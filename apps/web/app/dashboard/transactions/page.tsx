@@ -1,7 +1,7 @@
 ﻿'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Keyboard } from 'lucide-react'
+import { Keyboard, ListChecks } from 'lucide-react'
 import { useTransactions, useRefreshAll, useDuplicateGroups } from '@/lib/hooks'
 import { TransactionTable } from '@/components/dashboard/TransactionTable'
 import { SimilarTransactionClusters } from '@/components/dashboard/transactions/SimilarTransactionClusters'
@@ -11,6 +11,7 @@ import { TransactionFilters } from '@/components/forms/TransactionFilters'
 import { ExportButton } from '@/components/ui/ExportButton'
 import { Spinner } from '@/components/ui/Spinner'
 import { Button } from '@/components/ui/Button'
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
 import { useRealtimeRefresh } from '@/contexts/RealtimeContext'
 import { useAuth } from '@/components/auth-provider'
 
@@ -106,7 +107,14 @@ export default function TransactionsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" id="main-content">
+      {/* Breadcrumbs */}
+      <Breadcrumbs
+        items={[
+          { label: 'İşlemler', icon: <ListChecks className="w-4 h-4" /> }
+        ]}
+      />
+
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Tüm İşlemler</h1>
