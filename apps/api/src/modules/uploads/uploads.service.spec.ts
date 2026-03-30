@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common'
 import { UploadsService } from './uploads.service'
 import { createMockCacheService, createMockPrismaService } from '../../../test/test-utils'
 
@@ -7,6 +8,10 @@ describe('UploadsService', () => {
   let cache: ReturnType<typeof createMockCacheService>
   let autoCategorizer: {
     categorize: jest.Mock
+  }
+  let realtime: {
+    notifyNewTransaction: jest.Mock
+    notifyReviewRequested: jest.Mock
   }
 
   const mockFile = {
@@ -25,9 +30,14 @@ describe('UploadsService', () => {
         confidence: 82,
       }),
     }
+    realtime = {
+      notifyNewTransaction: jest.fn(),
+      notifyReviewRequested: jest.fn(),
+    }
 
-    service = new UploadsService(prisma as never, cache as never, autoCategorizer as never)
     jest.restoreAllMocks()
+    jest.spyOn(Logger.prototype, 'error').mockImplementation()
+    service = new UploadsService(prisma as never, cache as never, autoCategorizer as never, realtime as never)
   })
 
   afterEach(() => {
@@ -163,6 +173,8 @@ describe('UploadsService', () => {
       }),
     )
     expect(cache.invalidateTransactions).toHaveBeenCalledWith('user-123')
+    expect(realtime.notifyNewTransaction).toHaveBeenCalledTimes(1)
+    expect(realtime.notifyReviewRequested).not.toHaveBeenCalled()
   })
 
   it('should invalidate transaction cache after a successful confirm', async () => {
@@ -213,5 +225,65 @@ describe('UploadsService', () => {
     expect(result.success).toBe(true)
     expect(result.totalSaved).toBe(1)
     expect(cache.invalidateTransactions).toHaveBeenCalledWith('user-123')
+    expect(realtime.notifyNewTransaction).toHaveBeenCalledWith(
+      'user-123',
+      expect.objectContaining({
+        id: 'tx-1',
+        description: 'Freelance Odemesi',
+        amount: 12000,
+        type: 'income',
+        categoryLabel: 'Maas',
+      }),
+    )
+    expect(realtime.notifyReviewRequested).not.toHaveBeenCalled()
+  })
+
+  it('should fall back to empty tags when stored tag JSON is invalid', async () => {
+    prisma.pdfUpload.findFirst.mockResolvedValue(null)
+    prisma.transaction.create.mockResolvedValue({
+      id: 'tx-1',
+      userId: 'user-123',
+      accountId: 'pdf-upload',
+      date: new Date('2026-03-09T12:00:00.000Z'),
+      description: 'Freelance Odemesi',
+      amount: 12000,
+      currency: 'TRY',
+      source: 'pdf',
+      type: 'income',
+      categoryId: 'salary',
+      categoryLabel: 'Maas',
+      confidence: 94,
+      tags: '{broken-json}',
+      notes: 'Parsed from mart-ekstre.pdf',
+      createdAt: new Date('2026-03-09T12:00:00.000Z'),
+      updatedAt: new Date('2026-03-09T12:00:00.000Z'),
+    })
+    prisma.pdfUpload.create.mockResolvedValue({
+      id: 'upload-3',
+    })
+
+    const result = await service.confirmPdfUpload('user-123', {
+      filename: 'mart-ekstre.pdf',
+      fileHash: 'file-hash',
+      fileSize: 4096,
+      totalParsed: 1,
+      transactions: [
+        {
+          id: 'preview-1',
+          date: '2026-03-09T12:00:00.000Z',
+          description: 'Freelance Odemesi',
+          amount: 12000,
+          currency: 'TRY',
+          type: 'income',
+          categoryId: 'salary',
+          categoryLabel: 'Maas',
+          confidence: 94,
+          tags: ['pdf-upload'],
+        },
+      ],
+    })
+
+    expect(result.success).toBe(true)
+    expect(result.transactions[0]?.tags).toEqual([])
   })
 })

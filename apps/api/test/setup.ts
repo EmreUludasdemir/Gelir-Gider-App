@@ -7,11 +7,21 @@
 // ENVIRONMENT SETUP
 // ============================================
 
+const TEST_ENV = {
+  NODE_ENV: 'test',
+  JWT_SECRET: 'test-jwt-secret-key-for-testing',
+  JWT_REFRESH_SECRET: 'test-jwt-refresh-secret-key',
+  SESSION_SECRET: 'test-session-secret-key-for-jest',
+  ENCRYPTION_KEY: 'test-encryption-key-32-chars!!!',
+  BANK_ENCRYPTION_KEY: 'test-bank-encryption-key-32-chars',
+};
+
+const applyTestEnv = () => {
+  Object.assign(process.env, TEST_ENV);
+};
+
 // Set test environment variables
-process.env.NODE_ENV = 'test';
-process.env.JWT_SECRET = 'test-jwt-secret-key-for-testing';
-process.env.JWT_REFRESH_SECRET = 'test-jwt-refresh-secret-key';
-process.env.ENCRYPTION_KEY = 'test-encryption-key-32-chars!!!';
+applyTestEnv();
 
 // ============================================
 // MOCK PRISMA CLIENT
@@ -178,6 +188,7 @@ afterAll(() => {
 });
 
 beforeEach(() => {
+  applyTestEnv();
   // Reset mocks before each test
   jest.clearAllMocks();
 });

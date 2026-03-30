@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { EncryptionService } from './encryption.service';
 
 describe('EncryptionService', () => {
@@ -5,6 +6,7 @@ describe('EncryptionService', () => {
 
   beforeEach(() => {
     process.env.BANK_ENCRYPTION_KEY = 'test-encryption-key-32-chars-ok';
+    jest.spyOn(Logger.prototype, 'error').mockImplementation();
     service = new EncryptionService();
   });
 

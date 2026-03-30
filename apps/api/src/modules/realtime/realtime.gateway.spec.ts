@@ -3,6 +3,7 @@
  * Tests for WebSocket gateway with JWT authentication
  */
 
+import { Logger } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { RealtimeGateway } from './realtime.gateway';
 import { JwtService } from '@nestjs/jwt';
@@ -36,6 +37,8 @@ describe('RealtimeGateway', () => {
   };
 
   beforeEach(async () => {
+    jest.spyOn(Logger.prototype, 'error').mockImplementation();
+
     const mockJwtService = {
       verify: jest.fn(),
       sign: jest.fn(),

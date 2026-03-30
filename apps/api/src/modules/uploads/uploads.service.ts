@@ -471,7 +471,7 @@ export class UploadsService {
       categoryId: prismaTx.categoryId,
       categoryLabel: prismaTx.categoryLabel,
       confidence: prismaTx.confidence,
-      tags: JSON.parse(prismaTx.tags || '[]'),
+      tags: this.parseTags(prismaTx.tags),
       notes: prismaTx.notes ?? undefined,
       householdId: prismaTx.householdId ?? undefined,
       ownerUserId: prismaTx.ownerUserId ?? undefined,
@@ -480,6 +480,24 @@ export class UploadsService {
       createdAt: prismaTx.createdAt.toISOString(),
       updatedAt: prismaTx.updatedAt.toISOString(),
     };
+  }
+
+  private parseTags(raw?: string | null): string[] {
+    if (!raw) {
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed)
+        ? parsed
+            .filter((value): value is string => typeof value === 'string')
+            .map((value) => value.trim())
+            .filter(Boolean)
+        : [];
+    } catch {
+      return [];
+    }
   }
 
   private inferTransactionType(parsed: ParsedTransaction): TransactionType {

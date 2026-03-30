@@ -741,7 +741,18 @@ describe('TransactionsService', () => {
 
       const result = await service.findOne(userId, txWithTags.id);
 
-      expect(result).toBeDefined();
+      expect(result.tags).toEqual(['tag1', 'tag2']);
+    });
+
+    it('should fall back to empty tags when stored tag JSON is invalid', async () => {
+      const txWithBrokenTags = createMockTransaction({
+        tags: '{invalid-json}',
+      });
+      prisma.transaction.findFirst.mockResolvedValue(txWithBrokenTags);
+
+      const result = await service.findOne(userId, txWithBrokenTags.id);
+
+      expect(result.tags).toEqual([]);
     });
   });
 });
