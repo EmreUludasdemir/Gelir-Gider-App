@@ -272,6 +272,18 @@ describe('TwoFactorService', () => {
       expect(isValid).toBe(false);
     });
 
+    it('should return false when stored backup codes JSON is invalid', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        ...mockUser,
+        backupCodes: '{invalid-json}',
+      });
+
+      const isValid = await service.verifyBackupCode(userId, 'ANYCODE1');
+
+      expect(isValid).toBe(false);
+      expect(prisma.user.update).not.toHaveBeenCalled();
+    });
+
     it('should be case-insensitive for backup codes', async () => {
       const { codes, hashedCodes } = service.generateBackupCodes();
       const codeToUse = codes[0].toLowerCase();

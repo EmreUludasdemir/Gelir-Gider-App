@@ -172,15 +172,26 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
     const startTime = Date.now();
     try {
       const value = await this.client!.get(key);
-      this.recordMetric(startTime, !!value);
-      
-      if (value) {
-        this.logger.debug(`Cache HIT: ${key}`, { context: 'CacheService' });
-        return JSON.parse(value) as T;
+
+      if (!value) {
+        this.recordMetric(startTime, false);
+        this.logger.debug(`Cache MISS: ${key}`, { context: 'CacheService' });
+        return null;
       }
-      
-      this.logger.debug(`Cache MISS: ${key}`, { context: 'CacheService' });
-      return null;
+
+      try {
+        const parsed = JSON.parse(value) as T;
+        this.recordMetric(startTime, true);
+        this.logger.debug(`Cache HIT: ${key}`, { context: 'CacheService' });
+        return parsed;
+      } catch {
+        this.recordMetric(startTime, false);
+        this.logger.warn(`Cache entry is invalid JSON and will be evicted: ${key}`, {
+          context: 'CacheService',
+        });
+        await this.client!.del(key);
+        return null;
+      }
     } catch (error) {
       this.logger.error(`Cache GET error: ${error.message}`, {
         context: 'CacheService',

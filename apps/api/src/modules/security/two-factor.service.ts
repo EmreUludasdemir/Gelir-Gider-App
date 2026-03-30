@@ -99,7 +99,11 @@ export class TwoFactorService {
 
     if (!user?.backupCodes) return false;
 
-    const hashedCodes: string[] = JSON.parse(user.backupCodes);
+    const hashedCodes = this.parseBackupCodes(user.backupCodes);
+    if (hashedCodes.length === 0) {
+      return false;
+    }
+
     const hashedInput = this.hashBackupCode(code.toUpperCase());
     const index = hashedCodes.indexOf(hashedInput);
 
@@ -113,6 +117,21 @@ export class TwoFactorService {
     });
 
     return true;
+  }
+
+  private parseBackupCodes(raw?: string | null): string[] {
+    if (!raw) {
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed)
+        ? parsed.filter((value): value is string => typeof value === "string")
+        : [];
+    } catch {
+      return [];
+    }
   }
 
   // Enable 2FA for a user

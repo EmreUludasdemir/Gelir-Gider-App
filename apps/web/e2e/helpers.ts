@@ -853,6 +853,13 @@ export async function mockAppRoutes(
     }
 
     if (path === '/auth/refresh' && method === 'POST') {
+      const cookieHeader = request.headers()['cookie'] || ''
+      const hasRefreshToken = cookieHeader.includes('refresh_token=')
+
+      if (!hasRefreshToken) {
+        return createJsonResponse(route, { message: 'Unauthorized' }, 401)
+      }
+
       await page.context().addCookies([
         {
           name: 'access_token',

@@ -66,7 +66,7 @@ test.describe('Dashboard', () => {
 
     await page.getByRole('button', { name: 'Tum Giderler' }).click()
 
-    await expect(page.getByTitle('Kira Odemesi')).toBeVisible()
+    await expect(page.getByTitle('Kira Odemesi', { exact: true })).toBeVisible()
     await expect(page.getByTitle('Migros Market')).toBeVisible()
     await expect(page.getByTitle('Mart Maasi')).toHaveCount(0)
   })
