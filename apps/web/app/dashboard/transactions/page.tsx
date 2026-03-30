@@ -14,6 +14,8 @@ import { Button } from '@/components/ui/Button'
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
 import { useRealtimeRefresh } from '@/contexts/RealtimeContext'
 import { useAuth } from '@/components/auth-provider'
+import { usePreferences } from '@/lib/PreferencesContext'
+import { useTranslation } from '@/lib/translations'
 
 const SEARCH_INPUT_ID = 'transactions-search-input'
 
@@ -32,6 +34,8 @@ function isTypingTarget(target: EventTarget | null) {
 
 export default function TransactionsPage() {
   const { user } = useAuth()
+  const { language } = usePreferences()
+  const { t } = useTranslation(language)
   const [showForm, setShowForm] = useState(false)
   const [filters, setFilters] = useState<Record<string, string>>({})
   const { data: transactions, error, isLoading, mutate: mutateTransactions } = useTransactions(filters)
@@ -91,7 +95,7 @@ export default function TransactionsPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Spinner size="lg" />
+        <Spinner size="lg" label={t('loading')} />
       </div>
     )
   }
@@ -100,7 +104,7 @@ export default function TransactionsPage() {
     return (
       <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
         <p className="text-destructive">
-          Veri yüklenirken hata oluştu. Backend servisi çalışıyor mu?
+          {t('server_error')}
         </p>
       </div>
     )
@@ -111,15 +115,15 @@ export default function TransactionsPage() {
       {/* Breadcrumbs */}
       <Breadcrumbs
         items={[
-          { label: 'İşlemler', icon: <ListChecks className="w-4 h-4" /> }
+          { label: t('transactions'), icon: <ListChecks className="w-4 h-4" /> }
         ]}
       />
 
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Tüm İşlemler</h1>
+          <h1 className="text-3xl font-bold text-foreground">{t('all_transactions')}</h1>
           <p className="text-muted-foreground mt-1">
-            Toplam {transactions?.length || 0} işlem
+            {t('total_transactions', { count: transactions?.length || 0 })}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -131,7 +135,7 @@ export default function TransactionsPage() {
             variant="primary"
             data-testid="add-transaction-toggle"
           >
-            {showForm ? 'Formu Kapat' : '+ Yeni İşlem'}
+            {showForm ? t('close_form') : t('new_transaction')}
           </Button>
         </div>
       </div>
@@ -139,11 +143,11 @@ export default function TransactionsPage() {
       <div className="rounded-2xl border border-border/70 bg-card/70 px-4 py-3 text-xs text-muted-foreground backdrop-blur-sm">
         <p className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
           <Keyboard className="h-3.5 w-3.5 text-primary" />
-          Kısayollar:
-          <span className="rounded-md border border-border bg-background px-2 py-0.5 text-foreground">N</span> yeni işlem
-          <span className="rounded-md border border-border bg-background px-2 py-0.5 text-foreground">/</span> filtre arama
-          <span className="rounded-md border border-border bg-background px-2 py-0.5 text-foreground">Ctrl/Cmd + K</span> arama odakla
-          <span className="rounded-md border border-border bg-background px-2 py-0.5 text-foreground">Esc</span> form kapat
+          {language === 'tr' ? 'Kısayollar:' : 'Shortcuts:'}
+          <span className="rounded-md border border-border bg-background px-2 py-0.5 text-foreground">N</span> {language === 'tr' ? 'yeni işlem' : 'new transaction'}
+          <span className="rounded-md border border-border bg-background px-2 py-0.5 text-foreground">/</span> {language === 'tr' ? 'filtre arama' : 'filter search'}
+          <span className="rounded-md border border-border bg-background px-2 py-0.5 text-foreground">Ctrl/Cmd + K</span> {language === 'tr' ? 'arama odakla' : 'focus search'}
+          <span className="rounded-md border border-border bg-background px-2 py-0.5 text-foreground">Esc</span> {language === 'tr' ? 'form kapat' : 'close form'}
         </p>
       </div>
 

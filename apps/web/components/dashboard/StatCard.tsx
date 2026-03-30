@@ -1,7 +1,8 @@
 ﻿'use client'
 
 import { memo, useMemo } from 'react'
-import { formatCurrency, getChangeIcon, getChangeColor } from '@/lib/utils'
+import { usePreferences } from '@/lib/PreferencesContext'
+import { useTranslation } from '@/lib/translations'
 
 interface StatCardProps {
   title: string
@@ -36,6 +37,18 @@ const iconMap: Record<string, React.ReactNode> = {
   ),
 }
 
+function getChangeColor(change: number): string {
+  if (change > 0) return 'text-success'
+  if (change < 0) return 'text-destructive'
+  return 'text-muted-foreground'
+}
+
+function getChangeIcon(change: number): React.ReactNode {
+  if (change > 0) return '↑'
+  if (change < 0) return '↓'
+  return '→'
+}
+
 export const StatCard = memo(function StatCard({
   title,
   value,
@@ -44,12 +57,15 @@ export const StatCard = memo(function StatCard({
   icon,
   format = 'currency'
 }: StatCardProps) {
+  const { language, formatCurrency } = usePreferences()
+  const { t } = useTranslation(language)
+  
   const formattedValue = useMemo(() => {
     if (format === 'number') {
-      return value.toLocaleString('tr-TR')
+      return value.toLocaleString(language === 'tr' ? 'tr-TR' : 'en-US')
     }
-    return formatCurrency(value, currency)
-  }, [value, currency, format])
+    return formatCurrency(value)
+  }, [value, format, formatCurrency, language])
 
   const cardClass = useMemo(() => {
     if (icon === 'up') return 'stat-card-income'
@@ -64,7 +80,7 @@ export const StatCard = memo(function StatCard({
   }
 
   return (
-    <div className={`${cardClass} hover-lift group cursor-default`}>
+    <div className={`${cardClass} hover-lift group cursor-default animate-scale-in`}>
       <div className="flex items-center justify-between">
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-muted-foreground mb-2 uppercase tracking-wide">
@@ -81,7 +97,9 @@ export const StatCard = memo(function StatCard({
               <span>
                 {change > 0 ? '+' : ''}{change.toFixed(1)}%
               </span>
-              <span className="text-muted-foreground text-xs ml-1">vs önceki ay</span>
+              <span className="text-muted-foreground text-xs ml-1">
+                {language === 'tr' ? 'vs önceki ay' : 'vs last month'}
+              </span>
             </div>
           )}
         </div>

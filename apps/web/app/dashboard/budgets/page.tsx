@@ -1,7 +1,7 @@
 ﻿'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import { Wallet } from 'lucide-react'
+import { Wallet, PiggyBank } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -11,6 +11,8 @@ import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
 import { BudgetAlerts } from '@/components/dashboard/BudgetAlerts'
 import { CATEGORIES } from '@/lib/categories'
 import { useTransactions } from '@/lib/hooks'
+import { usePreferences } from '@/lib/PreferencesContext'
+import { useTranslation } from '@/lib/translations'
 
 interface Budget {
   id: string
@@ -25,6 +27,8 @@ interface Budget {
 
 export default function BudgetsPage() {
   const { showToast } = useToast()
+  const { language, formatCurrency } = usePreferences()
+  const { t } = useTranslation(language)
   const { data: allTransactions } = useTransactions()
   const [budgets, setBudgets] = useState<Budget[]>([])
   const [showForm, setShowForm] = useState(false)
@@ -121,35 +125,37 @@ export default function BudgetsPage() {
       {/* Breadcrumbs */}
       <Breadcrumbs
         items={[
-          { label: 'Bütçeler', icon: <Wallet className="w-4 h-4" /> }
+          { label: t('budgets'), icon: <Wallet className="w-4 h-4" /> }
         ]}
       />
 
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-foreground dark:text-white">Bütçe Yönetimi</h1>
-          <p className="text-muted-foreground dark:text-gray-400 mt-1">Harcama limitlerini belirle ve takip et</p>
+          <h1 className="text-3xl font-bold text-foreground dark:text-white">{t('budgets')}</h1>
+          <p className="text-muted-foreground dark:text-gray-400 mt-1">
+            {language === 'tr' ? 'Harcama limitlerini belirle ve takip et' : 'Set and track spending limits'}
+          </p>
         </div>
         <Button onClick={() => setShowForm(!showForm)}>
-          {showForm ? 'İptal' : '+ Yeni Bütçe'}
+          {showForm ? t('cancel') : t('add_budget')}
         </Button>
       </div>
 
       {showForm && (
         <Card>
           <CardHeader>
-            <CardTitle>Yeni Bütçe Oluştur</CardTitle>
+            <CardTitle>{language === 'tr' ? 'Yeni Bütçe Oluştur' : 'Create New Budget'}</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Select
-                  label="Kategori"
+                  label={t('category')}
                   value={formData.categoryId}
                   onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
                   required
                 >
-                  <option value="">Kategori seçin</option>
+                  <option value="">{language === 'tr' ? 'Kategori seçin' : 'Select category'}</option>
                   {CATEGORIES.filter(c => c.type === 'expense').map((cat) => (
                     <option key={cat.id} value={cat.id}>
                       {cat.emoji} {cat.label}
@@ -158,7 +164,7 @@ export default function BudgetsPage() {
                 </Select>
 
                 <Input
-                  label="Limit (₺)"
+                  label={t('budget_limit')}
                   type="number"
                   step="0.01"
                   value={formData.amount}
@@ -168,18 +174,18 @@ export default function BudgetsPage() {
                 />
 
                 <Select
-                  label="Periyot"
+                  label={language === 'tr' ? 'Periyot' : 'Period'}
                   value={formData.period}
                   onChange={(e) => setFormData({ ...formData, period: e.target.value as 'monthly' | 'weekly' })}
                   options={[
-                    { value: 'monthly', label: 'Aylık' },
-                    { value: 'weekly', label: 'Haftalık' }
+                    { value: 'monthly', label: t('monthly') },
+                    { value: 'weekly', label: t('weekly') }
                   ]}
                 />
               </div>
 
               <div className="flex justify-end">
-                <Button type="submit">Bütçe Oluştur</Button>
+                <Button type="submit">{language === 'tr' ? 'Bütçe Oluştur' : 'Create Budget'}</Button>
               </div>
             </form>
           </CardContent>
@@ -194,15 +200,17 @@ export default function BudgetsPage() {
       {budgets.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-4xl mb-4">💰</p>
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
+              <PiggyBank className="w-8 h-8 text-primary" />
+            </div>
             <p className="text-lg font-medium text-foreground mb-2">
-              Henüz bütçe oluşturulmadı
+              {t('no_budgets')}
             </p>
             <p className="text-muted-foreground mb-4">
-              Harcamalarınızı kontrol altında tutmak için bütçe limitleri belirleyin
+              {t('create_first_budget')}
             </p>
             <Button onClick={() => setShowForm(true)}>
-              İlk Bütçeni Oluştur
+              {t('add_budget')}
             </Button>
           </CardContent>
         </Card>
@@ -226,7 +234,7 @@ export default function BudgetsPage() {
               <CardContent className="space-y-4">
                 <div>
                   <div className="flex justify-between text-sm text-muted-foreground mb-2">
-                    <span>Harcanan</span>
+                    <span>{t('spent')}</span>
                     <span>{budget.percentage.toFixed(0)}%</span>
                   </div>
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
@@ -239,19 +247,19 @@ export default function BudgetsPage() {
 
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Limit:</span>
-                    <span className="font-medium">₺{budget.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                    <span className="text-muted-foreground">{language === 'tr' ? 'Limit' : 'Limit'}:</span>
+                    <span className="font-medium">{formatCurrency(budget.amount)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Harcanan:</span>
-                    <span className="font-medium text-red-600">₺{budget.spent.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                    <span className="text-muted-foreground">{t('spent')}:</span>
+                    <span className="font-medium text-red-600">{formatCurrency(budget.spent)}</span>
                   </div>
                   <div className="flex justify-between border-t pt-2">
-                    <span className="text-muted-foreground">Kalan:</span>
-                    <span className="font-semibold text-green-600">₺{budget.remaining.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                    <span className="text-muted-foreground">{t('remaining')}:</span>
+                    <span className="font-semibold text-green-600">{formatCurrency(budget.remaining)}</span>
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    Periyot: {budget.period === 'monthly' ? 'Aylık' : 'Haftalık'}
+                    {language === 'tr' ? 'Periyot' : 'Period'}: {budget.period === 'monthly' ? t('monthly') : t('weekly')}
                   </div>
                 </div>
               </CardContent>

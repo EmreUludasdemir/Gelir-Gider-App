@@ -1,13 +1,21 @@
 ﻿'use client'
 
 import { memo } from 'react'
+import { usePreferences } from '@/lib/PreferencesContext'
+import { EmptyState, SearchIllustration } from '@/components/ui/EmptyState'
 
 export const TransactionEmptyState = memo(function TransactionEmptyState() {
+  const { language } = usePreferences()
+  
   return (
-    <div className="p-8 text-center text-muted-foreground">
-      <p className="text-lg mb-2">Henuz islem bulunmuyor</p>
-      <p className="text-sm mt-1">Filtrelerinizi degistirmeyi deneyin</p>
-    </div>
+    <EmptyState
+      icon={<SearchIllustration className="w-32 h-32" />}
+      title={language === 'tr' ? 'Henüz işlem bulunmuyor' : 'No transactions found'}
+      description={language === 'tr' 
+        ? 'Filtrelerinizi değiştirmeyi deneyin veya yeni bir işlem ekleyin.'
+        : 'Try changing your filters or add a new transaction.'}
+      className="py-12"
+    />
   )
 })
 

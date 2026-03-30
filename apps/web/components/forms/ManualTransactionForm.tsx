@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState } from 'react'
 import { createTransaction, CreateTransactionDto, TransactionType } from '@/lib/api'
@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { useToast } from '@/components/ui/Toast'
+import { usePreferences } from '@/lib/PreferencesContext'
+import { useTranslation } from '@/lib/translations'
 
 interface ManualTransactionFormProps {
   onSuccess?: () => void
@@ -16,6 +18,8 @@ export function ManualTransactionForm({ onSuccess }: ManualTransactionFormProps)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const { showToast } = useToast()
+  const { language } = usePreferences()
+  const { t } = useTranslation(language)
   const [formData, setFormData] = useState({
     description: '',
     amount: '',
@@ -43,10 +47,10 @@ export function ManualTransactionForm({ onSuccess }: ManualTransactionFormProps)
         type: 'expense',
         date: new Date().toISOString().split('T')[0],
       })
-      showToast('İşlem başarıyla eklendi!', 'success')
+      showToast(t('transaction_added'), 'success')
       onSuccess?.()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'İşlem eklenemedi')
+      setError(err instanceof Error ? err.message : t('transaction_add_error'))
     } finally {
       setLoading(false)
     }
@@ -55,22 +59,22 @@ export function ManualTransactionForm({ onSuccess }: ManualTransactionFormProps)
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Manuel İşlem Ekle</CardTitle>
+        <CardTitle>{t('manual_transaction')}</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input
             name="description"
-            label="Açıklama"
+            label={t('description')}
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            placeholder="ör: Market alışverişi"
+            placeholder={language === 'tr' ? 'ör: Market alışverişi' : 'e.g., Grocery shopping'}
             required
           />
 
           <Input
             name="amount"
-            label="Tutar"
+            label={t('amount')}
             type="number"
             step="0.01"
             value={formData.amount}
@@ -81,18 +85,18 @@ export function ManualTransactionForm({ onSuccess }: ManualTransactionFormProps)
 
           <Select
             name="type"
-            label="Tip"
+            label={t('type')}
             value={formData.type}
             onChange={(e) => setFormData({ ...formData, type: e.target.value as TransactionType })}
             options={[
-              { value: 'expense', label: 'Gider' },
-              { value: 'income', label: 'Gelir' },
+              { value: 'expense', label: t('expense') },
+              { value: 'income', label: t('income') },
             ]}
           />
 
           <Input
             name="date"
-            label="Tarih"
+            label={t('date')}
             type="date"
             value={formData.date}
             onChange={(e) => setFormData({ ...formData, date: e.target.value })}
@@ -100,13 +104,13 @@ export function ManualTransactionForm({ onSuccess }: ManualTransactionFormProps)
           />
 
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-800">{error}</p>
+            <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg" role="alert">
+              <p className="text-sm text-destructive">{error}</p>
             </div>
           )}
 
           <Button type="submit" loading={loading} className="w-full">
-            İşlem Ekle
+            {t('add_transaction')}
           </Button>
         </form>
       </CardContent>

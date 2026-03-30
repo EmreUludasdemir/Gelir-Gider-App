@@ -18,7 +18,7 @@ export const translations: Record<Language, Record<string, string>> = {
     
     // Transactions
     transactions: 'İşlemler',
-    duplicates: 'Kopya Inceleme',
+    duplicates: 'Kopya İnceleme',
     add_transaction: 'İşlem Ekle',
     edit_transaction: 'İşlem Düzenle',
     delete_transaction: 'İşlemi Sil',
@@ -30,6 +30,31 @@ export const translations: Record<Language, Record<string, string>> = {
     save: 'Kaydet',
     cancel: 'İptal',
     delete: 'Sil',
+    all_transactions: 'Tüm İşlemler',
+    total_transactions: 'Toplam {count} işlem',
+    new_transaction: '+ Yeni İşlem',
+    close_form: 'Formu Kapat',
+    manual_transaction: 'Manuel İşlem Ekle',
+    transaction_added: 'İşlem başarıyla eklendi!',
+    transaction_updated: 'İşlem başarıyla güncellendi!',
+    transaction_deleted: 'İşlem başarıyla silindi!',
+    transaction_add_error: 'İşlem eklenemedi',
+    
+    // Budgets
+    budget: 'Bütçe',
+    budgets: 'Bütçeler',
+    add_budget: 'Bütçe Ekle',
+    budget_limit: 'Bütçe Limiti',
+    spent: 'Harcanan',
+    remaining: 'Kalan',
+    monthly: 'Aylık',
+    weekly: 'Haftalık',
+    budget_created: 'Bütçe başarıyla oluşturuldu!',
+    budget_deleted: 'Bütçe silindi!',
+    budget_exceeded: '{category} bütçesi aşıldı!',
+    budget_warning: '{category} bütçesi %{percent} doldu',
+    no_budgets: 'Henüz bütçe oluşturulmadı',
+    create_first_budget: 'İlk bütçenizi oluşturun ve harcamalarınızı kontrol altına alın.',
     
     // AI Features
     ai_insights: 'AI Önerileri',
@@ -49,6 +74,9 @@ export const translations: Record<Language, Record<string, string>> = {
     target_amount: 'Hedef Tutar',
     current_amount: 'Mevcut Tutar',
     progress: 'İlerleme',
+    no_goals: 'Henüz tasarruf hedefi yok',
+    create_first_goal: 'İlk hedefinizi oluşturun ve tasarruf yolculuğunuza başlayın.',
+    track_goals: 'Finansal hedeflerinizi takip edin',
     
     // Settings
     settings: 'Ayarlar',
@@ -76,6 +104,26 @@ export const translations: Record<Language, Record<string, string>> = {
     search: 'Ara',
     filter: 'Filtrele',
     export: 'Dışa Aktar',
+    retry: 'Tekrar Dene',
+    confirm: 'Onayla',
+    
+    // Empty States
+    no_transactions: 'Henüz işlem yok',
+    add_first_transaction: 'İlk işleminizi ekleyin ve finansal verilerinizi görmeye başlayın.',
+    start_tracking: 'Takibe Başla',
+    
+    // Errors
+    data_load_error: 'Veri yüklenemedi',
+    network_error: 'Sunucuya bağlanılamıyor. İnternet bağlantınızı kontrol edin.',
+    server_error: 'Backend servisi çalışmıyor olabilir veya bir hata oluştu.',
+    dashboard_unavailable: 'Dashboard verisi şu an hazır değil. Lütfen yeniden deneyin.',
+    setup_mode: 'İlk kaydı ekleyene kadar dashboard burada yönlendirme modunda kalır.',
+    
+    // Filters
+    search_transactions: 'İşlemlerde ara...',
+    all_types: 'Tüm Türler',
+    all_categories: 'Tüm Kategoriler',
+    clear_filters: 'Filtreleri Temizle',
     
     // Months
     january: 'Ocak',
@@ -90,6 +138,15 @@ export const translations: Record<Language, Record<string, string>> = {
     october: 'Ekim',
     november: 'Kasım',
     december: 'Aralık',
+    
+    // Subscriptions
+    subscriptions: 'Abonelikler',
+    
+    // Households
+    households: 'Aile Hesapları',
+    
+    // Upload
+    upload_pdf: 'PDF Yükle',
   },
   en: {
     // Dashboard
@@ -120,6 +177,31 @@ export const translations: Record<Language, Record<string, string>> = {
     save: 'Save',
     cancel: 'Cancel',
     delete: 'Delete',
+    all_transactions: 'All Transactions',
+    total_transactions: 'Total {count} transactions',
+    new_transaction: '+ New Transaction',
+    close_form: 'Close Form',
+    manual_transaction: 'Add Manual Transaction',
+    transaction_added: 'Transaction added successfully!',
+    transaction_updated: 'Transaction updated successfully!',
+    transaction_deleted: 'Transaction deleted successfully!',
+    transaction_add_error: 'Failed to add transaction',
+    
+    // Budgets
+    budget: 'Budget',
+    budgets: 'Budgets',
+    add_budget: 'Add Budget',
+    budget_limit: 'Budget Limit',
+    spent: 'Spent',
+    remaining: 'Remaining',
+    monthly: 'Monthly',
+    weekly: 'Weekly',
+    budget_created: 'Budget created successfully!',
+    budget_deleted: 'Budget deleted!',
+    budget_exceeded: '{category} budget exceeded!',
+    budget_warning: '{category} budget is {percent}% full',
+    no_budgets: 'No budgets yet',
+    create_first_budget: 'Create your first budget and take control of your spending.',
     
     // AI Features
     ai_insights: 'AI Insights',
@@ -139,6 +221,9 @@ export const translations: Record<Language, Record<string, string>> = {
     target_amount: 'Target Amount',
     current_amount: 'Current Amount',
     progress: 'Progress',
+    no_goals: 'No savings goals yet',
+    create_first_goal: 'Create your first goal and start your savings journey.',
+    track_goals: 'Track your financial goals',
     
     // Settings
     settings: 'Settings',
@@ -166,6 +251,26 @@ export const translations: Record<Language, Record<string, string>> = {
     search: 'Search',
     filter: 'Filter',
     export: 'Export',
+    retry: 'Try Again',
+    confirm: 'Confirm',
+    
+    // Empty States
+    no_transactions: 'No transactions yet',
+    add_first_transaction: 'Add your first transaction and start seeing your financial data.',
+    start_tracking: 'Start Tracking',
+    
+    // Errors
+    data_load_error: 'Failed to load data',
+    network_error: 'Cannot connect to server. Check your internet connection.',
+    server_error: 'Backend service may be down or an error occurred.',
+    dashboard_unavailable: 'Dashboard data is currently unavailable. Please try again.',
+    setup_mode: 'Dashboard stays in setup mode until the first records arrive.',
+    
+    // Filters
+    search_transactions: 'Search transactions...',
+    all_types: 'All Types',
+    all_categories: 'All Categories',
+    clear_filters: 'Clear Filters',
     
     // Months
     january: 'January',
@@ -180,12 +285,27 @@ export const translations: Record<Language, Record<string, string>> = {
     october: 'October',
     november: 'November',
     december: 'December',
+    
+    // Subscriptions
+    subscriptions: 'Subscriptions',
+    
+    // Households
+    households: 'Households',
+    
+    // Upload
+    upload_pdf: 'Upload PDF',
   },
 };
 
 export function useTranslation(language: Language) {
-  const t = (key: string): string => {
-    return translations[language][key] || key;
+  const t = (key: string, params?: Record<string, string | number>): string => {
+    let text = translations[language][key] || key;
+    if (params) {
+      Object.entries(params).forEach(([paramKey, value]) => {
+        text = text.replace(`{${paramKey}}`, String(value));
+      });
+    }
+    return text;
   };
   return { t };
 }

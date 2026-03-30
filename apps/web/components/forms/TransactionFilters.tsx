@@ -1,10 +1,12 @@
-﻿'use client'
+'use client'
 
-import { useState } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent } from '@/components/ui/Card'
+import { usePreferences } from '@/lib/PreferencesContext'
+import { useTranslation } from '@/lib/translations'
 
 interface FilterState {
   type?: string
@@ -25,49 +27,87 @@ interface TransactionFiltersProps {
 }
 
 const CATEGORIES = [
-  { value: '', label: 'Tum Kategoriler' },
-  { value: 'salary', label: 'Maas' },
+  { value: '', label: 'all_categories' },
+  { value: 'salary', label: 'Maaş' },
   { value: 'freelance', label: 'Freelance' },
-  { value: 'investment', label: 'Yatirim Geliri' },
+  { value: 'investment', label: 'Yatırım Geliri' },
   { value: 'market', label: 'Market' },
   { value: 'restaurant', label: 'Yemek' },
-  { value: 'transport', label: 'Ulasim' },
+  { value: 'transport', label: 'Ulaşım' },
   { value: 'subscription', label: 'Abonelik' },
   { value: 'utilities', label: 'Faturalar' },
-  { value: 'health', label: 'Saglik' },
-  { value: 'shopping', label: 'Alisveris' },
-  { value: 'education', label: 'Egitim' },
-  { value: 'entertainment', label: 'Eglence' },
+  { value: 'health', label: 'Sağlık' },
+  { value: 'shopping', label: 'Alışveriş' },
+  { value: 'education', label: 'Eğitim' },
+  { value: 'entertainment', label: 'Eğlence' },
   { value: 'rent', label: 'Kira' },
   { value: 'transfer', label: 'Transfer' },
   { value: 'atm', label: 'ATM' },
   { value: 'insurance', label: 'Sigorta' },
-  { value: 'charity', label: 'Bagis' },
-  { value: 'personal_care', label: 'Kisisel Bakim' },
+  { value: 'charity', label: 'Bağış' },
+  { value: 'personal_care', label: 'Kişisel Bakım' },
   { value: 'pet', label: 'Evcil Hayvan' },
-  { value: 'other', label: 'Diger' },
+  { value: 'other', label: 'Diğer' },
 ]
-
-const getMonthOptions = () => {
-  const months = []
-  const now = new Date()
-
-  for (let i = 0; i < 12; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-    const label = d.toLocaleDateString('tr-TR', { year: 'numeric', month: 'long' })
-    months.push({ value, label })
-  }
-
-  return [{ value: '', label: 'Tum Aylar' }, ...months]
-}
 
 const formatDateInput = (date: Date) => date.toISOString().split('T')[0]
 
+// Debounce hook
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value)
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedValue(value)
+    }, delay)
+
+    return () => {
+      clearTimeout(timer)
+    }
+  }, [value, delay])
+
+  return debouncedValue
+}
+
 export function TransactionFilters({ searchInputId, onFilterChange, onReset }: TransactionFiltersProps) {
+  const { language } = usePreferences()
+  const { t } = useTranslation(language)
   const [filters, setFilters] = useState<FilterState>({})
   const [isExpanded, setIsExpanded] = useState(false)
   const [activeQuickFilter, setActiveQuickFilter] = useState<string | null>(null)
+  const [searchValue, setSearchValue] = useState('')
+  const [isApplying, setIsApplying] = useState(false)
+  
+  // Debounce search input
+  const debouncedSearch = useDebounce(searchValue, 300)
+  const isFirstRender = useRef(true)
+
+  // Apply debounced search
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+    
+    const nextFilters = { ...filters, search: debouncedSearch }
+    setFilters(nextFilters)
+    onFilterChange(buildCleanFilters(nextFilters))
+  }, [debouncedSearch])
+
+  const getMonthOptions = useCallback(() => {
+    const months = []
+    const now = new Date()
+    const locale = language === 'tr' ? 'tr-TR' : 'en-US'
+
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      const label = d.toLocaleDateString(locale, { year: 'numeric', month: 'long' })
+      months.push({ value, label })
+    }
+
+    return [{ value: '', label: language === 'tr' ? 'Tüm Aylar' : 'All Months' }, ...months]
+  }, [language])
 
   const buildCleanFilters = (nextFilters: FilterState) =>
     Object.entries(nextFilters).reduce((acc, [k, v]) => {
@@ -76,8 +116,11 @@ export function TransactionFilters({ searchInputId, onFilterChange, onReset }: T
     }, {} as Record<string, string>)
 
   const applyFilters = (nextFilters: FilterState) => {
+    setIsApplying(true)
     setFilters(nextFilters)
     onFilterChange(buildCleanFilters(nextFilters))
+    // Visual feedback
+    setTimeout(() => setIsApplying(false), 200)
   }
 
   const handleChange = (key: keyof FilterState, value: string) => {
@@ -91,6 +134,7 @@ export function TransactionFilters({ searchInputId, onFilterChange, onReset }: T
 
   const handleReset = () => {
     setFilters({})
+    setSearchValue('')
     setActiveQuickFilter(null)
     onReset()
   }
@@ -105,14 +149,22 @@ export function TransactionFilters({ searchInputId, onFilterChange, onReset }: T
   const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
   const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0)
 
-  const quickFilters = [
-    { id: 'expense-all', label: 'Tum Giderler', filters: { type: 'expense' } },
+  const quickFilters = language === 'tr' ? [
+    { id: 'expense-all', label: 'Tüm Giderler', filters: { type: 'expense' } },
     { id: 'expense-this-month', label: 'Bu Ay Gider', filters: { type: 'expense', dateFrom: formatDateInput(thisMonthStart), dateTo: today } },
-    { id: 'expense-last-month', label: 'Gecen Ay Gider', filters: { type: 'expense', dateFrom: formatDateInput(lastMonthStart), dateTo: formatDateInput(lastMonthEnd) } },
-    { id: 'expense-last-7', label: 'Son 7 Gun', filters: { type: 'expense', dateFrom: formatDateInput(last7Days), dateTo: today } },
-    { id: 'expense-big', label: 'Buyuk Gider (>=1000)', filters: { type: 'expense', minAmount: '1000' } },
+    { id: 'expense-last-month', label: 'Geçen Ay Gider', filters: { type: 'expense', dateFrom: formatDateInput(lastMonthStart), dateTo: formatDateInput(lastMonthEnd) } },
+    { id: 'expense-last-7', label: 'Son 7 Gün', filters: { type: 'expense', dateFrom: formatDateInput(last7Days), dateTo: today } },
+    { id: 'expense-big', label: 'Büyük Gider (>=1000)', filters: { type: 'expense', minAmount: '1000' } },
     { id: 'expense-pdf', label: 'PDF Gider', filters: { type: 'expense', source: 'pdf' } },
     { id: 'expense-subscription', label: 'Abonelik', filters: { type: 'expense', categoryId: 'subscription' } },
+  ] : [
+    { id: 'expense-all', label: 'All Expenses', filters: { type: 'expense' } },
+    { id: 'expense-this-month', label: 'This Month', filters: { type: 'expense', dateFrom: formatDateInput(thisMonthStart), dateTo: today } },
+    { id: 'expense-last-month', label: 'Last Month', filters: { type: 'expense', dateFrom: formatDateInput(lastMonthStart), dateTo: formatDateInput(lastMonthEnd) } },
+    { id: 'expense-last-7', label: 'Last 7 Days', filters: { type: 'expense', dateFrom: formatDateInput(last7Days), dateTo: today } },
+    { id: 'expense-big', label: 'Large (>=1000)', filters: { type: 'expense', minAmount: '1000' } },
+    { id: 'expense-pdf', label: 'PDF Imports', filters: { type: 'expense', source: 'pdf' } },
+    { id: 'expense-subscription', label: 'Subscriptions', filters: { type: 'expense', categoryId: 'subscription' } },
   ]
 
   const applyQuickFilter = (id: string, nextFilters: FilterState) => {
@@ -121,29 +173,32 @@ export function TransactionFilters({ searchInputId, onFilterChange, onReset }: T
   }
 
   return (
-    <Card>
+    <Card className={isApplying ? 'ring-2 ring-primary/20 transition-all' : 'transition-all'}>
       <CardContent className="pt-6">
         <div className="space-y-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h3 className="text-lg font-semibold text-foreground">Filtreler</h3>
+            <h3 className="text-lg font-semibold text-foreground">{t('filter')}</h3>
             <div className="flex items-center gap-2">
               {activeFilterCount > 0 && (
-                <span className="text-sm text-muted-foreground">
-                  {activeFilterCount} aktif filtre
+                <span className="text-sm text-muted-foreground animate-fade-in">
+                  {activeFilterCount} {language === 'tr' ? 'aktif filtre' : 'active filters'}
                 </span>
               )}
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsExpanded(!isExpanded)}
+                aria-expanded={isExpanded}
               >
-                {isExpanded ? 'Gizle' : 'Goster'}
+                {isExpanded ? (language === 'tr' ? 'Gizle' : 'Hide') : (language === 'tr' ? 'Göster' : 'Show')}
               </Button>
             </div>
           </div>
 
           <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">Hizli Gider Filtreleri</p>
+            <p className="text-sm text-muted-foreground">
+              {language === 'tr' ? 'Hızlı Gider Filtreleri' : 'Quick Expense Filters'}
+            </p>
             <div className="flex flex-wrap gap-2">
               {quickFilters.map((filter) => (
                 <Button
@@ -151,6 +206,7 @@ export function TransactionFilters({ searchInputId, onFilterChange, onReset }: T
                   variant={activeQuickFilter === filter.id ? 'primary' : 'outline'}
                   size="sm"
                   onClick={() => applyQuickFilter(filter.id, filter.filters)}
+                  className="transition-all duration-200"
                 >
                   {filter.label}
                 </Button>
@@ -161,73 +217,81 @@ export function TransactionFilters({ searchInputId, onFilterChange, onReset }: T
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <Input
               id={searchInputId}
-              label="Arama"
-              placeholder="Aciklama ara..."
-              value={filters.search || ''}
-              onChange={(e) => handleChange('search', e.target.value)}
+              label={t('search')}
+              placeholder={t('search_transactions')}
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
             />
 
             <Select
-              label="Tip"
+              label={t('type')}
               value={filters.type || ''}
               onChange={(e) => handleChange('type', e.target.value)}
               options={[
-                { value: '', label: 'Tumu' },
-                { value: 'income', label: 'Gelir' },
-                { value: 'expense', label: 'Gider' },
+                { value: '', label: t('all_types') },
+                { value: 'income', label: t('income') },
+                { value: 'expense', label: t('expense') },
               ]}
             />
 
             <Select
-              label="Kategori"
+              label={t('category')}
               value={filters.categoryId || ''}
               onChange={(e) => handleChange('categoryId', e.target.value)}
-              options={CATEGORIES}
+              options={CATEGORIES.map(c => ({
+                value: c.value,
+                label: c.value === '' ? t('all_categories') : c.label
+              }))}
             />
           </div>
 
-          {isExpanded && (
-            <>
+          {/* Collapsible advanced filters with animation */}
+          <div 
+            className={`overflow-hidden transition-all duration-300 ease-in-out ${
+              isExpanded ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
+            }`}
+          >
+            <div className="space-y-4 pt-2">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Select
-                  label="Kaynak"
+                  label={language === 'tr' ? 'Kaynak' : 'Source'}
                   value={filters.source || ''}
                   onChange={(e) => handleChange('source', e.target.value)}
                   options={[
-                    { value: '', label: 'Tumu' },
-                    { value: 'manual', label: 'Manuel' },
+                    { value: '', label: language === 'tr' ? 'Tümü' : 'All' },
+                    { value: 'manual', label: language === 'tr' ? 'Manuel' : 'Manual' },
                     { value: 'pdf', label: 'PDF' },
                   ]}
                 />
 
-            <Select
-              label="Ay Secimi"
-              value={filters.month || ''}
-              onChange={(e) => {
-                setActiveQuickFilter(null)
-                const month = e.target.value
-                if (month) {
-                  const [year, monthNum] = month.split('-')
-                  const firstDay = `${year}-${monthNum}-01`
-                  const lastDay = new Date(parseInt(year), parseInt(monthNum), 0)
-                    .toISOString()
-                    .split('T')[0]
+                <Select
+                  label={language === 'tr' ? 'Ay Seçimi' : 'Select Month'}
+                  value={filters.month || ''}
+                  onChange={(e) => {
+                    setActiveQuickFilter(null)
+                    const month = e.target.value
+                    if (month) {
+                      const [year, monthNum] = month.split('-')
+                      const firstDay = `${year}-${monthNum}-01`
+                      const lastDay = new Date(parseInt(year), parseInt(monthNum), 0)
+                        .toISOString()
+                        .split('T')[0]
 
-                  applyFilters({
-                    ...filters,
-                    month,
-                    dateFrom: firstDay,
-                    dateTo: lastDay,
-                  })
-                } else {
-                  handleChange('month', '')
-                }
-              }}
+                      applyFilters({
+                        ...filters,
+                        month,
+                        dateFrom: firstDay,
+                        dateTo: lastDay,
+                      })
+                    } else {
+                      handleChange('month', '')
+                    }
+                  }}
                   options={getMonthOptions()}
                 />
 
                 <Input
-                  label="Baslangic Tarihi"
+                  label={language === 'tr' ? 'Başlangıç Tarihi' : 'Start Date'}
                   type="date"
                   value={filters.dateFrom || ''}
                   onChange={(e) => {
@@ -236,7 +300,7 @@ export function TransactionFilters({ searchInputId, onFilterChange, onReset }: T
                 />
 
                 <Input
-                  label="Bitis Tarihi"
+                  label={language === 'tr' ? 'Bitiş Tarihi' : 'End Date'}
                   type="date"
                   value={filters.dateTo || ''}
                   onChange={(e) => {
@@ -245,7 +309,7 @@ export function TransactionFilters({ searchInputId, onFilterChange, onReset }: T
                 />
 
                 <Input
-                  label="Min Tutar (TL)"
+                  label={language === 'tr' ? 'Min Tutar' : 'Min Amount'}
                   type="number"
                   placeholder="0"
                   value={filters.minAmount || ''}
@@ -253,7 +317,7 @@ export function TransactionFilters({ searchInputId, onFilterChange, onReset }: T
                 />
 
                 <Input
-                  label="Max Tutar (TL)"
+                  label={language === 'tr' ? 'Max Tutar' : 'Max Amount'}
                   type="number"
                   placeholder="999999"
                   value={filters.maxAmount || ''}
@@ -262,14 +326,14 @@ export function TransactionFilters({ searchInputId, onFilterChange, onReset }: T
               </div>
 
               {activeFilterCount > 0 && (
-                <div className="flex justify-end">
+                <div className="flex justify-end animate-fade-in">
                   <Button variant="secondary" onClick={handleReset}>
-                    Filtreleri Temizle
+                    {t('clear_filters')}
                   </Button>
                 </div>
               )}
-            </>
-          )}
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>

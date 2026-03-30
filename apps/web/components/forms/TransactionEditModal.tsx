@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { CATEGORIES } from '@/lib/categories'
 import { useToast } from '@/components/ui/Toast'
+import { usePreferences } from '@/lib/PreferencesContext'
+import { useTranslation } from '@/lib/translations'
 
 interface TransactionEditModalProps {
   transaction: Transaction
@@ -22,6 +24,8 @@ export function TransactionEditModal({
   onSuccess
 }: TransactionEditModalProps) {
   const { showToast } = useToast()
+  const { language } = usePreferences()
+  const { t } = useTranslation(language)
   const [formData, setFormData] = useState({
     description: transaction.description,
     amount: Math.abs(transaction.amount),
@@ -80,11 +84,11 @@ export function TransactionEditModal({
         tags
       })
 
-      showToast('İşlem başarıyla güncellendi! ✓', 'success')
+      showToast(t('transaction_updated'), 'success')
       onSuccess()
       onClose()
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Güncelleme başarısız'
+      const errorMsg = err instanceof Error ? err.message : (language === 'tr' ? 'Güncelleme başarısız' : 'Update failed')
       setError(errorMsg)
       showToast(errorMsg, 'error')
     } finally {
@@ -98,11 +102,11 @@ export function TransactionEditModal({
 
     try {
       await deleteTransaction(transaction.id)
-      showToast('İşlem başarıyla silindi! 🗑️', 'success')
+      showToast(t('transaction_deleted'), 'success')
       onSuccess()
       onClose()
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Silme başarısız'
+      const errorMsg = err instanceof Error ? err.message : (language === 'tr' ? 'Silme başarısız' : 'Delete failed')
       setError(errorMsg)
       showToast(errorMsg, 'error')
     } finally {
@@ -110,28 +114,76 @@ export function TransactionEditModal({
     }
   }
 
+  // i18n labels
+  const labels = language === 'tr' ? {
+    editTransaction: 'İşlemi Düzenle',
+    pdf: 'PDF',
+    manual: 'Manuel',
+    description: 'Açıklama',
+    descriptionPlaceholder: 'İşlem açıklaması',
+    amount: 'Tutar (₺)',
+    type: 'Tür',
+    income: 'Gelir',
+    expense: 'Gider',
+    category: 'Kategori',
+    confidenceScore: 'Güven skoru',
+    tags: 'Etiketler',
+    tagsPlaceholder: 'Virgülle ayırarak: iş, proje, önemli',
+    tagsHelp: 'Virgülle ayırarak birden fazla etiket ekleyebilirsiniz',
+    notes: 'Notlar',
+    notesPlaceholder: 'Ek notlar...',
+    deleteConfirm: 'Bu işlemi silmek istediğinizden emin misiniz?',
+    yesDelete: 'Evet, Sil',
+    cancel: 'İptal',
+    delete: '🗑️ Sil',
+    save: 'Kaydet',
+  } : {
+    editTransaction: 'Edit Transaction',
+    pdf: 'PDF',
+    manual: 'Manual',
+    description: 'Description',
+    descriptionPlaceholder: 'Transaction description',
+    amount: 'Amount',
+    type: 'Type',
+    income: 'Income',
+    expense: 'Expense',
+    category: 'Category',
+    confidenceScore: 'Confidence score',
+    tags: 'Tags',
+    tagsPlaceholder: 'Comma separated: work, project, important',
+    tagsHelp: 'You can add multiple tags separated by commas',
+    notes: 'Notes',
+    notesPlaceholder: 'Additional notes...',
+    deleteConfirm: 'Are you sure you want to delete this transaction?',
+    yesDelete: 'Yes, Delete',
+    cancel: 'Cancel',
+    delete: '🗑️ Delete',
+    save: 'Save',
+  }
+
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
         {/* Background overlay */}
         <div
-          className="fixed inset-0 transition-opacity bg-muted/400 bg-opacity-75"
+          className="fixed inset-0 transition-opacity bg-muted/80 backdrop-blur-sm"
           onClick={onClose}
+          aria-hidden="true"
         />
 
         {/* Modal */}
-        <div className="inline-block align-bottom bg-card rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+        <div className="inline-block align-bottom bg-card rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full animate-scale-in">
           <form onSubmit={handleSubmit}>
             {/* Header */}
             <div className="bg-muted/40 px-6 py-4 border-b border-border">
-              <h3 className="text-lg font-semibold text-foreground">
-                İşlemi Düzenle
+              <h3 id="modal-title" className="text-lg font-semibold text-foreground">
+                {labels.editTransaction}
               </h3>
               <p className="text-sm text-muted-foreground mt-1">
-                {new Date(transaction.date).toLocaleDateString('tr-TR')} •{' '}
-                {transaction.source === 'pdf' ? 'PDF' : 'Manuel'}
+                {new Date(transaction.date).toLocaleDateString(language === 'tr' ? 'tr-TR' : 'en-US')} •{' '}
+                {transaction.source === 'pdf' ? labels.pdf : labels.manual}
               </p>
             </div>
 
@@ -139,23 +191,23 @@ export function TransactionEditModal({
             <div className="px-6 py-4 space-y-4">
               {/* Description */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Açıklama
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  {labels.description}
                 </label>
                 <Input
                   value={formData.description}
                   onChange={(e) =>
                     setFormData({ ...formData, description: e.target.value })
                   }
-                  placeholder="İşlem açıklaması"
+                  placeholder={labels.descriptionPlaceholder}
                   required
                 />
               </div>
 
               {/* Amount */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tutar (₺)
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  {labels.amount}
                 </label>
                 <Input
                   type="number"
@@ -168,14 +220,14 @@ export function TransactionEditModal({
                   required
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Tip: {transaction.type === 'income' ? 'Gelir' : 'Gider'}
+                  {labels.type}: {transaction.type === 'income' ? labels.income : labels.expense}
                 </p>
               </div>
 
               {/* Category */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Kategori
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  {labels.category}
                 </label>
                 <Select
                   value={formData.categoryId}
@@ -189,64 +241,64 @@ export function TransactionEditModal({
                   ))}
                 </Select>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Güven skoru: {transaction.confidence.toFixed(0)}%
+                  {labels.confidenceScore}: {transaction.confidence.toFixed(0)}%
                 </p>
               </div>
 
               {/* Tags */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Etiketler
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  {labels.tags}
                 </label>
                 <Input
                   value={formData.tags}
                   onChange={(e) =>
                     setFormData({ ...formData, tags: e.target.value })
                   }
-                  placeholder="Virgülle ayırarak: iş, proje, önemli"
+                  placeholder={labels.tagsPlaceholder}
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Virgülle ayırarak birden fazla etiket ekleyebilirsiniz
+                  {labels.tagsHelp}
                 </p>
               </div>
 
               {/* Notes */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notlar
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  {labels.notes}
                 </label>
                 <textarea
                   value={formData.notes}
                   onChange={(e) =>
                     setFormData({ ...formData, notes: e.target.value })
                   }
-                  placeholder="Ek notlar..."
+                  placeholder={labels.notesPlaceholder}
                   rows={3}
-                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
                 />
               </div>
 
               {/* Error */}
               {error && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-sm text-red-800">{error}</p>
+                <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg animate-fade-in" role="alert">
+                  <p className="text-sm text-destructive">{error}</p>
                 </div>
               )}
 
               {/* Delete Confirmation */}
               {showDeleteConfirm && (
-                <div className="p-4 bg-red-50 border border-red-300 rounded-lg">
-                  <p className="text-sm font-medium text-red-900 mb-3">
-                    Bu işlemi silmek istediğinizden emin misiniz?
+                <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg animate-fade-in">
+                  <p className="text-sm font-medium text-foreground mb-3">
+                    {labels.deleteConfirm}
                   </p>
                   <div className="flex gap-2">
                     <Button
                       type="button"
                       onClick={handleDelete}
                       loading={loading}
-                      className="flex-1 bg-red-600 hover:bg-red-700"
+                      className="flex-1 bg-destructive hover:bg-destructive/90"
                     >
-                      Evet, Sil
+                      {labels.yesDelete}
                     </Button>
                     <Button
                       type="button"
@@ -254,7 +306,7 @@ export function TransactionEditModal({
                       variant="outline"
                       className="flex-1"
                     >
-                      İptal
+                      {labels.cancel}
                     </Button>
                   </div>
                 </div>
@@ -267,10 +319,10 @@ export function TransactionEditModal({
                 type="button"
                 onClick={() => setShowDeleteConfirm(true)}
                 variant="outline"
-                className="text-red-600 hover:text-red-700 hover:border-red-300"
+                className="text-destructive hover:text-destructive hover:border-destructive/30"
                 disabled={loading || showDeleteConfirm}
               >
-                🗑️ Sil
+                {labels.delete}
               </Button>
 
               <div className="flex gap-2">
@@ -280,14 +332,14 @@ export function TransactionEditModal({
                   variant="outline"
                   disabled={loading}
                 >
-                  İptal
+                  {labels.cancel}
                 </Button>
                 <Button
                   type="submit"
                   loading={loading}
                   disabled={showDeleteConfirm}
                 >
-                  Kaydet
+                  {labels.save}
                 </Button>
               </div>
             </div>
