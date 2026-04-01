@@ -28,7 +28,13 @@ export {
 export { 
   SecurityConfig, 
   Encryption, 
-  validateSecurityConfig 
+  validateSecurityConfig,
+  getJwtSecret,
+  getJwtRefreshSecret,
+  getEncryptionSecret,
+  getEmailVerificationSecret,
+  getPasswordResetSecretBase,
+  getFrontendBaseUrl,
 } from './security/security.config';
 
 // Cache exports

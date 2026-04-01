@@ -5,13 +5,14 @@ import { OAuthService } from "./oauth.service";
 import { AuditLogService } from "./audit-log.service";
 import { SecurityController } from "./security.controller";
 import { PrismaModule } from "../../prisma.module";
+import { SecurityConfig } from "../../shared";
 
 @Module({
   imports: [
     PrismaModule,
     JwtModule.register({
-      secret: process.env.JWT_SECRET || "your-secret-key",
-      signOptions: { expiresIn: "7d" },
+      secret: SecurityConfig.jwt.secret,
+      signOptions: { expiresIn: '7d' },
     }),
   ],
   controllers: [SecurityController],

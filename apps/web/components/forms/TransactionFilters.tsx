@@ -184,7 +184,7 @@ export function TransactionFilters({ searchInputId, onFilterChange, onReset }: T
   }
 
   return (
-    <Card className={isApplying ? 'ring-2 ring-primary/20 transition-all' : 'transition-all'}>
+    <Card className={isApplying ? 'animate-inline-feedback ring-2 ring-primary/20 transition-all' : 'animate-fade-in-soft transition-all'}>
       <CardContent className="pt-6">
         <div className="space-y-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -217,7 +217,7 @@ export function TransactionFilters({ searchInputId, onFilterChange, onReset }: T
                   variant={activeQuickFilter === filter.id ? 'primary' : 'outline'}
                   size="sm"
                   onClick={() => applyQuickFilter(filter.id, filter.filters)}
-                  className="transition-all duration-200"
+                  className="motion-safe:transition-all motion-safe:duration-200 motion-safe:hover:-translate-y-0.5"
                 >
                   {filter.label}
                 </Button>

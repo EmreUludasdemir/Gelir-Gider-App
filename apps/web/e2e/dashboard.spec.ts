@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
+import { trackUnexpectedConsoleErrors } from './console'
 import { mockAppRoutes, seedAuthenticatedSession } from './helpers'
 
 async function selectPdfTransactions(page: Page) {
@@ -6,9 +7,16 @@ async function selectPdfTransactions(page: Page) {
 }
 
 test.describe('Dashboard', () => {
+  let consoleMonitor: ReturnType<typeof trackUnexpectedConsoleErrors>
+
   test.beforeEach(async ({ page }) => {
+    consoleMonitor = trackUnexpectedConsoleErrors(page)
     await seedAuthenticatedSession(page)
     await mockAppRoutes(page)
+  })
+
+  test.afterEach(async () => {
+    await consoleMonitor.assertClean()
   })
 
   test('renders dashboard summary and recent transactions', async ({ page }) => {

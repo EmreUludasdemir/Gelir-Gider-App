@@ -51,6 +51,10 @@
     --radius: 0.9rem;
     --shadow-soft: 0 10px 30px rgba(15, 76, 92, 0.08);
     --shadow-card: 0 8px 24px rgba(15, 76, 92, 0.12);
+    --motion-fast: 160ms;
+    --motion-base: 200ms;
+    --motion-slow: 240ms;
+    --motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
 
     /* Glassmorphism */
     --glass-bg: rgba(255, 255, 255, 0.7);
@@ -606,6 +610,79 @@
   animation: bounce-in 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
+@keyframes fade-in-soft {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up-soft {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in-soft {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes inline-feedback {
+  0% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes list-item-soft {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-soft {
+  animation: fade-in-soft var(--motion-base) var(--motion-ease);
+}
+
+.animate-slide-up-soft {
+  animation: slide-up-soft var(--motion-slow) var(--motion-ease);
+}
+
+.animate-scale-in-soft {
+  animation: scale-in-soft var(--motion-base) var(--motion-ease);
+}
+
+.animate-inline-feedback {
+  animation: inline-feedback var(--motion-fast) var(--motion-ease);
+}
+
+.animate-list-item-soft {
+  animation: list-item-soft var(--motion-base) var(--motion-ease);
+}
+
 /* Slide fade for collapsible content */
 .collapsible-content {
   overflow: hidden;
@@ -632,7 +709,12 @@
   .animate-list-item,
   .animate-scale-in,
   .animate-pulse-subtle,
-  .animate-bounce-in {
+  .animate-bounce-in,
+  .animate-fade-in-soft,
+  .animate-slide-up-soft,
+  .animate-scale-in-soft,
+  .animate-inline-feedback,
+  .animate-list-item-soft {
     animation: none;
   }
 

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/components/auth-provider';
 import { Eye, EyeOff, Mail, Lock, ArrowRight, LineChart, Landmark, FileText } from 'lucide-react';
-import { ApiError, loginUser } from '@/lib/api';
+import { ApiError, getApiErrorMessage, loginUser } from '@/lib/api';
 
 export default function LoginPage() {
     const { login } = useAuth();
@@ -24,21 +24,25 @@ export default function LoginPage() {
             await login(data.user);
         } catch (err) {
             if (err instanceof ApiError) {
-                switch (err.status) {
-                    case 401:
+                switch (err.code || `${err.status}`) {
+                    case 'AUTH_001':
+                    case 'AUTH_004':
+                    case '401':
                         setError('E-posta veya şifre hatalı. Lütfen bilgilerinizi kontrol edin.');
                         break;
-                    case 403:
+                    case 'AUTH_005':
+                    case '403':
                         setError('Hesabınız kilitlenmiş. Lütfen destek ile iletişime geçin.');
                         break;
-                    case 429:
+                    case 'RATE_001':
+                    case '429':
                         setError('Çok fazla deneme yaptınız. Lütfen birkaç dakika bekleyin.');
                         break;
-                    case 500:
+                    case '500':
                         setError('Sunucu hatası oluştu. Lütfen daha sonra tekrar deneyin.');
                         break;
                     default:
-                        setError('Giriş yapılamadı. Lütfen tekrar deneyin.');
+                        setError(getApiErrorMessage(err, 'Giriş yapılamadı. Lütfen tekrar deneyin.'));
                 }
             } else if (err instanceof Error && err.message.includes('fetch')) {
                 setError('Sunucuya bağlanılamıyor. İnternet bağlantınızı kontrol edin.');
@@ -192,7 +196,7 @@ export default function LoginPage() {
 
                         {/* Error */}
                         {error && (
-                            <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm flex items-center gap-2">
+                            <div className="animate-inline-feedback p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm flex items-center gap-2">
                                 <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                                 </svg>

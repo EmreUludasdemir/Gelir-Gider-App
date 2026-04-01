@@ -1,7 +1,7 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { getApiBaseUrl } from '@/lib/api-base';
 import { getCurrentUser, logoutUser, refreshUserSession, SessionUser } from '@/lib/api';
 
@@ -30,8 +30,15 @@ export const useAuth = () => useContext(AuthContext);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
-    const router = useRouter();
+    const mountedRef = useRef(true);
     const pathname = usePathname();
+
+    useEffect(() => {
+        mountedRef.current = true;
+        return () => {
+            mountedRef.current = false;
+        };
+    }, []);
 
     useEffect(() => {
         void checkUser();
@@ -43,21 +50,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const isPublicPage = pathname === '/';
 
             if (!user && !isAuthPage && !isPublicPage) {
-                router.push('/auth/login');
+                window.location.replace('/auth/login');
             } else if (user && isAuthPage) {
-                router.push('/dashboard');
+                window.location.replace('/dashboard');
             }
         }
-    }, [user, loading, pathname, router]);
+    }, [user, loading, pathname]);
 
     const checkUser = async () => {
         try {
             const profile = await getCurrentUser();
-            setUser(profile);
+            if (mountedRef.current) {
+                setUser(profile);
+            }
         } catch {
-            setUser(null);
+            if (mountedRef.current) {
+                setUser(null);
+            }
         } finally {
-            setLoading(false);
+            if (mountedRef.current) {
+                setLoading(false);
+            }
         }
     };
 
@@ -70,7 +83,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 const profile = await getCurrentUser();
                 setUser(profile);
             }
-            window.location.assign('/dashboard');
         } finally {
             setLoading(false);
         }
@@ -84,7 +96,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         setUser(null);
-        router.push('/auth/login');
     };
 
     const fetchWithAuth = async (url: string, options: RequestInit = {}): Promise<Response> => {

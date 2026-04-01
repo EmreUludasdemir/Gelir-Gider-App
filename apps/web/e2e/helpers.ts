@@ -1,6 +1,6 @@
 ﻿import type { Page, Route } from '@playwright/test'
 
-const testPort = process.env.PLAYWRIGHT_TEST_PORT || '3100'
+const testPort = process.env.PLAYWRIGHT_TEST_PORT || '3301'
 const baseUrl = process.env.PLAYWRIGHT_TEST_BASE_URL || `http://127.0.0.1:${testPort}`
 const authToken = 'e2e-token'
 const forecastAnchorDate = new Date('2026-03-11T12:00:00.000Z')
@@ -225,6 +225,86 @@ export const defaultUpcomingBills = [
   },
 ]
 
+export const defaultSavingsActions = [
+  {
+    id: 'saving-action-1',
+    estimatedMonthlySaving: 199.99,
+    confidence: 88,
+    actionType: 'cancel_subscription',
+    reason: 'Kullanilmayan Netflix aboneligi son 60 gunde aktif gorunmuyor.',
+    outcome: undefined,
+  },
+  {
+    id: 'saving-action-2',
+    estimatedMonthlySaving: 850,
+    confidence: 79,
+    actionType: 'reduce_category_spend',
+    reason: 'Market harcamaniz son 4 haftada hedefin %17 uzerinde.',
+    outcome: undefined,
+  },
+]
+
+export const defaultHouseholds = [
+  {
+    id: 'household-1',
+    name: 'Ev Butcesi',
+    ownerId: mockUser.id,
+    createdAt: '2026-03-01T09:00:00.000Z',
+    updatedAt: '2026-03-11T09:00:00.000Z',
+    members: [
+      {
+        id: 'household-member-1',
+        userId: mockUser.id,
+        role: 'owner',
+        joinedAt: '2026-03-01T09:00:00.000Z',
+        updatedAt: '2026-03-01T09:00:00.000Z',
+        user: {
+          id: mockUser.id,
+          name: mockUser.name,
+          email: mockUser.email,
+        },
+      },
+      {
+        id: 'household-member-2',
+        userId: 'partner-user-1',
+        role: 'member',
+        joinedAt: '2026-03-03T12:00:00.000Z',
+        updatedAt: '2026-03-03T12:00:00.000Z',
+        user: {
+          id: 'partner-user-1',
+          name: 'Partner User',
+          email: 'partner@example.com',
+        },
+      },
+    ],
+    invites: [
+      {
+        id: 'invite-1',
+        householdId: 'household-1',
+        code: 'INVITE123',
+        email: 'partner@example.com',
+        role: 'member',
+        expiresAt: '2026-04-10T00:00:00.000Z',
+        createdAt: '2026-03-10T10:00:00.000Z',
+      },
+    ],
+    sharedBudgets: [
+      {
+        id: 'shared-budget-1',
+        categoryId: 'market',
+        categoryLabel: 'Market',
+        limitAmount: 7500,
+        period: 'monthly',
+        alertThreshold: 80,
+        isActive: true,
+      },
+    ],
+    _count: {
+      members: 2,
+    },
+  },
+]
+
 export const defaultFinancialHealth = {
   score: 78,
   grade: 'B',
@@ -440,6 +520,23 @@ function cloneGoals(goals = defaultSavingsGoals) {
 
 function cloneBills(bills = defaultUpcomingBills) {
   return bills.map((bill) => ({ ...bill }))
+}
+
+function cloneSavingsActions(actions = defaultSavingsActions) {
+  return actions.map((action) => ({ ...action }))
+}
+
+function cloneHouseholds(households = defaultHouseholds) {
+  return households.map((household) => ({
+    ...household,
+    members: household.members.map((member) => ({
+      ...member,
+      user: { ...member.user },
+    })),
+    invites: household.invites?.map((invite) => ({ ...invite })),
+    sharedBudgets: household.sharedBudgets?.map((budget) => ({ ...budget })),
+    _count: household._count ? { ...household._count } : undefined,
+  }))
 }
 
 function cloneManagedSubscriptions(subscriptions = defaultManagedSubscriptions) {
@@ -782,6 +879,8 @@ export async function mockAppRoutes(
   let budgets = cloneBudgets(options?.budgets)
   let goals = cloneGoals(options?.goals)
   let bills = cloneBills(options?.bills)
+  let savingsActions = cloneSavingsActions()
+  let households = cloneHouseholds()
   let subscriptions = cloneManagedSubscriptions(options?.subscriptions)
   let detectedSubscriptions = cloneDetectedSubscriptions(options?.detectedSubscriptions)
   let previewCallCount = 0
@@ -1132,6 +1231,30 @@ export async function mockAppRoutes(
 
     if (path === '/bills/upcoming' && method === 'GET') {
       return createJsonResponse(route, bills)
+    }
+
+    if (path === '/analytics/savings-actions' && method === 'GET') {
+      return createJsonResponse(route, savingsActions)
+    }
+
+    if (path.match(/^\/analytics\/savings-actions\/[^/]+\/outcome$/) && method === 'POST') {
+      const actionId = path.split('/')[3]
+      const body = parseJson<{ status?: 'accepted' | 'dismissed' | 'completed' }>(route)
+
+      savingsActions = savingsActions.map((action) =>
+        action.id === actionId
+          ? {
+              ...action,
+              outcome: body.status,
+            }
+          : action,
+      )
+
+      return createJsonResponse(route, { success: true })
+    }
+
+    if (path === '/households' && method === 'GET') {
+      return createJsonResponse(route, households)
     }
 
     if (path.match(/^\/bills\/[^/]+\/mark-paid$/) && method === 'PATCH') {

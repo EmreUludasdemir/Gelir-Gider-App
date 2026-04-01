@@ -60,7 +60,7 @@ export function DashboardHero({ summary }: DashboardHeroProps) {
   ]
 
   return (
-    <section className="relative overflow-hidden rounded-3xl border border-border/70 bg-card/75 p-6 md:p-8 shadow-[0_20px_50px_rgba(15,76,92,0.12)] backdrop-blur-xl animate-slide-up">
+    <section className="relative overflow-hidden rounded-3xl border border-border/70 bg-card/75 p-6 shadow-[0_20px_50px_rgba(15,76,92,0.12)] backdrop-blur-xl animate-slide-up-soft md:p-8">
       <div className="pointer-events-none absolute -right-24 -top-20 h-64 w-64 rounded-full bg-primary/20 blur-3xl" />
       <div className="pointer-events-none absolute -left-24 bottom-0 h-56 w-56 rounded-full bg-accent/25 blur-3xl" />
 
@@ -81,7 +81,7 @@ export function DashboardHero({ summary }: DashboardHeroProps) {
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-6">
-            <div className="rounded-2xl border border-success/30 bg-success/10 p-3">
+            <div className="animate-scale-in-soft rounded-2xl border border-success/30 bg-success/10 p-3">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Tasarruf Orani</p>
               <p className={`mt-1 text-lg font-bold ${health.tone}`}>
                 {savingsRate.toFixed(1)}%
@@ -89,7 +89,7 @@ export function DashboardHero({ summary }: DashboardHeroProps) {
               <p className={`text-xs font-medium ${health.tone}`}>{health.label}</p>
             </div>
 
-            <div className="rounded-2xl border border-warning/35 bg-warning/10 p-3">
+            <div className="animate-scale-in-soft rounded-2xl border border-warning/35 bg-warning/10 p-3">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Gider Baskisi</p>
               <p className="mt-1 text-lg font-bold text-warning">
                 {expenseRatio.toFixed(1)}%
@@ -97,7 +97,7 @@ export function DashboardHero({ summary }: DashboardHeroProps) {
               <p className="text-xs text-muted-foreground">Gelire gore gider yuklu</p>
             </div>
 
-            <div className="rounded-2xl border border-primary/25 bg-primary/10 p-3">
+            <div className="animate-scale-in-soft rounded-2xl border border-primary/25 bg-primary/10 p-3">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Net Bakiye</p>
               <p className={`mt-1 text-lg font-bold ${balance >= 0 ? 'text-success' : 'text-destructive'}`}>
                 {balance >= 0 ? '+' : '-'}{formatCurrency(Math.abs(balance))}
@@ -107,7 +107,7 @@ export function DashboardHero({ summary }: DashboardHeroProps) {
               </p>
             </div>
 
-            <div className="rounded-2xl border border-border/70 bg-background/75 p-3">
+            <div className="animate-scale-in-soft rounded-2xl border border-border/70 bg-background/75 p-3">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Aydan aya tempo</p>
               <p className={`mt-1 text-lg font-bold ${expenseDelta <= 0 ? 'text-success' : 'text-destructive'}`}>
                 {expenseDelta >= 0 ? '+' : ''}{expenseDelta.toFixed(1)}%
@@ -117,7 +117,7 @@ export function DashboardHero({ summary }: DashboardHeroProps) {
               </p>
             </div>
 
-            <div className="rounded-2xl border border-border/70 bg-background/75 p-3">
+            <div className="animate-scale-in-soft rounded-2xl border border-border/70 bg-background/75 p-3">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">En baskin kategori</p>
               <p className="mt-1 text-lg font-bold text-foreground">
                 {topCategory?.categoryLabel || 'Veri yok'}
@@ -129,7 +129,7 @@ export function DashboardHero({ summary }: DashboardHeroProps) {
               </p>
             </div>
 
-            <div className="rounded-2xl border border-success/25 bg-success/10 p-3">
+            <div className="animate-scale-in-soft rounded-2xl border border-success/25 bg-success/10 p-3">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Potansiyel tasarruf</p>
               <p className="mt-1 text-lg font-bold text-success">
                 {potentialSavings > 0 ? formatCurrency(potentialSavings) : '-'}
@@ -143,7 +143,7 @@ export function DashboardHero({ summary }: DashboardHeroProps) {
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">
-            <div className="rounded-2xl border border-border/70 bg-background/75 p-4">
+            <div className="animate-fade-in-soft rounded-2xl border border-border/70 bg-background/75 p-4">
               <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Gelir sinyali</p>
               <p className={`mt-2 text-lg font-semibold ${incomeDelta >= 0 ? 'text-success' : 'text-destructive'}`}>
                 {incomeDelta >= 0 ? '+' : ''}{incomeDelta.toFixed(1)}%
@@ -152,7 +152,7 @@ export function DashboardHero({ summary }: DashboardHeroProps) {
                 Bu ayki gelir gecen aya gore {incomeDelta >= 0 ? 'guclendi' : 'geriledi'}.
               </p>
             </div>
-            <div className="rounded-2xl border border-border/70 bg-background/75 p-4">
+            <div className="animate-fade-in-soft rounded-2xl border border-border/70 bg-background/75 p-4">
               <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Aksiyon notu</p>
               <p className="mt-2 text-lg font-semibold text-foreground">
                 {expenseDelta > 0 ? 'Gider temposu yakindan izlenmeli' : 'Mevcut tempo kontrol altinda'}
@@ -171,7 +171,7 @@ export function DashboardHero({ summary }: DashboardHeroProps) {
             <Link
               key={action.href}
               href={action.href}
-              className="group rounded-2xl border border-border/70 bg-background/80 p-4 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_14px_26px_rgba(15,76,92,0.16)]"
+              className="group animate-list-item-soft rounded-2xl border border-border/70 bg-background/80 p-4 motion-safe:transition-all motion-safe:duration-200 motion-safe:hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_14px_26px_rgba(15,76,92,0.16)]"
             >
               <div className="flex items-start justify-between gap-3">
                 <div>

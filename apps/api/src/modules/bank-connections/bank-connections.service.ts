@@ -8,6 +8,7 @@ import { randomUUID } from "crypto";
 import { Transaction } from "@prisma/client";
 import { PrismaService } from "../../prisma.service";
 import { EncryptionService } from "../../shared/encryption";
+import { getFrontendBaseUrl } from "../../shared";
 import { RealtimeGateway } from "../realtime/realtime.gateway";
 import {
   CreateBankConnectionDto,
@@ -563,12 +564,7 @@ export class BankConnectionsService {
   }
 
   private getConnectionRedirectUri() {
-    const frontendBase =
-      process.env.FRONTEND_URL ||
-      process.env.APP_URL ||
-      "http://localhost:3000";
-
-    return `${frontendBase.replace(/\/$/, "")}/bank-connections`;
+    return `${getFrontendBaseUrl()}/bank-connections`;
   }
 
   private parseMetadata(raw?: string | null): Record<string, unknown> {

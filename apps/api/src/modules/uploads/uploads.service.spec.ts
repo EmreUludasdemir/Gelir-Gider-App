@@ -67,7 +67,7 @@ describe('UploadsService', () => {
     expect(result.success).toBe(false)
     expect(result.duplicate).toBeUndefined()
     expect(result.transactions).toEqual([])
-    expect(result.errors[0]).toContain('PDF Parser service is not available')
+    expect(result.errors[0]).toContain('PDF parser servisine su anda ulasilamiyor')
   })
 
   it('should reject confirm requests for files that became duplicate after preview', async () => {

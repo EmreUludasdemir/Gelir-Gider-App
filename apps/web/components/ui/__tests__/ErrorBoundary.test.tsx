@@ -33,12 +33,12 @@ describe('ErrorBoundary', () => {
 
   it('should render error UI when child component throws', () => {
     render(
-      <ErrorBoundary>
+      <ErrorBoundary language="en">
         <ThrowError shouldThrow={true} />
       </ErrorBoundary>
     )
 
-    expect(screen.getByText(/Bir Hata Oluştu/i)).toBeInTheDocument()
+    expect(screen.getByText(/An Error Occurred/i)).toBeInTheDocument()
     expect(screen.getByText(/Test error/i)).toBeInTheDocument()
   })
 
@@ -59,25 +59,25 @@ describe('ErrorBoundary', () => {
 
   it('should reset error state when retry button is clicked', () => {
     const { rerender } = render(
-      <ErrorBoundary>
+      <ErrorBoundary language="en">
         <ThrowError shouldThrow={true} />
       </ErrorBoundary>
     )
 
-    expect(screen.getByText(/Bir Hata Oluştu/i)).toBeInTheDocument()
+    expect(screen.getByText(/An Error Occurred/i)).toBeInTheDocument()
 
     // Rerender with no error
     rerender(
-      <ErrorBoundary>
+      <ErrorBoundary language="en">
         <ThrowError shouldThrow={false} />
       </ErrorBoundary>
     )
 
-    const retryButton = screen.getByText(/Tekrar Dene/i)
+    const retryButton = screen.getByText(/Try Again/i)
     fireEvent.click(retryButton)
 
     // After retry, should show content
-    expect(screen.queryByText(/Bir Hata Oluştu/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/An Error Occurred/i)).not.toBeInTheDocument()
   })
 
   it('should render custom fallback when provided', () => {
@@ -94,22 +94,22 @@ describe('ErrorBoundary', () => {
 
   it('should show error details button', () => {
     render(
-      <ErrorBoundary>
+      <ErrorBoundary language="en">
         <ThrowError shouldThrow={true} />
       </ErrorBoundary>
     )
 
-    expect(screen.getByText(/Hata Detayları/i)).toBeInTheDocument()
+    expect(screen.getByText(/Error Details/i)).toBeInTheDocument()
   })
 
   it('should toggle error details when button is clicked', () => {
     render(
-      <ErrorBoundary>
+      <ErrorBoundary language="en">
         <ThrowError shouldThrow={true} />
       </ErrorBoundary>
     )
 
-    const detailsButton = screen.getByText(/Hata Detayları/i)
+    const detailsButton = screen.getByText(/Error Details/i)
 
     // Details should not be visible initially
     expect(screen.queryByText(/componentStack/i)).not.toBeInTheDocument()

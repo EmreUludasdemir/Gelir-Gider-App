@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { AppException, ErrorCode } from '../../shared';
 
 export interface ExchangeRate {
   base: string;
@@ -55,7 +56,15 @@ export class CurrencyService {
       this.lastFetch = new Date();
       return rates;
     } catch (error) {
-      this.logger.warn('Failed to fetch exchange rates, using fallback', error);
+      const message =
+        error instanceof AppException
+          ? ((error.getResponse() as { error?: { message?: string } } | undefined)?.error?.message ||
+            error.message)
+          : 'Failed to fetch exchange rates';
+      const code = error instanceof AppException ? error.code : ErrorCode.EXTERNAL_SERVICE_ERROR;
+      this.logger.warn(
+        `Currency provider fallback [provider=exchange_rate_host code=${code}] ${message}`,
+      );
       return this.getFallbackRates(baseCurrency);
     }
   }
@@ -67,26 +76,63 @@ export class CurrencyService {
     // Using exchangerate.host (free, no API key required)
     const url = 'https://api.exchangerate.host/latest?base=' + baseCurrency + '&symbols=' + SUPPORTED_CURRENCIES.join(',');
     
-    const response = await fetch(url, {
-      headers: { 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(5000),
-    });
+    try {
+      const response = await fetch(url, {
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(5000),
+      });
 
-    if (!response.ok) {
-      throw new Error('Exchange rate API returned ' + response.status);
+      if (!response.ok) {
+        throw new AppException(
+          response.status >= 500 ? ErrorCode.EXTERNAL_UNAVAILABLE : ErrorCode.EXTERNAL_SERVICE_ERROR,
+          'Kur servisi istegi basarisiz oldu.',
+          {
+            module: 'currency',
+            provider: 'exchange_rate_host',
+            statusCode: response.status,
+          },
+        );
+      }
+
+      const data = (await response.json()) as ExchangeRateApiResponse;
+      
+      if (!data.success && !data.rates) {
+        throw new AppException(
+          ErrorCode.EXTERNAL_SERVICE_ERROR,
+          'Kur servisi gecersiz veri dondurdu.',
+          {
+            module: 'currency',
+            provider: 'exchange_rate_host',
+          },
+        );
+      }
+
+      return {
+        base: baseCurrency,
+        date: data.date || new Date().toISOString().split('T')[0],
+        rates: data.rates || this.fallbackRates,
+      };
+    } catch (error) {
+      if (error instanceof AppException) {
+        throw error;
+      }
+
+      const isTimeout =
+        error instanceof Error &&
+        (error.name === 'AbortError' || error.name === 'TimeoutError');
+
+      throw new AppException(
+        isTimeout ? ErrorCode.EXTERNAL_TIMEOUT : ErrorCode.EXTERNAL_UNAVAILABLE,
+        isTimeout
+          ? 'Kur servisi zaman asimina ugradi.'
+          : 'Kur servisine su anda ulasilamiyor.',
+        {
+          module: 'currency',
+          provider: 'exchange_rate_host',
+          originalMessage: error instanceof Error ? error.message : 'Unknown error',
+        },
+      );
     }
-
-    const data = (await response.json()) as ExchangeRateApiResponse;
-    
-    if (!data.success && !data.rates) {
-      throw new Error('Invalid API response');
-    }
-
-    return {
-      base: baseCurrency,
-      date: data.date || new Date().toISOString().split('T')[0],
-      rates: data.rates || this.fallbackRates,
-    };
   }
 
   /**
@@ -185,7 +231,10 @@ export class CurrencyService {
       await this.getRates('TRY');
       this.logger.log('Exchange rates refreshed successfully');
     } catch (error) {
-      this.logger.error('Failed to refresh exchange rates', error);
+      this.logger.error(
+        'Failed to refresh exchange rates',
+        error instanceof Error ? error.stack : undefined,
+      );
     }
   }
 }

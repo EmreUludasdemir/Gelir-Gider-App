@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as crypto from 'crypto';
+import { getEncryptionSecret } from '../security/security.config';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 16;
@@ -13,18 +14,14 @@ export class EncryptionService {
   private readonly encryptionKey: string;
 
   constructor() {
-    this.encryptionKey = process.env.BANK_ENCRYPTION_KEY || '';
-    if (!this.encryptionKey) {
-      this.logger.warn('BANK_ENCRYPTION_KEY not set - using fallback (NOT SECURE FOR PRODUCTION)');
-    }
+    this.encryptionKey = getEncryptionSecret();
   }
 
   /**
    * Derive a key from password and salt using PBKDF2
    */
   private deriveKey(salt: Buffer): Buffer {
-    const password = this.encryptionKey || 'default-insecure-key';
-    return crypto.pbkdf2Sync(password, salt, 100000, KEY_LENGTH, 'sha256');
+    return crypto.pbkdf2Sync(this.encryptionKey, salt, 100000, KEY_LENGTH, 'sha256');
   }
 
   /**
@@ -55,7 +52,7 @@ export class EncryptionService {
 
       return combined.toString('base64');
     } catch (error) {
-      this.logger.error('Encryption failed', error);
+      this.logger.error('Encryption failed', error instanceof Error ? error.stack : undefined);
       throw new Error('Encryption failed');
     }
   }
@@ -84,8 +81,8 @@ export class EncryptionService {
       decrypted = Buffer.concat([decrypted, decipher.final()]);
 
       return decrypted.toString('utf8');
-    } catch {
-      this.logger.error('Decryption failed');
+    } catch (error) {
+      this.logger.error('Decryption failed', error instanceof Error ? error.stack : undefined);
       throw new Error('Decryption failed');
     }
   }

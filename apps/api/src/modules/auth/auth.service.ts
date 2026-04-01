@@ -20,6 +20,12 @@ import {
 } from './dto/auth.dto'
 import { EmailService } from '../notifications/email.service'
 import { CacheService } from '../../shared/cache'
+import {
+  getEmailVerificationSecret as getEmailVerificationSecretConfig,
+  getFrontendBaseUrl as getFrontendBaseUrlConfig,
+  getJwtRefreshSecret,
+  getPasswordResetSecretBase as getPasswordResetSecretBaseConfig,
+} from '../../shared'
 import * as bcrypt from 'bcrypt'
 import * as speakeasy from 'speakeasy'
 import * as QRCode from 'qrcode'
@@ -153,7 +159,7 @@ export class AuthService {
 
     try {
       const payload = this.jwtService.verify<TokenPayload>(refreshToken, {
-        secret: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
+        secret: getJwtRefreshSecret(),
       })
 
       if (payload.type !== 'refresh') {
@@ -499,7 +505,7 @@ export class AuthService {
     })
 
     const refreshToken = this.jwtService.sign(refreshPayload, {
-      secret: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
+      secret: getJwtRefreshSecret(),
       expiresIn: this.JWT_REFRESH_EXPIRES_IN,
     })
 
@@ -565,16 +571,15 @@ export class AuthService {
   }
 
   private getFrontendBaseUrl(): string {
-    const raw = process.env.APP_URL || process.env.FRONTEND_URL || 'http://localhost:3000'
-    return raw.replace(/\/+$/, '')
+    return getFrontendBaseUrlConfig()
   }
 
   private getEmailVerificationSecret(): string {
-    return process.env.EMAIL_VERIFICATION_SECRET || process.env.JWT_SECRET || 'email-verification-secret-dev'
+    return getEmailVerificationSecretConfig()
   }
 
   private getPasswordResetSecret(passwordHash: string): string {
-    const base = process.env.PASSWORD_RESET_SECRET || process.env.JWT_SECRET || 'password-reset-secret-dev'
+    const base = getPasswordResetSecretBaseConfig()
     return `${base}:${passwordHash}`
   }
 
@@ -613,7 +618,7 @@ export class AuthService {
 
     try {
       const payload = this.jwtService.verify<TokenPayload>(token, {
-        secret: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
+        secret: getJwtRefreshSecret(),
         ignoreExpiration: true,
       })
 

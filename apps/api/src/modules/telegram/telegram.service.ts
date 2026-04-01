@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/commo
 import { PrismaService } from '../../prisma.service';
 import { TransactionsService } from '../transactions/transactions.service';
 import { BudgetsService } from '../budgets/budgets.service';
+import { AppException, ErrorCode } from '../../shared';
 
 interface TelegramUpdate {
   update_id: number;
@@ -80,7 +81,10 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       this.logger.log(`Telegram bot initialized: @${me.username}`);
       this.startPolling();
     } catch (error) {
-      this.logger.error('Failed to initialize Telegram bot:', error);
+      this.logger.error(
+        'Failed to initialize Telegram bot',
+        error instanceof Error ? error.stack : undefined,
+      );
     }
   }
 
@@ -106,7 +110,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         await this.handleUpdate(update);
       }
     } catch (error) {
-      this.logger.error('Polling error:', error);
+      this.logger.error('Polling error', error instanceof Error ? error.stack : undefined);
     }
   }
 
@@ -547,18 +551,45 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async callApi<T = unknown>(method: string, params: Record<string, unknown> = {}): Promise<T> {
-    const response = await fetch(`${this.apiUrl}/${method}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(params),
-    });
+    try {
+      const response = await fetch(`${this.apiUrl}/${method}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(params),
+      });
 
-    const data = (await response.json()) as TelegramApiResponse<T>;
-    if (!data.ok) {
-      throw new Error(data.description || 'Telegram API error');
+      const data = (await response.json()) as TelegramApiResponse<T>;
+      if (!data.ok) {
+        throw new AppException(
+          ErrorCode.EXTERNAL_SERVICE_ERROR,
+          'Telegram servisi istegi tamamlayamadi.',
+          {
+            module: 'telegram',
+            provider: 'telegram',
+            method,
+            description: data.description,
+            statusCode: response.status,
+          },
+        );
+      }
+
+      return data.result;
+    } catch (error) {
+      if (error instanceof AppException) {
+        throw error;
+      }
+
+      throw new AppException(
+        ErrorCode.EXTERNAL_UNAVAILABLE,
+        'Telegram servisine su anda ulasilamiyor.',
+        {
+          module: 'telegram',
+          provider: 'telegram',
+          method,
+          originalMessage: error instanceof Error ? error.message : 'Unknown error',
+        },
+      );
     }
-
-    return data.result;
   }
 
   // ==================== Public API for reminders ====================

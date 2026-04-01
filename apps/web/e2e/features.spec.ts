@@ -1,5 +1,22 @@
 ﻿import { test, expect } from '@playwright/test'
+import { trackUnexpectedConsoleErrors } from './console'
 import { mockAppRoutes, seedAuthenticatedSession } from './helpers'
+
+let consoleMonitor: ReturnType<typeof trackUnexpectedConsoleErrors>
+
+test.beforeEach(async ({ page }, testInfo) => {
+  const ignoredPatterns: (string | RegExp)[] = []
+
+  if (testInfo.title.includes('successful pdf upload')) {
+    ignoredPatterns.push(/status of 503 \(Service Unavailable\)/)
+  }
+
+  consoleMonitor = trackUnexpectedConsoleErrors(page, { ignoredPatterns })
+})
+
+test.afterEach(async () => {
+  await consoleMonitor.assertClean()
+})
 
 test.describe('Export Feature', () => {
   test.beforeEach(async ({ page }) => {
@@ -50,6 +67,7 @@ test.describe('Bank Connections', () => {
   })
 
   test('renders existing bank connections', async ({ page }) => {
+    await expect(page.getByRole('button', { name: /Banka Ekle/i })).toBeVisible({ timeout: 10000 })
     await expect(page.getByRole('heading', { name: /Banka Bağlantıları/i })).toBeVisible()
     await expect(page.getByText('Akbank')).toBeVisible()
     await expect(page.getByText('Ana Hesap')).toBeVisible()

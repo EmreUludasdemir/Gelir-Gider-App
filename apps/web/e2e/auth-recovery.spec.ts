@@ -1,6 +1,24 @@
 import { test, expect } from '@playwright/test'
+import { trackUnexpectedConsoleErrors } from './console'
+import { mockAppRoutes } from './helpers'
 
 test.describe('Auth Recovery', () => {
+  let consoleMonitor: ReturnType<typeof trackUnexpectedConsoleErrors>
+
+  test.beforeEach(async ({ page }) => {
+    consoleMonitor = trackUnexpectedConsoleErrors(page, {
+      ignoredPatterns: [
+        /401 \(Unauthorized\)/,
+        /status of 401 \(Unauthorized\)/,
+      ],
+    })
+    await mockAppRoutes(page)
+  })
+
+  test.afterEach(async () => {
+    await consoleMonitor.assertClean()
+  })
+
   test('shows recovery links on login screen', async ({ page }) => {
     await page.goto('/auth/login')
 

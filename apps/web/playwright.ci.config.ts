@@ -1,9 +1,13 @@
 ﻿import { defineConfig, devices } from '@playwright/test'
 
-const testPort = process.env.PLAYWRIGHT_TEST_PORT || '3100'
+const testPort = process.env.PLAYWRIGHT_TEST_PORT || '3301'
 const localBaseUrl = `http://127.0.0.1:${testPort}`
 const baseURL = process.env.PLAYWRIGHT_TEST_BASE_URL || localBaseUrl
 const useExternalBaseUrl = !!process.env.PLAYWRIGHT_TEST_BASE_URL
+const webServerEnvPrefix =
+  process.platform === 'win32'
+    ? 'set NEXT_PUBLIC_DISABLE_REALTIME=true&& '
+    : 'NEXT_PUBLIC_DISABLE_REALTIME=true '
 
 export default defineConfig({
   testDir: './e2e',
@@ -23,11 +27,12 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  webServer: useExternalBaseUrl
+      webServer: useExternalBaseUrl
     ? undefined
     : {
-        command: `npx next dev -H 127.0.0.1 -p ${testPort}`,
+        command: `${webServerEnvPrefix}npx next dev -H 127.0.0.1 -p ${testPort}`,
         url: localBaseUrl,
         reuseExistingServer: false,
+        timeout: 120 * 1000,
       },
 })

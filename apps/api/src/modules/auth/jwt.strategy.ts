@@ -4,6 +4,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { Request } from 'express';
 import { PrismaService } from '../../prisma.service';
 import { AUTH_ACCESS_COOKIE, getCookieValue } from '../../shared/cookies';
+import { getJwtSecret } from '../../shared';
 
 interface JwtTokenPayload {
     sub: string;
@@ -22,7 +23,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
                 (request: Request) => getCookieValue(request?.headers?.cookie, AUTH_ACCESS_COOKIE) || null,
             ]),
             ignoreExpiration: false,
-            secretOrKey: process.env.JWT_SECRET || 'super-secret-key-change-in-production',
+            secretOrKey: getJwtSecret(),
         });
     }
 

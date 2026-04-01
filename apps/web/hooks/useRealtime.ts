@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { toast } from 'sonner';
-import { getRealtimeBaseUrl } from '@/lib/api-base';
+import { getRealtimeBaseUrl, isRealtimeDisabled } from '@/lib/api-base';
 
 interface RealtimeConfig {
   enabled: boolean;
@@ -98,9 +98,10 @@ export function useRealtime(config: RealtimeConfig) {
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const socketRef = useRef<Socket | null>(null);
+  const realtimeDisabled = isRealtimeDisabled();
 
   useEffect(() => {
-    if (!config.enabled) {
+    if (!config.enabled || realtimeDisabled) {
       socketRef.current?.disconnect();
       socketRef.current = null;
       setIsConnected(false);
@@ -229,7 +230,7 @@ export function useRealtime(config: RealtimeConfig) {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [config.enabled, config.onBillReminder, config.onBudgetAlert, config.onBudgetUpdated, config.onConnect, config.onDisconnect, config.onHouseholdUpdated, config.onSavingsMilestone, config.onSavingsUpdated, config.onSyncCompleted, config.onTransactionCreated, config.onTransactionDeleted, config.onTransactionNeedsReview, config.onTransactionUpdated, config.showToasts, config.token]);
+  }, [config.enabled, config.onBillReminder, config.onBudgetAlert, config.onBudgetUpdated, config.onConnect, config.onDisconnect, config.onHouseholdUpdated, config.onSavingsMilestone, config.onSavingsUpdated, config.onSyncCompleted, config.onTransactionCreated, config.onTransactionDeleted, config.onTransactionNeedsReview, config.onTransactionUpdated, config.showToasts, config.token, realtimeDisabled]);
 
   const subscribe = useCallback((channels: string[]) => {
     socketRef.current?.emit('subscribe', { channels });
@@ -265,9 +266,13 @@ export function useRealtime(config: RealtimeConfig) {
 
 export function useRealtimeStatus(enabled: boolean, token?: string | null) {
   const [isConnected, setIsConnected] = useState(false);
+  const realtimeDisabled = isRealtimeDisabled();
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || realtimeDisabled) {
+      setIsConnected(false);
+      return;
+    }
 
     const apiUrl = getRealtimeBaseUrl();
     const socket = io(`${apiUrl}/realtime`, {
@@ -282,7 +287,7 @@ export function useRealtimeStatus(enabled: boolean, token?: string | null) {
     return () => {
       socket.disconnect();
     };
-  }, [enabled, token]);
+  }, [enabled, realtimeDisabled, token]);
 
   return isConnected;
 }

@@ -1,7 +1,7 @@
 ﻿'use client'
 
 import { useCallback, useMemo, useState } from 'react'
-import { previewPdfImportBatch, UploadBatchPreview } from '@/lib/api'
+import { getApiErrorMessage, previewPdfImportBatch, UploadBatchPreview } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { AlertCircle, FileStack, ShieldCheck, Sparkles, Trash2, UploadCloud } from 'lucide-react'
@@ -109,7 +109,7 @@ export function PdfUpload({ onSuccess }: PdfUploadProps) {
       await onSuccess?.(previewResult)
       setFiles([])
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed')
+      setError(getApiErrorMessage(err, 'Upload failed'))
       setUploadProgress(0)
       setProcessedCount(0)
     } finally {
@@ -118,7 +118,7 @@ export function PdfUpload({ onSuccess }: PdfUploadProps) {
   }
 
   return (
-    <Card data-testid="pdf-upload-card" className="overflow-hidden border-border/70 bg-card/85">
+    <Card data-testid="pdf-upload-card" className="animate-fade-in-soft overflow-hidden border-border/70 bg-card/85">
       <CardHeader>
         <CardTitle className="flex items-center gap-3">
           <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -210,7 +210,7 @@ export function PdfUpload({ onSuccess }: PdfUploadProps) {
 
               <div className="mt-4 grid gap-3">
                 {files.map((file) => (
-                  <div key={`${file.name}-${file.lastModified}`} className="flex items-center justify-between gap-3 rounded-2xl border border-border/70 bg-card/70 px-4 py-3">
+                  <div key={`${file.name}-${file.lastModified}`} className="animate-list-item-soft flex items-center justify-between gap-3 rounded-2xl border border-border/70 bg-card/70 px-4 py-3">
                     <div>
                       <p className="text-sm font-semibold text-foreground">{file.name}</p>
                       <p className="mt-1 text-xs text-muted-foreground">
@@ -286,7 +286,7 @@ export function PdfUpload({ onSuccess }: PdfUploadProps) {
           </div>
 
           {error && (
-            <div className="rounded-2xl border border-destructive/25 bg-destructive/10 p-4">
+            <div className="animate-inline-feedback rounded-2xl border border-destructive/25 bg-destructive/10 p-4">
               <p className="text-sm font-medium text-destructive">{error}</p>
             </div>
           )}

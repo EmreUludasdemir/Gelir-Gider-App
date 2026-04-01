@@ -1,10 +1,24 @@
-﻿import { test, expect } from '@playwright/test'
+import { test, expect } from '@playwright/test'
+import { trackUnexpectedConsoleErrors } from './console'
 import { mockAppRoutes, seedAuthenticatedSession } from './helpers'
 
 test.describe('Authentication', () => {
+  let consoleMonitor: ReturnType<typeof trackUnexpectedConsoleErrors>
+
   test.beforeEach(async ({ page }) => {
+    consoleMonitor = trackUnexpectedConsoleErrors(page, {
+      ignoredPatterns: [
+        /status of 401 \(Unauthorized\)/,
+        /status of 500 \(Internal Server Error\)/,
+        /Failed to fetch RSC payload/,
+      ],
+    })
     await mockAppRoutes(page)
     await page.goto('/auth/login')
+  })
+
+  test.afterEach(async () => {
+    await consoleMonitor.assertClean()
   })
 
   test('shows login screen', async ({ page }) => {
@@ -39,8 +53,8 @@ test.describe('Authentication', () => {
       password: 'Test1234!',
     })
 
-    await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 })
-    await expect(page.getByText('Finans Nabzi')).toBeVisible()
+    await expect(page.getByText('Finans Nabzi')).toBeVisible({ timeout: 20000 })
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 20000 })
     await expect.poll(async () => page.evaluate(() => window.localStorage.getItem('token'))).toBeNull()
     await expect.poll(async () => page.evaluate(() => window.localStorage.getItem('user'))).toBeNull()
   })
@@ -78,8 +92,8 @@ test.describe('Authentication', () => {
     await page.fill('input#confirmPassword', 'Test1234!')
     await page.click('button[type="submit"]')
 
-    await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 })
-    await expect(page.getByText('Finans Nabzi')).toBeVisible()
+    await expect(page.getByText('Finans Nabzi')).toBeVisible({ timeout: 20000 })
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 20000 })
     await expect.poll(async () => page.evaluate(() => window.localStorage.getItem('token'))).toBeNull()
   })
 

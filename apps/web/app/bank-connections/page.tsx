@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import BankConnectionCard from '@/components/bank/BankConnectionCard'
 import { useAuth } from '@/components/auth-provider'
+import BankConnectionCard from '@/components/bank/BankConnectionCard'
+import { getApiErrorMessage, parseApiErrorResponse } from '@/lib/api'
 import { isBankConnectionsDemoEnabled } from '@/lib/feature-flags'
 
 interface BankConnection {
@@ -32,16 +33,18 @@ interface AvailableBank {
   isDemo?: boolean
 }
 
+interface StartConnectionPayload {
+  bankCode: string
+  bankName?: string
+  accountNumber?: string
+  accountName?: string
+}
+
 export default function BankConnectionsPage() {
   const { fetchWithAuth } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const processedCallbackRef = useRef<string | null>(null)
-  const bankCode = searchParams.get('bankCode')
-  const callbackState = searchParams.get('state')
-  const callbackCode = searchParams.get('code')
-  const providerError = searchParams.get('error')
-  const errorDescription = searchParams.get('error_description') || ''
   const [connections, setConnections] = useState<BankConnection[]>([])
   const [availableBanks, setAvailableBanks] = useState<AvailableBank[]>([])
   const [loading, setLoading] = useState(true)
@@ -57,22 +60,38 @@ export default function BankConnectionsPage() {
     accountName: '',
   })
 
+  const bankCode = searchParams.get('bankCode')
+  const callbackState = searchParams.get('state')
+  const callbackCode = searchParams.get('code')
+  const providerError = searchParams.get('error')
+  const errorDescription = searchParams.get('error_description') || ''
+
   const loadData = useCallback(async () => {
     try {
-      const [connectionsRes, banksRes] = await Promise.all([
+      const [connectionsResponse, banksResponse] = await Promise.all([
         fetchWithAuth('/bank-connections'),
         fetchWithAuth('/bank-connections/banks'),
       ])
 
+      if (!connectionsResponse.ok) {
+        throw await parseApiErrorResponse(connectionsResponse, '/bank-connections')
+      }
+
+      if (!banksResponse.ok) {
+        throw await parseApiErrorResponse(banksResponse, '/bank-connections/banks')
+      }
+
       const [connectionsData, banksData] = await Promise.all([
-        connectionsRes.json(),
-        banksRes.json(),
+        connectionsResponse.json(),
+        banksResponse.json(),
       ])
 
       setConnections(connectionsData)
       setAvailableBanks(banksData)
-    } catch {
-      setError('Banka bağlantıları yüklenirken hata oluştu.')
+    } catch (loadError) {
+      setError(
+        getApiErrorMessage(loadError, 'Banka bağlantıları yüklenirken hata oluştu.')
+      )
     } finally {
       setLoading(false)
     }
@@ -87,7 +106,13 @@ export default function BankConnectionsPage() {
       return
     }
 
-    const callbackKey = [bankCode, callbackState, callbackCode || providerError || '', errorDescription].join(':')
+    const callbackKey = [
+      bankCode,
+      callbackState,
+      callbackCode || providerError || '',
+      errorDescription,
+    ].join(':')
+
     if (processedCallbackRef.current === callbackKey) {
       return
     }
@@ -112,32 +137,30 @@ export default function BankConnectionsPage() {
         )
 
         if (!response.ok) {
-          throw new Error('Banka bağlantısı doğrulanamadı.')
+          throw await parseApiErrorResponse(response, '/bank-connections/connect/callback')
         }
 
         const callbackConnection = (await response.json()) as BankConnection
 
-        if (!cancelled) {
-          setConnections((current) => {
-            const next = current.filter((connection) => connection.id !== callbackConnection.id)
-            return [callbackConnection, ...next]
-          })
-          setLoading(false)
-          setSuccessMessage('Banka bağlantısı doğrulandı.')
-          setProcessingCallback(false)
-          router.replace('/bank-connections')
-          void loadData()
+        if (cancelled) {
+          return
         }
+
+        setConnections((current) => {
+          const next = current.filter((connection) => connection.id !== callbackConnection.id)
+          return [callbackConnection, ...next]
+        })
+        setLoading(false)
+        setSuccessMessage('Banka bağlantısı doğrulandı.')
+        router.replace('/bank-connections')
+        void loadData()
       } catch (callbackError) {
-        if (!cancelled) {
-          setError(
-            callbackError instanceof Error
-              ? callbackError.message
-              : 'Banka callback işlemi başarısız.'
-          )
-          setProcessingCallback(false)
-          router.replace('/bank-connections')
+        if (cancelled) {
+          return
         }
+
+        setError(getApiErrorMessage(callbackError, 'Banka callback işlemi başarısız.'))
+        router.replace('/bank-connections')
       } finally {
         if (!cancelled) {
           setProcessingCallback(false)
@@ -167,12 +190,7 @@ export default function BankConnectionsPage() {
   )
 
   const startConnection = useCallback(
-    async (payload: {
-      bankCode: string
-      bankName?: string
-      accountNumber?: string
-      accountName?: string
-    }) => {
+    async (payload: StartConnectionPayload) => {
       setSubmitting(true)
       setError(null)
       setSuccessMessage(null)
@@ -184,17 +202,13 @@ export default function BankConnectionsPage() {
         })
 
         if (!response.ok) {
-          throw new Error('Banka izin akışı başlatılamadı.')
+          throw await parseApiErrorResponse(response, '/bank-connections/connect/start')
         }
 
         const data = await response.json()
         window.location.assign(data.redirectUrl)
       } catch (startError) {
-        setError(
-          startError instanceof Error
-            ? startError.message
-            : 'Banka izin akışı başlatılamadı.'
-        )
+        setError(getApiErrorMessage(startError, 'Banka izin akışı başlatılamadı.'))
       } finally {
         setSubmitting(false)
       }
@@ -224,17 +238,16 @@ export default function BankConnectionsPage() {
       })
 
       if (!response.ok) {
-        throw new Error('Yeniden doğrulama başlatılamadı.')
+        throw await parseApiErrorResponse(
+          response,
+          `/bank-connections/${connectionId}/reconnect`
+        )
       }
 
       const data = await response.json()
       window.location.assign(data.redirectUrl)
     } catch (reconnectError) {
-      setError(
-        reconnectError instanceof Error
-          ? reconnectError.message
-          : 'Yeniden doğrulama başlatılamadı.'
-      )
+      setError(getApiErrorMessage(reconnectError, 'Yeniden doğrulama başlatılamadı.'))
     }
   }
 
@@ -242,18 +255,19 @@ export default function BankConnectionsPage() {
     try {
       setError(null)
       setSuccessMessage(null)
+
       const response = await fetchWithAuth(`/bank-connections/${connectionId}/sync`, {
         method: 'POST',
       })
 
       if (!response.ok) {
-        throw new Error('Senkronizasyon başarısız.')
+        throw await parseApiErrorResponse(response, `/bank-connections/${connectionId}/sync`)
       }
 
       setSuccessMessage('Banka hareketleri güncellendi.')
       await loadData()
     } catch (syncError) {
-      setError(syncError instanceof Error ? syncError.message : 'Senkronizasyon başarısız.')
+      setError(getApiErrorMessage(syncError, 'Senkronizasyon başarısız.'))
     }
   }
 
@@ -265,33 +279,35 @@ export default function BankConnectionsPage() {
     try {
       setError(null)
       setSuccessMessage(null)
+
       const response = await fetchWithAuth(`/bank-connections/${connectionId}`, {
         method: 'DELETE',
       })
 
       if (!response.ok) {
-        throw new Error('Bağlantı silinirken hata oluştu.')
+        throw await parseApiErrorResponse(response, `/bank-connections/${connectionId}`)
       }
 
       setSuccessMessage('Banka bağlantısı silindi.')
       await loadData()
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : 'Bağlantı silinirken hata oluştu.')
+      setError(getApiErrorMessage(deleteError, 'Bağlantı silinirken hata oluştu.'))
     }
   }
 
   return (
-    <div className="container mx-auto max-w-5xl px-4 py-8">
+    <div className="container mx-auto max-w-5xl px-4 py-8 animate-fade-in-soft">
       <div className="mb-8 flex items-start justify-between gap-6">
-        <div>
+        <div className="space-y-2 animate-slide-up-soft">
           <h1 className="text-2xl font-bold text-foreground">Banka Bağlantıları</h1>
-          <p className="mt-1 text-muted-foreground">
-            Open Banking izin akışı ile banka hesaplarınızı bağlayın ve senkron durumunu takip edin.
+          <p className="text-muted-foreground">
+            Open Banking izin akışı ile banka hesaplarınızı bağlayın ve senkron
+            durumunu takip edin.
           </p>
         </div>
         <button
           onClick={() => setShowAddForm(true)}
-          className="flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-white transition-colors hover:bg-primary-700"
+          className="flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-white transition-colors hover:bg-primary-700 motion-safe:transition-[transform,background-color] motion-safe:duration-200 motion-safe:hover:-translate-y-0.5"
         >
           <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -301,7 +317,7 @@ export default function BankConnectionsPage() {
       </div>
 
       {(loading || processingCallback) && (
-        <div className="mb-6 flex items-center gap-3 rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+        <div className="mb-6 flex items-center gap-3 rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground animate-inline-feedback">
           <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-primary-600" />
           {processingCallback
             ? 'Banka bağlantısı doğrulanıyor...'
@@ -310,26 +326,34 @@ export default function BankConnectionsPage() {
       )}
 
       {error && (
-        <div className="mb-6 rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3 text-destructive">
-          {error}
-          <button onClick={() => setError(null)} className="float-right font-bold">
+        <div className="mb-6 rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3 text-destructive animate-inline-feedback">
+          <button
+            onClick={() => setError(null)}
+            className="float-right font-bold"
+            aria-label="Hata mesajını kapat"
+          >
             ×
           </button>
+          {error}
         </div>
       )}
 
       {successMessage && (
-        <div className="mb-6 rounded-lg border border-success/20 bg-success/10 px-4 py-3 text-success">
-          {successMessage}
-          <button onClick={() => setSuccessMessage(null)} className="float-right font-bold">
+        <div className="mb-6 rounded-lg border border-success/20 bg-success/10 px-4 py-3 text-success animate-inline-feedback">
+          <button
+            onClick={() => setSuccessMessage(null)}
+            className="float-right font-bold"
+            aria-label="Başarı mesajını kapat"
+          >
             ×
           </button>
+          {successMessage}
         </div>
       )}
 
       {showAddForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-md rounded-xl bg-card p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-fade-in-soft">
+          <div className="w-full max-w-md rounded-xl bg-card p-6 shadow-xl animate-scale-in-soft">
             <h2 className="mb-4 text-xl font-semibold">Yeni Banka Bağlantısı</h2>
             <form onSubmit={handleAddConnection}>
               <div className="space-y-4">
@@ -340,7 +364,9 @@ export default function BankConnectionsPage() {
                   <select
                     value={formData.bankCode}
                     onChange={(event) => {
-                      const selected = visibleBanks.find((bank) => bank.code === event.target.value)
+                      const selected = visibleBanks.find(
+                        (bank) => bank.code === event.target.value
+                      )
                       setFormData((current) => ({
                         ...current,
                         bankCode: event.target.value,
@@ -366,7 +392,12 @@ export default function BankConnectionsPage() {
                   <input
                     type="text"
                     value={formData.accountNumber}
-                    onChange={(event) => setFormData((current) => ({ ...current, accountNumber: event.target.value }))}
+                    onChange={(event) =>
+                      setFormData((current) => ({
+                        ...current,
+                        accountNumber: event.target.value,
+                      }))
+                    }
                     className="w-full rounded-lg border border-border px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-primary-500"
                     placeholder="TR00 0000..."
                   />
@@ -379,7 +410,12 @@ export default function BankConnectionsPage() {
                   <input
                     type="text"
                     value={formData.accountName}
-                    onChange={(event) => setFormData((current) => ({ ...current, accountName: event.target.value }))}
+                    onChange={(event) =>
+                      setFormData((current) => ({
+                        ...current,
+                        accountName: event.target.value,
+                      }))
+                    }
                     className="w-full rounded-lg border border-border px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-primary-500"
                     placeholder="Ana Hesap"
                   />
@@ -413,24 +449,42 @@ export default function BankConnectionsPage() {
             Banka bağlantıları yükleniyor...
           </div>
         ) : (
-        <div className="rounded-xl bg-muted/40 py-12 text-center">
-          <svg className="mx-auto mb-4 h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-          </svg>
-          <h3 className="mb-2 text-lg font-medium text-foreground">Henüz banka bağlantısı yok</h3>
-          <p className="mb-4 text-muted-foreground">
-            Banka hesabınızı bağlayarak işlemlerinizi otomatik olarak içe aktarabilirsiniz.
-          </p>
-          <button
-            onClick={() => setShowAddForm(true)}
-            className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-white hover:bg-primary-700"
-          >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          <div className="rounded-xl bg-muted/40 py-12 text-center animate-fade-in-soft">
+            <svg
+              className="mx-auto mb-4 h-16 w-16 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+              />
             </svg>
-            İlk Banka Bağlantısını Ekle
-          </button>
-        </div>
+            <h3 className="mb-2 text-lg font-medium text-foreground">
+              Henüz banka bağlantısı yok
+            </h3>
+            <p className="mb-4 text-muted-foreground">
+              Banka hesabınızı bağlayarak işlemlerinizi otomatik olarak içe
+              aktarabilirsiniz.
+            </p>
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-white hover:bg-primary-700 motion-safe:transition-[transform,background-color] motion-safe:duration-200 motion-safe:hover:-translate-y-0.5"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+              İlk Banka Bağlantısını Ekle
+            </button>
+          </div>
         )
       ) : (
         <div className="grid gap-4">
@@ -447,15 +501,26 @@ export default function BankConnectionsPage() {
       )}
 
       {isBankConnectionsDemoEnabled && (
-        <div className="mt-8 rounded-xl border border-blue-200 bg-blue-50 p-4">
+        <div className="mt-8 rounded-xl border border-blue-200 bg-blue-50 p-4 animate-fade-in-soft">
           <div className="flex gap-3">
-            <svg className="h-6 w-6 flex-shrink-0 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <svg
+              className="h-6 w-6 flex-shrink-0 text-blue-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
             <div>
               <h4 className="font-medium text-blue-900">Demo Mod</h4>
               <p className="mt-1 text-sm text-blue-700">
-                Demo sağlayıcı ve otomatik callback akışı sadece feature flag açıkken görünür.
+                Demo sağlayıcı ve otomatik callback akışı sadece feature flag açıkken
+                görünür.
               </p>
             </div>
           </div>

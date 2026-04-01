@@ -7,6 +7,20 @@ type FetchApiOptions = RequestInit & {
   allowUnauthorized?: boolean;
 };
 
+export interface ApiErrorPayload {
+  code?: string;
+  message?: string;
+  details?: Record<string, unknown>;
+  timestamp?: string;
+  path?: string;
+  requestId?: string;
+}
+
+export interface ApiErrorResponse {
+  success: false;
+  error: ApiErrorPayload;
+}
+
 export interface SessionUser {
   id: string;
   email: string;
@@ -30,9 +44,20 @@ export function getAuthToken(): string | null {
 }
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(
+    public status: number,
+    message: string,
+    public code?: string,
+    public details?: Record<string, unknown>,
+    public requestId?: string,
+    public retryable: boolean = status >= 500 || status === 408 || status === 429,
+  ) {
     super(message);
     this.name = 'ApiError';
+  }
+
+  static isApiError(error: unknown): error is ApiError {
+    return error instanceof ApiError;
   }
 }
 
@@ -42,6 +67,99 @@ function buildHeaders(headers: HeadersInit | undefined, body: BodyInit | null | 
     resolvedHeaders.set('Content-Type', 'application/json');
   }
   return resolvedHeaders;
+}
+
+function isApiErrorResponse(payload: unknown): payload is ApiErrorResponse {
+  return (
+    typeof payload === 'object' &&
+    payload !== null &&
+    'success' in payload &&
+    (payload as { success?: boolean }).success === false &&
+    'error' in payload
+  );
+}
+
+function isRetryableStatus(status: number): boolean {
+  return status >= 500 || status === 408 || status === 429;
+}
+
+function getFallbackErrorMessage(status: number, statusText: string) {
+  if (status === 401) return 'Oturumunuz sona erdi. Lutfen tekrar giris yapin.';
+  if (status === 403) return 'Bu islem icin yetkiniz bulunmuyor.';
+  if (status === 404) return 'Istenen kayit bulunamadi.';
+  if (status === 429) return 'Cok fazla istek gonderdiniz. Lutfen biraz bekleyin.';
+  if (status >= 500) return 'Islem su anda tamamlanamiyor. Lutfen daha sonra tekrar deneyin.';
+  return statusText || 'Istek basarisiz oldu.';
+}
+
+export async function parseApiErrorResponse(
+  response: Response,
+  endpoint: string,
+): Promise<ApiError> {
+  let payload: unknown;
+
+  try {
+    payload = await response.json();
+  } catch {
+    payload = null;
+  }
+
+  const fallbackMessage = getFallbackErrorMessage(response.status, response.statusText);
+  const headerRequestId =
+    response.headers.get('x-request-id') || response.headers.get('X-Request-Id') || undefined;
+
+  if (isApiErrorResponse(payload)) {
+    return new ApiError(
+      response.status,
+      payload.error.message || fallbackMessage,
+      payload.error.code,
+      payload.error.details,
+      payload.error.requestId || headerRequestId,
+      isRetryableStatus(response.status),
+    );
+  }
+
+  if (typeof payload === 'object' && payload !== null) {
+    const fallbackPayload = payload as {
+      message?: string;
+      code?: string;
+      details?: Record<string, unknown>;
+      requestId?: string;
+    };
+
+    return new ApiError(
+      response.status,
+      fallbackPayload.message || fallbackMessage,
+      fallbackPayload.code,
+      fallbackPayload.details,
+      fallbackPayload.requestId || headerRequestId,
+      isRetryableStatus(response.status),
+    );
+  }
+
+  return new ApiError(
+    response.status,
+    fallbackMessage,
+    undefined,
+    endpoint ? { endpoint } : undefined,
+    headerRequestId,
+    isRetryableStatus(response.status),
+  );
+}
+
+export function getApiErrorMessage(error: unknown, fallback = 'Islem tamamlanamadi.') {
+  if (error instanceof ApiError) {
+    return error.message;
+  }
+
+  if (error instanceof Error) {
+    if (error.message.toLowerCase().includes('fetch')) {
+      return 'Sunucuya baglanilamiyor. Lutfen baglantinizi kontrol edin.';
+    }
+    return error.message;
+  }
+
+  return fallback;
 }
 
 async function refreshSession(): Promise<boolean> {
@@ -88,7 +206,7 @@ async function fetchApi<T>(endpoint: string, options: FetchApiOptions = {}): Pro
   }
 
   if (!res.ok) {
-    throw new ApiError(res.status, `API Error: ${res.statusText}`);
+    throw await parseApiErrorResponse(res, endpoint);
   }
 
   if (res.status === 204) {
@@ -255,7 +373,7 @@ export const uploadPdf = async (file: File): Promise<UploadResult> => {
   });
 
   if (!res.ok) {
-    throw new ApiError(res.status, 'PDF upload failed');
+    throw await parseApiErrorResponse(res, '/uploads/pdf');
   }
 
   return res.json();
@@ -272,7 +390,7 @@ export const previewPdfImport = async (file: File): Promise<UploadPreview> => {
   });
 
   if (!res.ok) {
-    throw new ApiError(res.status, 'PDF preview failed');
+    throw await parseApiErrorResponse(res, '/uploads/pdf/preview');
   }
 
   return res.json();
@@ -340,7 +458,7 @@ export async function previewPdfImportBatch(
         fileSize: file.size,
         totalParsed: 0,
         lowConfidenceCount: 0,
-        errors: [error instanceof Error ? error.message : 'PDF preview failed'],
+        errors: [getApiErrorMessage(error, 'PDF preview failed')],
         suggestions: [],
         transactions: [],
       }
@@ -385,7 +503,7 @@ export async function confirmPdfImportBatch(
           totalParsed: payload.totalParsed,
           totalSaved: 0,
           lowConfidenceCount: payload.transactions.filter((transaction) => transaction.confidence < 70).length,
-          errors: [error instanceof Error ? error.message : 'Import failed'],
+          errors: [getApiErrorMessage(error, 'Import failed')],
           suggestions: [],
           transactions: [],
         },

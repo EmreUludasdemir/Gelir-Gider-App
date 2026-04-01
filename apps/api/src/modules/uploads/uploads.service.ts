@@ -15,6 +15,7 @@ import { PrismaService } from '../../prisma.service';
 import { CacheService } from '../../shared/cache';
 import { AutoCategorizerService } from '../ai/auto-categorizer.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
+import { AppException, ErrorCode } from '../../shared';
 
 interface ParsedTransaction {
   date: string;
@@ -22,6 +23,12 @@ interface ParsedTransaction {
   amount: number;
   currency: string;
   type?: 'income' | 'expense';
+}
+
+interface PdfParserResponse {
+  success: boolean;
+  transactions?: ParsedTransaction[];
+  errors?: string[];
 }
 
 export interface ConfirmPdfUploadDto {
@@ -265,29 +272,64 @@ export class UploadsService {
     const pdfBlob = new Blob([pdfBuffer], { type: 'application/pdf' });
     formData.append('file', pdfBlob, file.originalname);
 
-    const response = await fetch(`${pdfParserUrl}/parse`, {
-      method: 'POST',
-      body: formData,
-    });
+    try {
+      const response = await fetch(`${pdfParserUrl}/parse`, {
+        method: 'POST',
+        body: formData,
+      });
 
-    if (!response.ok) {
-      throw new Error(`PDF Parser service error: ${response.statusText}`);
+      if (!response.ok) {
+        throw new AppException(
+          response.status >= 500 ? ErrorCode.EXTERNAL_UNAVAILABLE : ErrorCode.PDF_PARSER_ERROR,
+          'PDF parser servisi dosyayi isleyemedi.',
+          {
+            module: 'uploads',
+            provider: 'pdf_parser',
+            statusCode: response.status,
+            statusText: response.statusText,
+          },
+        );
+      }
+
+      const parseResult = (await response.json()) as PdfParserResponse;
+
+      if (!parseResult.success) {
+        throw new AppException(
+          ErrorCode.PDF_PARSER_ERROR,
+          'PDF dosyasi islenemedi.',
+          {
+            module: 'uploads',
+            provider: 'pdf_parser',
+            parserErrors: parseResult.errors || [],
+          },
+        );
+      }
+
+      return {
+        transactions: parseResult.transactions || [],
+        errors: parseResult.errors || [],
+      };
+    } catch (error) {
+      if (error instanceof AppException) {
+        throw error;
+      }
+
+      const isTimeout =
+        error instanceof Error &&
+        (error.name === 'AbortError' || error.name === 'TimeoutError');
+
+      throw new AppException(
+        isTimeout ? ErrorCode.EXTERNAL_TIMEOUT : ErrorCode.EXTERNAL_UNAVAILABLE,
+        isTimeout
+          ? 'PDF parser servisi zaman asimina ugradi.'
+          : 'PDF parser servisine su anda ulasilamiyor.',
+        {
+          module: 'uploads',
+          provider: 'pdf_parser',
+          originalMessage: error instanceof Error ? error.message : 'Unknown parser error',
+        },
+      );
     }
-
-    const parseResult = (await response.json()) as {
-      success: boolean;
-      transactions?: ParsedTransaction[];
-      errors?: string[];
-    };
-
-    if (!parseResult.success) {
-      throw new Error('PDF parsing failed');
-    }
-
-    return {
-      transactions: parseResult.transactions || [],
-      errors: parseResult.errors || [],
-    };
   }
 
   private async buildPreviewTransaction(
@@ -432,10 +474,14 @@ export class UploadsService {
     fileSize: number,
     error: unknown,
   ): UploadPreview {
-    this.logger.error('Error in previewPdf:', error);
-
-    if (error instanceof Error && error.message.includes('fetch')) {
-      this.logger.error('PDF Parser service not available');
+    if (error instanceof AppException) {
+      const response = error.getResponse() as
+        | { error?: { message?: string } }
+        | undefined;
+      const errorMessage = response?.error?.message || error.message;
+      this.logger.error(
+        `PDF preview failed [provider=pdf_parser code=${error.code}] ${errorMessage}`,
+      );
       return {
         success: false,
         filename,
@@ -444,8 +490,7 @@ export class UploadsService {
         totalParsed: 0,
         lowConfidenceCount: 0,
         errors: [
-          'PDF Parser service is not available. Please start the service with: npm run dev:parser',
-          error.message,
+          errorMessage,
         ],
         suggestions: [],
         transactions: [],
@@ -453,7 +498,7 @@ export class UploadsService {
     }
 
     const errorMessage = `Failed to process PDF: ${error instanceof Error ? error.message : 'Unknown error'}`;
-    this.logger.error('Throwing BadRequestException:', errorMessage);
+    this.logger.error(errorMessage);
     throw new BadRequestException(errorMessage);
   }
 

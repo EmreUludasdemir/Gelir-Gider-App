@@ -3,6 +3,7 @@
 import { Suspense } from 'react'
 import dynamic from 'next/dynamic'
 import { useRefreshAll, useSummary, useTransactions } from '@/lib/hooks'
+import { getApiErrorMessage } from '@/lib/api'
 import { StatCard } from '@/components/dashboard/StatCard'
 import { DashboardHero } from '@/components/dashboard/DashboardHero'
 import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState'
@@ -102,7 +103,7 @@ export default function DashboardPage() {
   }
 
   if (summaryError || transactionsError) {
-    const errorMessage = summaryError?.message || transactionsError?.message || '';
+    const errorMessage = getApiErrorMessage(summaryError || transactionsError, '');
     const isNetworkError = errorMessage.includes('fetch') || errorMessage.includes('network');
     
     return (
@@ -253,4 +254,3 @@ export default function DashboardPage() {
     </div>
   )
 }
-

@@ -37,7 +37,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let errorCode = ErrorCode.INTERNAL_ERROR;
     let message = ErrorMessages[ErrorCode.INTERNAL_ERROR];
-    let details: Record<string, any> | undefined;
+    let details: Record<string, unknown> | undefined;
 
     // Handle different exception types
     if (exception instanceof AppException) {
@@ -89,7 +89,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     }
 
     // Log the error
-    this.logError(exception, request, requestId, status);
+    this.logError(exception, request, requestId, status, errorCode, details);
 
     // Send response
     const errorResponse = {
@@ -182,30 +182,42 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     request: Request,
     requestId: string,
     status: number,
+    errorCode: ErrorCode,
+    details?: Record<string, unknown>,
   ): void {
     const errorInfo = {
       requestId,
+      module: 'api',
+      errorCode,
       method: request.method,
       url: request.url,
       ip: request.ip,
       userId: (request as any).user?.userId,
       userAgent: request.headers['user-agent'],
       status,
+      ...(details ? { details } : {}),
     };
 
+    const message = exception instanceof Error ? exception.message : String(exception);
+    const trace = exception instanceof Error ? exception.stack : undefined;
+
     if (status >= 500) {
-      // Server errors - log with stack trace
-      this.logger.error(
-        `[${requestId}] ${request.method} ${request.url} - ${status}`,
-        exception instanceof Error ? exception.stack : String(exception),
-        'ExceptionFilter',
-      );
+      const logger = this.logger as LoggerService & {
+        error?: (message: string, meta?: Record<string, unknown>) => void;
+      };
+
+      if (typeof logger.error === 'function') {
+        logger.error(message, {
+          context: 'ExceptionFilter',
+          ...errorInfo,
+          ...(trace ? { trace } : {}),
+        });
+      }
     } else if (status >= 400) {
-      // Client errors - log as warning
-      this.logger.warn(
-        `[${requestId}] ${request.method} ${request.url} - ${status}`,
-        { ...errorInfo, message: exception instanceof Error ? exception.message : String(exception) },
-      );
+      this.logger.warn(message, {
+        context: 'ExceptionFilter',
+        ...errorInfo,
+      });
     }
   }
 
