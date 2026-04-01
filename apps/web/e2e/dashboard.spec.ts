@@ -64,7 +64,13 @@ test.describe('Dashboard', () => {
   test('applies quick expense filter', async ({ page }) => {
     await page.goto('/dashboard/transactions')
 
-    await page.getByRole('button', { name: 'Tum Giderler' }).click()
+    const filteredResponse = page.waitForResponse((response) => {
+      const url = new URL(response.url())
+      return url.pathname.endsWith('/transactions') && url.searchParams.get('type') === 'expense'
+    })
+
+    await page.getByRole('button', { name: /T[üu]m Giderler/i }).click()
+    await filteredResponse
 
     await expect(page.getByTitle('Kira Odemesi', { exact: true })).toBeVisible()
     await expect(page.getByTitle('Migros Market')).toBeVisible()

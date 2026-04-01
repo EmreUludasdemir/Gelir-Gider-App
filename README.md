@@ -57,12 +57,14 @@ Gerekli env degiskenleri:
 - `FRONTEND_URL`
 - `CORS_ORIGINS`
 - `NEXT_PUBLIC_API_URL`
+- `INTERNAL_API_URL` (web server-side fetch/rewrite icin)
 - `GEMINI_API_KEY` (AI ozellikleri icin)
 
 Kritik notlar:
 - `NEXT_PUBLIC_GEMINI_API_KEY` kullanilmaz.
 - PDF parser CORS allowlist'i `CORS_ORIGINS` ile yonetilir.
 - Production ortaminda kritik secret'lar fallback ile calistirilmaz.
+- Docker veya reverse proxy arkasinda web icin `NEXT_PUBLIC_API_URL` browser tarafindan erisilebilir adresi, `INTERNAL_API_URL` ise web sunucusunun API'ye ulasacagi internal adresi gosterir.
 
 ## Lokalde Calistirma
 Altyapi servisleri:

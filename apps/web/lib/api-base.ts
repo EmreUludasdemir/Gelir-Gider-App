@@ -1,4 +1,4 @@
-const DEFAULT_INTERNAL_API_URL = 'http://api:3001';
+const DEFAULT_INTERNAL_API_URL = 'http://localhost:3001';
 
 const trimTrailingSlash = (value: string) =>
   value.endsWith('/') ? value.slice(0, -1) : value;
@@ -6,29 +6,45 @@ const trimTrailingSlash = (value: string) =>
 const isAbsoluteUrl = (value: string) => /^https?:\/\//i.test(value);
 
 export const getApiBaseUrl = () => {
-  const envUrl = process.env.NEXT_PUBLIC_API_URL;
-  if (envUrl) {
-    return trimTrailingSlash(envUrl);
-  }
-
   if (typeof window !== 'undefined') {
-    return '/api';
+    const envUrl = process.env.NEXT_PUBLIC_API_URL;
+    return trimTrailingSlash(envUrl || '/api');
   }
 
-  return trimTrailingSlash(process.env.INTERNAL_API_URL || DEFAULT_INTERNAL_API_URL);
+  const internalUrl = process.env.INTERNAL_API_URL;
+  if (internalUrl) {
+    return trimTrailingSlash(internalUrl);
+  }
+
+  const publicUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (publicUrl && isAbsoluteUrl(publicUrl)) {
+    return trimTrailingSlash(publicUrl);
+  }
+
+  return DEFAULT_INTERNAL_API_URL;
 };
 
 export const getRealtimeBaseUrl = () => {
-  const envUrl = process.env.NEXT_PUBLIC_API_URL;
-  if (envUrl && isAbsoluteUrl(envUrl)) {
-    return trimTrailingSlash(envUrl);
-  }
-
   if (typeof window !== 'undefined') {
+    const envUrl = process.env.NEXT_PUBLIC_API_URL;
+    if (envUrl && isAbsoluteUrl(envUrl)) {
+      return trimTrailingSlash(envUrl);
+    }
+
     const { protocol, hostname, port } = window.location;
     const apiPort = port === '3000' || port === '' ? '3001' : port;
     return `${protocol}//${hostname}:${apiPort}`;
   }
 
-  return trimTrailingSlash(process.env.INTERNAL_API_URL || DEFAULT_INTERNAL_API_URL);
+  const internalUrl = process.env.INTERNAL_API_URL;
+  if (internalUrl) {
+    return trimTrailingSlash(internalUrl);
+  }
+
+  const publicUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (publicUrl && isAbsoluteUrl(publicUrl)) {
+    return trimTrailingSlash(publicUrl);
+  }
+
+  return DEFAULT_INTERNAL_API_URL;
 };

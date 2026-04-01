@@ -29,6 +29,7 @@ Minimum gerekli env degerleri:
 - `FRONTEND_URL=http://localhost:3000`
 - `CORS_ORIGINS=http://localhost:3000`
 - `NEXT_PUBLIC_API_URL=http://localhost:3001`
+- `INTERNAL_API_URL=http://localhost:3001`
 
 AI kullanacaksan:
 - `GEMINI_API_KEY`
@@ -36,6 +37,7 @@ AI kullanacaksan:
 Not:
 - `NEXT_PUBLIC_GEMINI_API_KEY` kullanma.
 - Web auth token'i `localStorage`'da tutulmaz.
+- Docker veya reverse proxy kullaniyorsan `NEXT_PUBLIC_API_URL` browser tarafindan erisilen adres, `INTERNAL_API_URL` ise web servisinin API'ye eristigi internal adres olmali.
 
 ## 4. Altyapiyi kaldir
 ```bash

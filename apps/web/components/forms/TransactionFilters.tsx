@@ -81,6 +81,19 @@ export function TransactionFilters({ searchInputId, onFilterChange, onReset }: T
   // Debounce search input
   const debouncedSearch = useDebounce(searchValue, 300)
   const isFirstRender = useRef(true)
+  const latestFiltersRef = useRef<FilterState>({})
+  const buildCleanFilters = useCallback(
+    (nextFilters: FilterState) =>
+      Object.entries(nextFilters).reduce((acc, [k, v]) => {
+        if (v && v !== '') acc[k] = v
+        return acc
+      }, {} as Record<string, string>),
+    [],
+  )
+
+  useEffect(() => {
+    latestFiltersRef.current = filters
+  }, [filters])
 
   // Apply debounced search
   useEffect(() => {
@@ -88,11 +101,15 @@ export function TransactionFilters({ searchInputId, onFilterChange, onReset }: T
       isFirstRender.current = false
       return
     }
-    
-    const nextFilters = { ...filters, search: debouncedSearch }
+
+    if ((latestFiltersRef.current.search || '') === debouncedSearch) {
+      return
+    }
+
+    const nextFilters = { ...latestFiltersRef.current, search: debouncedSearch }
     setFilters(nextFilters)
     onFilterChange(buildCleanFilters(nextFilters))
-  }, [debouncedSearch])
+  }, [buildCleanFilters, debouncedSearch, onFilterChange])
 
   const getMonthOptions = useCallback(() => {
     const months = []
@@ -108,12 +125,6 @@ export function TransactionFilters({ searchInputId, onFilterChange, onReset }: T
 
     return [{ value: '', label: language === 'tr' ? 'Tüm Aylar' : 'All Months' }, ...months]
   }, [language])
-
-  const buildCleanFilters = (nextFilters: FilterState) =>
-    Object.entries(nextFilters).reduce((acc, [k, v]) => {
-      if (v && v !== '') acc[k] = v
-      return acc
-    }, {} as Record<string, string>)
 
   const applyFilters = (nextFilters: FilterState) => {
     setIsApplying(true)

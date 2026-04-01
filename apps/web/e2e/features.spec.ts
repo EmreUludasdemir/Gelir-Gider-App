@@ -108,7 +108,7 @@ test.describe('PDF Upload Review', () => {
     await expect(page.getByTestId('pdf-import-review')).toBeVisible()
     await expect(page.getByText('Toplu import review hazir')).toBeVisible()
     await expect(page.getByText('Dosya bazli kalite sinyali')).toBeVisible()
-    await expect(page.getByText('PDF arsivi (4)')).toBeVisible()
+    await expect(page.getByRole('heading', { name: /PDF ar[şs]ivi \(4\)/i })).toBeVisible()
   })
 })
 
