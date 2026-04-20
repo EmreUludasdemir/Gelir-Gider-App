@@ -517,8 +517,9 @@ export class SubscriptionService {
       nextPayment.setFullYear(nextPayment.getFullYear() + 1)
     }
 
-    const activityWindowDays = expectedInterval + Math.max(10, Math.round(cadenceVariance * 1.5))
-    const isActive = Date.now() - lastPayment.getTime() < activityWindowDays * 24 * 60 * 60 * 1000
+    const activityGraceDays = this.getActivityGraceDays(frequency, cadenceVariance)
+    const isActive =
+      Date.now() <= nextPayment.getTime() + activityGraceDays * 24 * 60 * 60 * 1000
     if (!isActive) confidenceScore -= 10
 
     confidenceScore = Math.max(35, Math.min(99, confidenceScore))
@@ -716,6 +717,17 @@ export class SubscriptionService {
     if (frequency === 'weekly') return 7
     if (frequency === 'yearly') return 365
     return 30
+  }
+
+  private getActivityGraceDays(
+    frequency: 'weekly' | 'monthly' | 'yearly',
+    cadenceVariance: number,
+  ) {
+    const baseGraceDays = frequency === 'weekly' ? 4 : frequency === 'yearly' ? 45 : 14
+    const varianceBuffer = Math.max(0, Math.round(cadenceVariance))
+    const maxVarianceBuffer = frequency === 'weekly' ? 3 : frequency === 'yearly' ? 30 : 10
+
+    return baseGraceDays + Math.min(varianceBuffer, maxVarianceBuffer)
   }
 
   private standardDeviation(values: number[]) {

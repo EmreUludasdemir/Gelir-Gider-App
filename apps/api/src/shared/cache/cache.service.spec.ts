@@ -55,4 +55,15 @@ describe("CacheService", () => {
     );
     expect(service.getStats().misses).toBe(1);
   });
+
+  it("should use in-memory fallback when Redis is unavailable", async () => {
+    service["client"] = null;
+    service["isConnected"] = false;
+
+    await service.set("auth:refresh:user-1", { session: "active" }, 60);
+    const result = await service.get<{ session: string }>("auth:refresh:user-1");
+
+    expect(result).toEqual({ session: "active" });
+    expect(service.getStats().hits).toBe(1);
+  });
 });

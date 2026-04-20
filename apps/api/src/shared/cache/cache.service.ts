@@ -29,6 +29,11 @@ export interface CacheStats {
   isConnected: boolean;
 }
 
+interface MemoryCacheEntry {
+  value: string;
+  expiresAt: number;
+}
+
 /**
  * Default TTL values for different data types
  */
@@ -69,6 +74,7 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
     avgResponseTime: 0,
   };
   private responseTimes: number[] = [];
+  private readonly memoryStore = new Map<string, MemoryCacheEntry>();
 
   constructor(
     @Inject(WINSTON_MODULE_NEST_PROVIDER)
@@ -133,6 +139,42 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
     return this.isConnected && this.client !== null;
   }
 
+  private getMemoryValue(key: string): string | null {
+    const entry = this.memoryStore.get(key);
+    if (!entry) {
+      return null;
+    }
+
+    if (entry.expiresAt <= Date.now()) {
+      this.memoryStore.delete(key);
+      return null;
+    }
+
+    return entry.value;
+  }
+
+  private setMemoryValue(key: string, value: string, ttl: number): void {
+    this.memoryStore.set(key, {
+      value,
+      expiresAt: Date.now() + ttl * 1000,
+    });
+  }
+
+  private getMemoryKeys(pattern: string): string[] {
+    const matcher = new RegExp(
+      `^${pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*')}$`,
+    );
+    const keys: string[] = [];
+
+    for (const key of this.memoryStore.keys()) {
+      if (this.getMemoryValue(key) !== null && matcher.test(key)) {
+        keys.push(key);
+      }
+    }
+
+    return keys;
+  }
+
   /**
    * Generate hash for query parameters
    */
@@ -167,9 +209,31 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
    * Get value from cache with metrics
    */
   async get<T>(key: string): Promise<T | null> {
-    if (!this.isAvailable()) return null;
-
     const startTime = Date.now();
+    if (!this.isAvailable()) {
+      const value = this.getMemoryValue(key);
+
+      if (!value) {
+        this.recordMetric(startTime, false);
+        this.logger.debug(`Cache MISS (memory): ${key}`, { context: 'CacheService' });
+        return null;
+      }
+
+      try {
+        const parsed = JSON.parse(value) as T;
+        this.recordMetric(startTime, true);
+        this.logger.debug(`Cache HIT (memory): ${key}`, { context: 'CacheService' });
+        return parsed;
+      } catch {
+        this.recordMetric(startTime, false);
+        this.logger.warn(`Memory cache entry is invalid JSON and will be evicted: ${key}`, {
+          context: 'CacheService',
+        });
+        this.memoryStore.delete(key);
+        return null;
+      }
+    }
+
     try {
       const value = await this.client!.get(key);
 
@@ -197,7 +261,25 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
         context: 'CacheService',
         key,
       });
-      return null;
+
+      const fallbackValue = this.getMemoryValue(key);
+      if (!fallbackValue) {
+        this.recordMetric(startTime, false);
+        return null;
+      }
+
+      try {
+        const parsed = JSON.parse(fallbackValue) as T;
+        this.recordMetric(startTime, true);
+        this.logger.debug(`Cache HIT (memory fallback): ${key}`, {
+          context: 'CacheService',
+        });
+        return parsed;
+      } catch {
+        this.recordMetric(startTime, false);
+        this.memoryStore.delete(key);
+        return null;
+      }
     }
   }
 
@@ -205,13 +287,23 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
    * Set value in cache
    */
   async set(key: string, value: unknown, ttl: number = CacheTTL.MEDIUM): Promise<void> {
-    if (!this.isAvailable()) return;
-
     try {
       const serialized = JSON.stringify(value);
+
+      if (!this.isAvailable()) {
+        this.setMemoryValue(key, serialized, ttl);
+        this.logger.debug(`Cache SET (memory): ${key} (TTL: ${ttl}s)`, { context: 'CacheService' });
+        return;
+      }
+
       await this.client!.setex(key, ttl, serialized);
       this.logger.debug(`Cache SET: ${key} (TTL: ${ttl}s)`, { context: 'CacheService' });
     } catch (error) {
+      try {
+        this.setMemoryValue(key, JSON.stringify(value), ttl);
+      } catch {
+        // Ignore serialization errors in fallback after the primary error has been logged.
+      }
       this.logger.error(`Cache SET error: ${error.message}`, {
         context: 'CacheService',
         key,
@@ -246,12 +338,17 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
    * Delete a specific key
    */
   async del(key: string): Promise<void> {
-    if (!this.isAvailable()) return;
+    if (!this.isAvailable()) {
+      this.memoryStore.delete(key);
+      this.logger.debug(`Cache DEL (memory): ${key}`, { context: 'CacheService' });
+      return;
+    }
 
     try {
       await this.client!.del(key);
       this.logger.debug(`Cache DEL: ${key}`, { context: 'CacheService' });
     } catch (error) {
+      this.memoryStore.delete(key);
       this.logger.error(`Cache DEL error: ${error.message}`, {
         context: 'CacheService',
         key,
@@ -263,7 +360,16 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
    * Delete keys matching pattern
    */
   async delPattern(pattern: string): Promise<number> {
-    if (!this.isAvailable()) return 0;
+    if (!this.isAvailable()) {
+      const keys = this.getMemoryKeys(pattern);
+      keys.forEach((key) => this.memoryStore.delete(key));
+      if (keys.length > 0) {
+        this.logger.debug(`Cache DEL pattern (memory): ${pattern} (${keys.length} keys)`, {
+          context: 'CacheService',
+        });
+      }
+      return keys.length;
+    }
 
     try {
       const keys = await this.client!.keys(pattern);
@@ -275,11 +381,13 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
       }
       return keys.length;
     } catch (error) {
+      const fallbackKeys = this.getMemoryKeys(pattern);
+      fallbackKeys.forEach((key) => this.memoryStore.delete(key));
       this.logger.error(`Cache DEL pattern error: ${error.message}`, {
         context: 'CacheService',
         pattern,
       });
-      return 0;
+      return fallbackKeys.length;
     }
   }
 
@@ -360,12 +468,17 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
    * Clear all caches (use with caution!)
    */
   async flushAll(): Promise<void> {
-    if (!this.isAvailable()) return;
+    if (!this.isAvailable()) {
+      this.memoryStore.clear();
+      this.logger.warn('Cache FLUSH ALL executed (memory)', { context: 'CacheService' });
+      return;
+    }
 
     try {
       await this.client!.flushdb();
       this.logger.warn('Cache FLUSH ALL executed', { context: 'CacheService' });
     } catch (error) {
+      this.memoryStore.clear();
       this.logger.error(`Cache FLUSH error: ${error.message}`, {
         context: 'CacheService',
       });

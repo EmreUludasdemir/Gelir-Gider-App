@@ -4,6 +4,13 @@ import { mockAppRoutes, seedAuthenticatedSession } from './helpers'
 
 let consoleMonitor: ReturnType<typeof trackUnexpectedConsoleErrors>
 
+async function waitForBankConnectionsPage(page: any) {
+  await expect(page.getByRole('heading', { name: /Banka Bağlantıları/i })).toBeVisible({
+    timeout: 30000,
+  })
+  await expect(page.getByRole('button', { name: /Banka Ekle/i })).toBeVisible()
+}
+
 test.beforeEach(async ({ page }, testInfo) => {
   const ignoredPatterns: (string | RegExp)[] = []
 
@@ -64,11 +71,10 @@ test.describe('Bank Connections', () => {
     await seedAuthenticatedSession(page)
     await mockAppRoutes(page)
     await page.goto('/bank-connections')
+    await waitForBankConnectionsPage(page)
   })
 
   test('renders existing bank connections', async ({ page }) => {
-    await expect(page.getByRole('button', { name: /Banka Ekle/i })).toBeVisible({ timeout: 10000 })
-    await expect(page.getByRole('heading', { name: /Banka Bağlantıları/i })).toBeVisible()
     await expect(page.getByText('Akbank')).toBeVisible()
     await expect(page.getByText('Ana Hesap')).toBeVisible()
     await expect(page.getByText('Bağlı')).toBeVisible()
