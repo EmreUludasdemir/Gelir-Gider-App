@@ -12,7 +12,8 @@ import {
   ShieldCheck,
 } from 'lucide-react'
 import { markBillAsPaid } from '@/lib/api'
-import { useBudgetStatus, useSavingsGoals, useUpcomingBills } from '@/lib/hooks'
+import { useBudgetStatus, useSavingsGoals } from '@/lib/hooks'
+import { useUpcomingBillsQuery } from '@/lib/react-query-hooks'
 import { formatCurrency } from '@/lib/utils'
 import { useToast } from '@/components/ui/Toast'
 import { BudgetAlerts } from './BudgetAlerts'
@@ -49,7 +50,7 @@ export function DashboardCommandCenter() {
   const { showToast } = useToast()
   const { data: budgetsData, error: budgetsError, isLoading: budgetsLoading, mutate: mutateBudgets } = useBudgetStatus()
   const { data: goalsData, error: goalsError, isLoading: goalsLoading } = useSavingsGoals()
-  const { data: billsData, error: billsError, isLoading: billsLoading, mutate: mutateBills } = useUpcomingBills(14)
+  const { data: billsData, isError: billsError, isLoading: billsLoading, refetch: refetchBills } = useUpcomingBillsQuery(14)
   const [payingBillId, setPayingBillId] = useState<string | null>(null)
   const budgets = useMemo(() => budgetsData ?? [], [budgetsData])
   const goals = useMemo(() => goalsData ?? [], [goalsData])
@@ -147,7 +148,7 @@ export function DashboardCommandCenter() {
     try {
       setPayingBillId(billId)
       await markBillAsPaid(billId)
-      await Promise.all([mutateBills(), mutateBudgets()])
+      await Promise.all([refetchBills(), mutateBudgets()])
       showToast('Fatura odendi olarak isaretlendi.', 'success')
     } catch {
       showToast('Fatura guncellenemedi. Tekrar deneyin.', 'error')

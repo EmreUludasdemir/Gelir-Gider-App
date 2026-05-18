@@ -59,6 +59,11 @@ const RecurringPayments = dynamic(
   { loading: () => <CategorySkeleton /> }
 )
 
+const MonthlyComparison = dynamic(
+  () => import('@/components/dashboard/MonthlyComparison').then(mod => ({ default: mod.MonthlyComparison })),
+  { loading: () => <ChartSkeleton /> }
+)
+
 export default function DashboardPage() {
   const { loading: authLoading, user } = useAuth()
   const { data: summary, error: summaryError, isLoading: summaryLoading, mutate: mutateSummary } = useSummary()
@@ -209,6 +214,21 @@ export default function DashboardPage() {
           icon="wallet"
         />
       </div>
+
+      <Suspense fallback={<ChartSkeleton />}>
+        <MonthlyComparison
+          previousMonth={{
+            month: language === 'tr' ? 'Gecen Ay' : 'Last Month',
+            income: summary.comparison.previousMonth.income,
+            expense: summary.comparison.previousMonth.expense,
+          }}
+          currentMonth={{
+            month: language === 'tr' ? 'Bu Ay' : 'This Month',
+            income: summary.totals.income,
+            expense: summary.totals.expense,
+          }}
+        />
+      </Suspense>
 
       {/* AI Insights - Lazy loaded */}
       <Suspense fallback={<AIInsightsSkeleton />}>
