@@ -4,6 +4,7 @@ import { ToastProvider } from '@/components/ui/Toast'
 import { PreferencesProvider } from '@/lib/PreferencesContext'
 import { NotificationProvider } from '@/lib/NotificationContext'
 import { RealtimeProvider } from '@/contexts/RealtimeContext'
+import { QueryProvider } from '@/lib/query-provider'
 
 export const metadata: Metadata = {
   title: 'Gelir-Gider Takip',
@@ -51,11 +52,13 @@ export default function RootLayout({
         </a>
         <PreferencesProvider>
           <AuthProvider>
-            <NotificationProvider>
-              <RealtimeProvider>
-                <ToastProvider>{children}</ToastProvider>
-              </RealtimeProvider>
-            </NotificationProvider>
+            <QueryProvider>
+              <NotificationProvider>
+                <RealtimeProvider>
+                  <ToastProvider>{children}</ToastProvider>
+                </RealtimeProvider>
+              </NotificationProvider>
+            </QueryProvider>
           </AuthProvider>
         </PreferencesProvider>
         <script
@@ -73,7 +76,6 @@ export default function RootLayout({
     </html>
   )
 }
-
 
 
 
