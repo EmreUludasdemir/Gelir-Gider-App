@@ -1,5 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common'
 import { PrismaService } from '../../prisma.service'
+import { RedisService } from '../../redis.service'
 
 export interface DetectedSubscription {
   id: string
@@ -108,7 +109,10 @@ const MIN_KNOWN_CONFIDENCE = 58
 
 @Injectable()
 export class SubscriptionService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+  ) {}
 
   async findAll(userId: string): Promise<SubscriptionRecord[]> {
     const subscriptions = await this.prisma.subscription.findMany({
@@ -162,6 +166,7 @@ export class SubscriptionService {
           data,
         })
 
+    await this.invalidateAnalyticsCaches(userId)
     return this.mapSavedSubscription(subscription)
   }
 
@@ -189,6 +194,7 @@ export class SubscriptionService {
       },
     })
 
+    await this.invalidateAnalyticsCaches(userId)
     return this.mapSavedSubscription(updated)
   }
 
@@ -203,6 +209,7 @@ export class SubscriptionService {
     }
 
     await this.prisma.subscription.delete({ where: { id } })
+    await this.invalidateAnalyticsCaches(userId)
     return { success: true }
   }
 
@@ -257,6 +264,7 @@ export class SubscriptionService {
       })
     }
 
+    await this.invalidateAnalyticsCaches(userId)
     return { success: true }
   }
 
@@ -306,6 +314,7 @@ export class SubscriptionService {
       },
     })
 
+    await this.invalidateAnalyticsCaches(userId)
     return {
       success: true,
       fingerprint,
@@ -902,5 +911,10 @@ export class SubscriptionService {
     }
 
     return `${DISMISSED_DETECTION_NOTE} ${trimmed}`
+  }
+
+  private async invalidateAnalyticsCaches(userId: string) {
+    await this.redis.del(`analytics:action-feed:${userId}`)
+    await this.redis.del(`analytics:savings-actions:${userId}`)
   }
 }

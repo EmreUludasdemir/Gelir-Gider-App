@@ -8,6 +8,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { TransactionsService } from './transactions.service';
 import { PrismaService } from '../../prisma.service';
+import { RedisService } from '../../redis.service';
 import { CacheService } from '../../shared/cache';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { AutoCategorizerService } from '../ai/auto-categorizer.service';
@@ -49,6 +50,10 @@ const createMockRealtimeGateway = () => ({
   notifyBudgetUpdated: jest.fn(),
 });
 
+const createMockRedisService = () => ({
+  del: jest.fn().mockResolvedValue(undefined),
+});
+
 // Mock AutoCategorizerService
 const createMockAutoCategorizer = () => ({
   categorize: jest.fn().mockResolvedValue({
@@ -62,6 +67,7 @@ describe('TransactionsService', () => {
   let service: TransactionsService;
   let prisma: ReturnType<typeof createMockPrismaService>;
   let cache: ReturnType<typeof createMockCacheService>;
+  let redis: ReturnType<typeof createMockRedisService>;
   let realtime: ReturnType<typeof createMockRealtimeGateway>;
   let autoCategorizer: ReturnType<typeof createMockAutoCategorizer>;
 
@@ -71,6 +77,7 @@ describe('TransactionsService', () => {
   beforeEach(async () => {
     prisma = createMockPrismaService();
     cache = createMockCacheService();
+    redis = createMockRedisService();
     realtime = createMockRealtimeGateway();
     autoCategorizer = createMockAutoCategorizer();
 
@@ -79,6 +86,7 @@ describe('TransactionsService', () => {
         TransactionsService,
         { provide: PrismaService, useValue: prisma },
         { provide: CacheService, useValue: cache },
+        { provide: RedisService, useValue: redis },
         { provide: RealtimeGateway, useValue: realtime },
         { provide: AutoCategorizerService, useValue: autoCategorizer },
         { provide: WINSTON_MODULE_NEST_PROVIDER, useValue: createMockLogger() },
@@ -312,6 +320,8 @@ describe('TransactionsService', () => {
           }),
         }),
       );
+      expect(redis.del).toHaveBeenCalledWith(`analytics:action-feed:${userId}`);
+      expect(redis.del).toHaveBeenCalledWith(`analytics:savings-actions:${userId}`);
     });
 
     it('should auto-classify transaction when category not provided', async () => {

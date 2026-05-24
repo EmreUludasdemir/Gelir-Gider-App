@@ -12,6 +12,7 @@ import {
 } from '../../shared/types';
 import { CATEGORIES, classifyTransaction } from '../../shared/categories';
 import { PrismaService } from '../../prisma.service';
+import { RedisService } from '../../redis.service';
 import { CacheService } from '../../shared/cache';
 import { AutoCategorizerService } from '../ai/auto-categorizer.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
@@ -61,6 +62,7 @@ export class UploadsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cache: CacheService,
+    private readonly redis: RedisService,
     private readonly autoCategorizer: AutoCategorizerService,
     private readonly realtime: RealtimeGateway,
   ) {}
@@ -227,6 +229,8 @@ export class UploadsService {
 
     if (savedTransactions.length > 0) {
       await this.cache.invalidateTransactions(userId);
+      await this.redis.del(`analytics:action-feed:${userId}`);
+      await this.redis.del(`analytics:savings-actions:${userId}`);
     }
 
     return {

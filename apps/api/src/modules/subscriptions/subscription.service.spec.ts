@@ -1,14 +1,19 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common'
 import { Test, TestingModule } from '@nestjs/testing'
 import { PrismaService } from '../../prisma.service'
+import { RedisService } from '../../redis.service'
 import { SubscriptionService } from './subscription.service'
 import { createMockPrismaService } from '../../../test/test-utils'
 
 describe('SubscriptionService', () => {
   let service: SubscriptionService
   let prisma: ReturnType<typeof createMockPrismaService>
+  let redis: ReturnType<typeof createMockRedisService>
 
   const userId = 'user-123'
+  const createMockRedisService = () => ({
+    del: jest.fn().mockResolvedValue(undefined),
+  })
 
   const createExpenseTransaction = (overrides: Partial<{ id: string; description: string; amount: number; date: Date; createdAt: Date }> = {}) => ({
     id: overrides.id || `tx-${Math.random().toString(36).slice(2, 8)}`,
@@ -80,11 +85,13 @@ describe('SubscriptionService', () => {
 
   beforeEach(async () => {
     prisma = createMockPrismaService()
+    redis = createMockRedisService()
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SubscriptionService,
         { provide: PrismaService, useValue: prisma },
+        { provide: RedisService, useValue: redis },
       ],
     }).compile()
 
@@ -172,6 +179,8 @@ describe('SubscriptionService', () => {
       })
       expect(result.name).toBe('Netflix')
       expect(result.monthlyCost).toBe(199.99)
+      expect(redis.del).toHaveBeenCalledWith(`analytics:action-feed:${userId}`)
+      expect(redis.del).toHaveBeenCalledWith(`analytics:savings-actions:${userId}`)
     })
 
     it('reactivates a previously dismissed suggestion instead of creating a duplicate', async () => {
@@ -204,6 +213,8 @@ describe('SubscriptionService', () => {
         }),
       })
       expect(result.id).toBe('sub-dismissed')
+      expect(redis.del).toHaveBeenCalledWith(`analytics:action-feed:${userId}`)
+      expect(redis.del).toHaveBeenCalledWith(`analytics:savings-actions:${userId}`)
     })
 
     it('rejects invalid input', async () => {
@@ -240,6 +251,8 @@ describe('SubscriptionService', () => {
       })
       expect(result.name).toBe('Spotify')
       expect(result.isActive).toBe(false)
+      expect(redis.del).toHaveBeenCalledWith(`analytics:action-feed:${userId}`)
+      expect(redis.del).toHaveBeenCalledWith(`analytics:savings-actions:${userId}`)
     })
 
     it('throws when subscription does not exist', async () => {
@@ -258,6 +271,8 @@ describe('SubscriptionService', () => {
 
       expect(prisma.subscription.delete).toHaveBeenCalledWith({ where: { id: 'sub-1' } })
       expect(result).toEqual({ success: true })
+      expect(redis.del).toHaveBeenCalledWith(`analytics:action-feed:${userId}`)
+      expect(redis.del).toHaveBeenCalledWith(`analytics:savings-actions:${userId}`)
     })
   })
 
@@ -311,6 +326,8 @@ describe('SubscriptionService', () => {
       })
       expect(result).toEqual({ success: true })
       expect(prisma.subscriptionDetectionFeedback.upsert).toHaveBeenCalled()
+      expect(redis.del).toHaveBeenCalledWith(`analytics:action-feed:${userId}`)
+      expect(redis.del).toHaveBeenCalledWith(`analytics:savings-actions:${userId}`)
 
       detectSpy.mockRestore()
     })
@@ -448,6 +465,8 @@ describe('SubscriptionService', () => {
         fingerprint: 'spotify',
         status: 'confirmed',
       })
+      expect(redis.del).toHaveBeenCalledWith(`analytics:action-feed:${userId}`)
+      expect(redis.del).toHaveBeenCalledWith(`analytics:savings-actions:${userId}`)
 
       detectSpy.mockRestore()
     })

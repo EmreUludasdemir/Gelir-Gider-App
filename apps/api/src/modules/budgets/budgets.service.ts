@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, ConflictException, Inject } from '@nestjs/common';
 import { PrismaService } from '../../prisma.service';
+import { RedisService } from '../../redis.service';
 import { CreateBudgetDto, UpdateBudgetDto } from './dto/budget.dto';
 import { CacheService, CachePrefix, CacheTTL } from '../../shared/cache';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
@@ -10,6 +11,7 @@ export class BudgetsService {
   constructor(
     private prisma: PrismaService,
     private cache: CacheService,
+    private redis: RedisService,
     @Inject(WINSTON_MODULE_NEST_PROVIDER) private readonly logger: LoggerService,
   ) {}
 
@@ -63,6 +65,7 @@ export class BudgetsService {
 
     // Invalidate budget caches
     await this.cache.invalidateBudgets(userId);
+    await this.invalidateAnalyticsCaches(userId);
     this.logger.debug(`Budget created, cache invalidated for user ${userId}`, {
       context: 'BudgetsService',
     });
@@ -80,6 +83,7 @@ export class BudgetsService {
 
     // Invalidate budget caches
     await this.cache.invalidateBudgets(userId);
+    await this.invalidateAnalyticsCaches(userId);
     this.logger.debug(`Budget updated, cache invalidated for user ${userId}`, {
       context: 'BudgetsService',
     });
@@ -96,6 +100,7 @@ export class BudgetsService {
 
     // Invalidate budget caches
     await this.cache.invalidateBudgets(userId);
+    await this.invalidateAnalyticsCaches(userId);
     this.logger.debug(`Budget deleted, cache invalidated for user ${userId}`, {
       context: 'BudgetsService',
     });
@@ -154,5 +159,9 @@ export class BudgetsService {
       },
       CacheTTL.SHORT, // 1 minute TTL - budget status changes with transactions
     );
+  }
+
+  private async invalidateAnalyticsCaches(userId: string) {
+    await this.redis.del(`analytics:action-feed:${userId}`);
   }
 }

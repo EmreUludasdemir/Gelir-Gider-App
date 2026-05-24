@@ -28,6 +28,7 @@ import {
 } from "../../shared/types";
 import { classifyTransaction } from "../../shared/categories";
 import { PrismaService } from "../../prisma.service";
+import { RedisService } from "../../redis.service";
 import { CacheService, CachePrefix, CacheTTL } from "../../shared/cache";
 import { RealtimeGateway } from "../realtime/realtime.gateway";
 import { AutoCategorizerService } from "../ai/auto-categorizer.service";
@@ -40,6 +41,7 @@ export class TransactionsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cache: CacheService,
+    private readonly redis: RedisService,
     private readonly realtime: RealtimeGateway,
     private readonly autoCategorizer: AutoCategorizerService,
     @Inject(WINSTON_MODULE_NEST_PROVIDER)
@@ -1321,10 +1323,13 @@ export class TransactionsService {
   }
 
   private async invalidateTransactionCaches(userIds: string[]): Promise<void> {
+    const uniqueUserIds = [...new Set(userIds)];
     await Promise.all(
-      [...new Set(userIds)].map((affectedUserId) =>
-        this.cache.invalidateTransactions(affectedUserId)
-      )
+      uniqueUserIds.flatMap((affectedUserId) => [
+        this.cache.invalidateTransactions(affectedUserId),
+        this.redis.del(`analytics:action-feed:${affectedUserId}`),
+        this.redis.del(`analytics:savings-actions:${affectedUserId}`),
+      ])
     );
   }
 

@@ -8,6 +8,7 @@ import { NotFoundException, ConflictException } from '@nestjs/common';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { BudgetsService } from './budgets.service';
 import { PrismaService } from '../../prisma.service';
+import { RedisService } from '../../redis.service';
 import { CacheService } from '../../shared/cache';
 import {
   createMockTransaction,
@@ -29,6 +30,10 @@ const createMockCacheService = () => ({
   hashQuery: jest.fn().mockReturnValue('hash'),
 });
 
+const createMockRedisService = () => ({
+  del: jest.fn().mockResolvedValue(undefined),
+});
+
 // Mock Logger
 const createMockLogger = () => ({
   log: jest.fn(),
@@ -42,6 +47,7 @@ describe('BudgetsService', () => {
   let service: BudgetsService;
   let prisma: ReturnType<typeof createMockPrismaService>;
   let cache: ReturnType<typeof createMockCacheService>;
+  let redis: ReturnType<typeof createMockRedisService>;
 
   const userId = 'user-test-123';
 
@@ -62,12 +68,14 @@ describe('BudgetsService', () => {
   beforeEach(async () => {
     prisma = createMockPrismaService();
     cache = createMockCacheService();
+    redis = createMockRedisService();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BudgetsService,
         { provide: PrismaService, useValue: prisma },
         { provide: CacheService, useValue: cache },
+        { provide: RedisService, useValue: redis },
         { provide: WINSTON_MODULE_NEST_PROVIDER, useValue: createMockLogger() },
       ],
     }).compile();
@@ -234,6 +242,7 @@ describe('BudgetsService', () => {
       await service.create(userId, createDto);
 
       expect(cache.invalidateBudgets).toHaveBeenCalledWith(userId);
+      expect(redis.del).toHaveBeenCalledWith(`analytics:action-feed:${userId}`);
     });
   });
 
@@ -286,6 +295,7 @@ describe('BudgetsService', () => {
       await service.update(mockBudget.id, userId, updateDto);
 
       expect(cache.invalidateBudgets).toHaveBeenCalledWith(userId);
+      expect(redis.del).toHaveBeenCalledWith(`analytics:action-feed:${userId}`);
     });
   });
 
@@ -329,6 +339,7 @@ describe('BudgetsService', () => {
       await service.delete(mockBudget.id, userId);
 
       expect(cache.invalidateBudgets).toHaveBeenCalledWith(userId);
+      expect(redis.del).toHaveBeenCalledWith(`analytics:action-feed:${userId}`);
     });
   });
 

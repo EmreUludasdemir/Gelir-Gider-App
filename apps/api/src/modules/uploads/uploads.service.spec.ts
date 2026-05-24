@@ -6,6 +6,9 @@ describe('UploadsService', () => {
   let service: UploadsService
   let prisma: ReturnType<typeof createMockPrismaService>
   let cache: ReturnType<typeof createMockCacheService>
+  let redis: {
+    del: jest.Mock
+  }
   let autoCategorizer: {
     categorize: jest.Mock
   }
@@ -23,6 +26,9 @@ describe('UploadsService', () => {
   beforeEach(() => {
     prisma = createMockPrismaService()
     cache = createMockCacheService()
+    redis = {
+      del: jest.fn().mockResolvedValue(undefined),
+    }
     autoCategorizer = {
       categorize: jest.fn().mockResolvedValue({
         categoryId: 'market',
@@ -37,7 +43,7 @@ describe('UploadsService', () => {
 
     jest.restoreAllMocks()
     jest.spyOn(Logger.prototype, 'error').mockImplementation()
-    service = new UploadsService(prisma as never, cache as never, autoCategorizer as never, realtime as never)
+    service = new UploadsService(prisma as never, cache as never, redis as never, autoCategorizer as never, realtime as never)
   })
 
   afterEach(() => {
@@ -173,6 +179,8 @@ describe('UploadsService', () => {
       }),
     )
     expect(cache.invalidateTransactions).toHaveBeenCalledWith('user-123')
+    expect(redis.del).toHaveBeenCalledWith('analytics:action-feed:user-123')
+    expect(redis.del).toHaveBeenCalledWith('analytics:savings-actions:user-123')
     expect(realtime.notifyNewTransaction).toHaveBeenCalledTimes(1)
     expect(realtime.notifyReviewRequested).not.toHaveBeenCalled()
   })
@@ -225,6 +233,8 @@ describe('UploadsService', () => {
     expect(result.success).toBe(true)
     expect(result.totalSaved).toBe(1)
     expect(cache.invalidateTransactions).toHaveBeenCalledWith('user-123')
+    expect(redis.del).toHaveBeenCalledWith('analytics:action-feed:user-123')
+    expect(redis.del).toHaveBeenCalledWith('analytics:savings-actions:user-123')
     expect(realtime.notifyNewTransaction).toHaveBeenCalledWith(
       'user-123',
       expect.objectContaining({

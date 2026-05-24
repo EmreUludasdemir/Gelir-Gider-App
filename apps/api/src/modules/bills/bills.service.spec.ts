@@ -2,10 +2,12 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { BillsService } from './bills.service';
 import { PrismaService } from '../../prisma.service';
+import { RedisService } from '../../redis.service';
 
 describe('BillsService', () => {
   let service: BillsService;
   let prisma: PrismaService;
+  let redis: ReturnType<typeof createMockRedisService>;
 
   const mockUserId = 'user-123';
   const mockBillId = 'bill-123';
@@ -40,11 +42,17 @@ describe('BillsService', () => {
     },
   };
 
+  const createMockRedisService = () => ({
+    del: jest.fn().mockResolvedValue(undefined),
+  });
+
   beforeEach(async () => {
+    redis = createMockRedisService();
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BillsService,
         { provide: PrismaService, useValue: mockPrismaService },
+        { provide: RedisService, useValue: redis },
       ],
     }).compile();
 
@@ -80,6 +88,7 @@ describe('BillsService', () => {
           amount: dto.amount,
         }),
       });
+      expect(redis.del).toHaveBeenCalledWith(`analytics:action-feed:${mockUserId}`);
     });
   });
 
@@ -139,6 +148,7 @@ describe('BillsService', () => {
       const result = await service.update(mockUserId, mockBillId, updateDto);
 
       expect(result.amount).toBe(300);
+      expect(redis.del).toHaveBeenCalledWith(`analytics:action-feed:${mockUserId}`);
     });
   });
 
@@ -153,6 +163,7 @@ describe('BillsService', () => {
       expect(prisma.bill.delete).toHaveBeenCalledWith({
         where: { id: mockBillId },
       });
+      expect(redis.del).toHaveBeenCalledWith(`analytics:action-feed:${mockUserId}`);
     });
   });
 
@@ -184,6 +195,7 @@ describe('BillsService', () => {
       const result = await service.markAsPaid(mockUserId, mockBillId);
 
       expect(result.isPaid).toBe(true);
+      expect(redis.del).toHaveBeenCalledWith(`analytics:action-feed:${mockUserId}`);
     });
 
     it('should create next recurring bill for monthly frequency', async () => {

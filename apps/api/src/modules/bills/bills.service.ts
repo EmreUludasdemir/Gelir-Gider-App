@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma.service';
+import { RedisService } from '../../redis.service';
 import { Prisma, Bill } from '@prisma/client';
 import { CreateBillDto, UpdateBillDto, BillQueryDto } from './dto/bill.dto';
 
@@ -7,12 +8,15 @@ import { CreateBillDto, UpdateBillDto, BillQueryDto } from './dto/bill.dto';
 export class BillsService {
     private readonly logger = new Logger(BillsService.name);
 
-    constructor(private prisma: PrismaService) { }
+    constructor(
+        private prisma: PrismaService,
+        private redis: RedisService,
+    ) { }
 
     async create(userId: string, dto: CreateBillDto) {
         this.logger.log(`Creating bill for user ${userId}: ${dto.name}`);
 
-        return this.prisma.bill.create({
+        const bill = await this.prisma.bill.create({
             data: {
                 userId,
                 name: dto.name,
@@ -26,6 +30,9 @@ export class BillsService {
                 notes: dto.notes,
             },
         });
+
+        await this.invalidateAnalyticsCaches(userId);
+        return bill;
     }
 
     async findAll(userId: string, query: Partial<BillQueryDto> = {}) {
@@ -84,18 +91,24 @@ export class BillsService {
         if (dto.notes !== undefined) updateData.notes = dto.notes;
         if (dto.isPaid !== undefined) updateData.isPaid = dto.isPaid;
 
-        return this.prisma.bill.update({
+        const bill = await this.prisma.bill.update({
             where: { id },
             data: updateData,
         });
+
+        await this.invalidateAnalyticsCaches(userId);
+        return bill;
     }
 
     async remove(userId: string, id: string) {
         await this.findOne(userId, id); // Check existence
 
-        return this.prisma.bill.delete({
+        const bill = await this.prisma.bill.delete({
             where: { id },
         });
+
+        await this.invalidateAnalyticsCaches(userId);
+        return bill;
     }
 
     async getUpcoming(userId: string, days: number = 7) {
@@ -132,6 +145,7 @@ export class BillsService {
             await this.createNextRecurringBill(bill);
         }
 
+        await this.invalidateAnalyticsCaches(userId);
         return bill;
     }
 
@@ -191,5 +205,9 @@ export class BillsService {
             totalAmount: totalAmount._sum.amount || 0,
             upcomingAmount: upcomingAmount._sum.amount || 0,
         };
+    }
+
+    private async invalidateAnalyticsCaches(userId: string) {
+        await this.redis.del(`analytics:action-feed:${userId}`);
     }
 }

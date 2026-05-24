@@ -7,6 +7,7 @@ import {
 import { randomUUID } from "crypto";
 import { Transaction } from "@prisma/client";
 import { PrismaService } from "../../prisma.service";
+import { RedisService } from "../../redis.service";
 import { EncryptionService } from "../../shared/encryption";
 import { getFrontendBaseUrl } from "../../shared";
 import { RealtimeGateway } from "../realtime/realtime.gateway";
@@ -41,7 +42,8 @@ export class BankConnectionsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly encryption: EncryptionService,
-    private readonly realtime: RealtimeGateway
+    private readonly realtime: RealtimeGateway,
+    private readonly redis: RedisService
   ) {
     this.registerAdapter(new MockBankAdapter());
     this.registerAdapter(new AkbankAdapter());
@@ -352,6 +354,7 @@ export class BankConnectionsService {
       connection.bankCode,
       fetchResult.transactions || []
     );
+    await this.invalidateAnalyticsCachesForTransactions(userId, createdTransactions);
 
     const updatedConnection = await this.prisma.bankConnection.update({
       where: { id: connectionId },
@@ -718,6 +721,28 @@ export class BankConnectionsService {
         imported,
       });
     }
+  }
+
+  private async invalidateAnalyticsCachesForTransactions(
+    userId: string,
+    transactions: Transaction[]
+  ) {
+    const affectedUserIds = new Set<string>();
+    if (transactions.length > 0) {
+      affectedUserIds.add(userId);
+    }
+
+    transactions.forEach((transaction) => {
+      if (transaction.ownerUserId) affectedUserIds.add(transaction.ownerUserId);
+      if (transaction.reviewerUserId) affectedUserIds.add(transaction.reviewerUserId);
+    });
+
+    await Promise.all(
+      Array.from(affectedUserIds).flatMap((affectedUserId) => [
+        this.redis.del(`analytics:action-feed:${affectedUserId}`),
+        this.redis.del(`analytics:savings-actions:${affectedUserId}`),
+      ])
+    );
   }
 
   private async resolveHouseholdContext(userId: string, confidence: number) {

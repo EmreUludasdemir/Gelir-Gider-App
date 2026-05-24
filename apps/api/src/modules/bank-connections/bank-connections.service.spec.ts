@@ -7,6 +7,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { BankConnectionsService } from './bank-connections.service';
 import { PrismaService } from '../../prisma.service';
+import { RedisService } from '../../redis.service';
 import { EncryptionService } from '../../shared/encryption';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { CreateBankConnectionDto } from './dto/bank-connection.dto';
@@ -19,6 +20,9 @@ import {
 describe('BankConnectionsService', () => {
   let service: BankConnectionsService;
   let prisma: ReturnType<typeof createMockPrismaService>;
+  let redis: {
+    del: jest.Mock;
+  };
   let realtime: {
     notifyNewTransaction: jest.Mock;
     notifySync: jest.Mock;
@@ -31,6 +35,9 @@ describe('BankConnectionsService', () => {
 
   beforeEach(async () => {
     prisma = createMockPrismaService();
+    redis = {
+      del: jest.fn().mockResolvedValue(undefined),
+    };
     realtime = {
       notifyNewTransaction: jest.fn(),
       notifySync: jest.fn(),
@@ -50,6 +57,7 @@ describe('BankConnectionsService', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: EncryptionService, useValue: mockEncryption },
         { provide: RealtimeGateway, useValue: realtime },
+        { provide: RedisService, useValue: redis },
       ],
     }).compile();
 
@@ -293,6 +301,8 @@ describe('BankConnectionsService', () => {
 
       expect(result).toBeDefined();
       expect(result.syncedCount).toBeDefined();
+      expect(redis.del).toHaveBeenCalledWith(`analytics:action-feed:${userId}`);
+      expect(redis.del).toHaveBeenCalledWith(`analytics:savings-actions:${userId}`);
     });
 
     it('should throw NotFoundException for non-existent connection', async () => {
@@ -379,6 +389,8 @@ describe('BankConnectionsService', () => {
           imported: 4,
         }),
       );
+      expect(redis.del).toHaveBeenCalledWith(`analytics:action-feed:${userId}`);
+      expect(redis.del).toHaveBeenCalledWith(`analytics:savings-actions:${userId}`);
     });
 
     it('should skip duplicate transactions during sync', async () => {
