@@ -8,13 +8,16 @@ import { StatCard } from '@/components/dashboard/StatCard'
 import { DashboardHero } from '@/components/dashboard/DashboardHero'
 import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState'
 import { DashboardCommandCenter } from '@/components/dashboard/DashboardCommandCenter'
+import { DashboardPersonalizationPanel } from '@/components/dashboard/DashboardPersonalizationPanel'
 import { CashFlowForecastCard } from '@/components/dashboard/CashFlowForecastCard'
 import { FinancialAnalysisBoard } from '@/components/dashboard/FinancialAnalysisBoard'
+import { SavingsScenarioPlanner } from '@/components/dashboard/SavingsScenarioPlanner'
 import { Spinner } from '@/components/ui/Spinner'
 import { usePreferences } from '@/lib/PreferencesContext'
 import { useTranslation } from '@/lib/translations'
 import { useAuth } from '@/components/auth-provider'
 import { useRealtimeRefresh } from '@/contexts/RealtimeContext'
+import { DashboardWidgetId } from '@/lib/dashboard-widgets'
 import {
   DashboardSkeleton,
   TableSkeleton,
@@ -64,7 +67,7 @@ export default function DashboardPage() {
   const { data: summary, error: summaryError, isLoading: summaryLoading, mutate: mutateSummary } = useSummary()
   const { data: transactions, error: transactionsError, isLoading: transactionsLoading, mutate: mutateTransactions } = useTransactions()
   const refreshAll = useRefreshAll()
-  const { language } = usePreferences()
+  const { language, dashboardPreferences } = usePreferences()
   const { t } = useTranslation(language)
 
   useRealtimeRefresh(() => {
@@ -154,6 +157,9 @@ export default function DashboardPage() {
 
   const latestTransactionDate = transactions.length > 0 ? new Date(transactions[0].date) : undefined
   const isEmptyDashboard = transactions.length === 0 || summary.totals.transactionCount === 0
+  const visibleDashboardWidgets = dashboardPreferences.widgetOrder.filter(
+    (widgetId) => dashboardPreferences.visibleWidgets[widgetId],
+  )
 
   if (isEmptyDashboard) {
     return (
@@ -173,7 +179,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className={dashboardPreferences.density === 'focus' ? 'space-y-5' : 'space-y-7'}>
       <div>
         <h1 className="text-3xl font-bold text-foreground">{t('dashboard')}</h1>
         <p className="text-muted-foreground mt-1">
@@ -183,74 +189,102 @@ export default function DashboardPage() {
 
       <DashboardHero summary={summary} />
 
-      <DashboardCommandCenter />
+      <DashboardPersonalizationPanel />
 
-      <CashFlowForecastCard />
+      {visibleDashboardWidgets.map((widgetId) => {
+        switch (widgetId as DashboardWidgetId) {
+          case 'command-center':
+            return <DashboardCommandCenter key={widgetId} />
 
-      <FinancialAnalysisBoard summary={summary} />
+          case 'cash-flow':
+            return <CashFlowForecastCard key={widgetId} />
 
-      {/* Stat Cards - Not lazy loaded (critical for LCP) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard
-          title={t('income')}
-          value={summary.totals.income}
-          change={summary.comparison.changePercentage.income}
-          icon="up"
-        />
-        <StatCard
-          title={t('expense')}
-          value={summary.totals.expense}
-          change={summary.comparison.changePercentage.expense}
-          icon="down"
-        />
-        <StatCard
-          title={t('balance')}
-          value={summary.totals.balance}
-          icon="wallet"
-        />
-      </div>
+          case 'scenario-planner':
+            return <SavingsScenarioPlanner key={widgetId} summary={summary} />
 
-      {/* AI Insights - Lazy loaded */}
-      <Suspense fallback={<AIInsightsSkeleton />}>
-        <AIInsights />
-      </Suspense>
+          case 'financial-analysis':
+            return <FinancialAnalysisBoard key={widgetId} summary={summary} />
 
-      {/* Charts - Lazy loaded */}
-      <div className="grid grid-cols-1 gap-6">
-        <Suspense fallback={<ChartSkeleton />}>
-          <MonthlyTrendChart transactions={transactions} months={12} baseDate={latestTransactionDate} />
-        </Suspense>
-      </div>
+          case 'stats':
+            return (
+              <div key={widgetId} className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:gap-6">
+                <StatCard
+                  title={t('income')}
+                  value={summary.totals.income}
+                  change={summary.comparison.changePercentage.income}
+                  icon="up"
+                />
+                <StatCard
+                  title={t('expense')}
+                  value={summary.totals.expense}
+                  change={summary.comparison.changePercentage.expense}
+                  icon="down"
+                />
+                <StatCard
+                  title={t('balance')}
+                  value={summary.totals.balance}
+                  icon="wallet"
+                />
+              </div>
+            )
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Suspense fallback={<ChartSkeleton />}>
-          <WeeklyTrendChart data={summary.weeklyTrend} />
-        </Suspense>
-        <Suspense fallback={<ChartSkeleton />}>
-          <CategoryPieChart categories={summary.topCategories} />
-        </Suspense>
-      </div>
+          case 'ai-insights':
+            return (
+              <Suspense key={widgetId} fallback={<AIInsightsSkeleton />}>
+                <AIInsights />
+              </Suspense>
+            )
 
-      {/* Top Categories and Recurring Payments - Lazy loaded */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Suspense fallback={<CategorySkeleton />}>
-          <TopCategories categories={summary.topCategories} />
-        </Suspense>
-        <Suspense fallback={<CategorySkeleton />}>
-          <RecurringPayments payments={summary.recurringPayments} />
-        </Suspense>
-      </div>
+          case 'monthly-trend':
+            return (
+              <div key={widgetId} className="grid grid-cols-1 gap-6">
+                <Suspense fallback={<ChartSkeleton />}>
+                  <MonthlyTrendChart transactions={transactions} months={12} baseDate={latestTransactionDate} />
+                </Suspense>
+              </div>
+            )
 
-      {/* Recent Transactions - Lazy loaded */}
-      <Suspense fallback={<TableSkeleton />}>
-        <TransactionTable
-          transactions={transactions}
-          title={t('recent_transactions')}
-          limit={10}
-          currentUserId={user?.id}
-          onRefresh={mutateTransactions}
-        />
-      </Suspense>
+          case 'weekly-category':
+            return (
+              <div key={widgetId} className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                <Suspense fallback={<ChartSkeleton />}>
+                  <WeeklyTrendChart data={summary.weeklyTrend} />
+                </Suspense>
+                <Suspense fallback={<ChartSkeleton />}>
+                  <CategoryPieChart categories={summary.topCategories} />
+                </Suspense>
+              </div>
+            )
+
+          case 'categories-recurring':
+            return (
+              <div key={widgetId} className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                <Suspense fallback={<CategorySkeleton />}>
+                  <TopCategories categories={summary.topCategories} />
+                </Suspense>
+                <Suspense fallback={<CategorySkeleton />}>
+                  <RecurringPayments payments={summary.recurringPayments} />
+                </Suspense>
+              </div>
+            )
+
+          case 'transactions':
+            return (
+              <Suspense key={widgetId} fallback={<TableSkeleton />}>
+                <TransactionTable
+                  transactions={transactions}
+                  title={t('recent_transactions')}
+                  limit={dashboardPreferences.density === 'focus' ? 8 : 12}
+                  currentUserId={user?.id}
+                  onRefresh={mutateTransactions}
+                />
+              </Suspense>
+            )
+
+          default:
+            return null
+        }
+      })}
     </div>
   )
 }

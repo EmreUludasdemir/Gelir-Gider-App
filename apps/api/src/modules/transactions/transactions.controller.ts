@@ -16,14 +16,17 @@ import {
 import { Response } from "express";
 import { ApiQuery } from "@nestjs/swagger";
 import { TransactionsService } from "./transactions.service";
-import {
-  CreateTransactionDto,
-  UpdateTransactionDto,
-  TransactionQuery,
-  JwtPayload,
-} from "../../shared/types";
+import { JwtPayload } from "../../shared/types";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { User } from "../auth/user.decorator";
+import {
+  BulkCategorizeTransactionsDto,
+  BulkUpdateTransactionsDto,
+  CreateTransactionRequestDto,
+  ResolveDuplicateGroupDto,
+  TransactionQueryDto,
+  UpdateTransactionRequestDto,
+} from "./dto/transaction.dto";
 
 @UseGuards(JwtAuthGuard)
 @Controller("transactions")
@@ -31,12 +34,12 @@ export class TransactionsController {
   constructor(private readonly transactionsService: TransactionsService) {}
 
   @Get()
-  findAll(@User() user: JwtPayload, @Query() query: TransactionQuery) {
+  findAll(@User() user: JwtPayload, @Query() query: TransactionQueryDto) {
     return this.transactionsService.findAll(user.id, query);
   }
 
   @Get("summary")
-  getSummary(@User() user: JwtPayload, @Query() query: TransactionQuery) {
+  getSummary(@User() user: JwtPayload, @Query() query: TransactionQueryDto) {
     return this.transactionsService.getSummary(user.id, query);
   }
 
@@ -82,7 +85,7 @@ export class TransactionsController {
   @HttpCode(HttpStatus.OK)
   resolveDuplicateGroup(
     @User() user: JwtPayload,
-    @Body() body: { keepId: string; transactionIds: string[] }
+    @Body() body: ResolveDuplicateGroupDto
   ) {
     return this.transactionsService.resolveDuplicateGroup(
       user.id,
@@ -95,13 +98,7 @@ export class TransactionsController {
   @HttpCode(HttpStatus.OK)
   bulkCategorize(
     @User() user: JwtPayload,
-    @Body()
-    body: {
-      transactionIds: string[];
-      categoryId: string;
-      categoryLabel: string;
-      applyToSimilar?: boolean;
-    }
+    @Body() body: BulkCategorizeTransactionsDto
   ) {
     return this.transactionsService.bulkCategorize(
       user.id,
@@ -116,15 +113,7 @@ export class TransactionsController {
   @HttpCode(HttpStatus.OK)
   bulkUpdate(
     @User() user: JwtPayload,
-    @Body()
-    body: {
-      transactionIds: string[];
-      categoryId?: string;
-      categoryLabel?: string;
-      type?: "income" | "expense";
-      tags?: string[];
-      applyToSimilar?: boolean;
-    }
+    @Body() body: BulkUpdateTransactionsDto
   ) {
     return this.transactionsService.bulkUpdate(user.id, body);
   }
@@ -203,7 +192,10 @@ export class TransactionsController {
 
   @Post("manual")
   @HttpCode(HttpStatus.CREATED)
-  create(@User() user: JwtPayload, @Body() createDto: CreateTransactionDto) {
+  create(
+    @User() user: JwtPayload,
+    @Body() createDto: CreateTransactionRequestDto
+  ) {
     return this.transactionsService.create(user.id, createDto);
   }
 
@@ -211,7 +203,7 @@ export class TransactionsController {
   update(
     @User() user: JwtPayload,
     @Param("id") id: string,
-    @Body() updateDto: UpdateTransactionDto
+    @Body() updateDto: UpdateTransactionRequestDto
   ) {
     return this.transactionsService.update(user.id, id, updateDto);
   }

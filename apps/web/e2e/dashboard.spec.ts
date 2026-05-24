@@ -22,15 +22,17 @@ test.describe('Dashboard', () => {
   test('renders dashboard summary and recent transactions', async ({ page }) => {
     await page.goto('/dashboard')
 
-    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible()
     await expect(page.getByText('Finans Nabzi')).toBeVisible()
     await expect(page.getByRole('heading', { name: /Bu ayki para akisini netlestir/i })).toBeVisible()
     await expect(page.getByText('Aydan aya tempo')).toBeVisible()
     await expect(page.getByText('En baskin kategori')).toBeVisible()
     await expect(page.getByTestId('dashboard-command-center')).toBeVisible()
     await expect(page.getByTestId('cash-flow-forecast-card')).toBeVisible()
+    await expect(page.getByTestId('savings-scenario-planner')).toBeVisible()
     await expect(page.getByTestId('financial-analysis-board')).toBeVisible()
     await expect(page.getByText('Ay sonu nakit akis tahmini')).toBeVisible()
+    await expect(page.getByText('Tasarruf senaryosu')).toBeVisible()
     await expect(page.getByText('Verinin anlattigi resmi daha net gor')).toBeVisible()
     await expect(page.getByText('Finansal icgoruler')).toBeVisible()
     await expect(page.getByText('Harcama ivmesi')).toBeVisible()

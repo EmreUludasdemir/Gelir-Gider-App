@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
   Inject,
   LoggerService,
 } from "@nestjs/common";
@@ -34,6 +35,8 @@ import { Prisma } from "@prisma/client";
 
 @Injectable()
 export class TransactionsService {
+  private readonly householdManagerRoles = new Set(["owner", "admin"]);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly cache: CacheService,
@@ -60,35 +63,42 @@ export class TransactionsService {
       cacheKey,
       async () => {
         const visibilityScope = await this.buildTransactionVisibilityScope(userId);
-        const where: Prisma.TransactionWhereInput = this.mergeTransactionWhere(
-          visibilityScope,
-          {}
-        );
+        const filters: Prisma.TransactionWhereInput = {};
+        const extraFilters: Prisma.TransactionWhereInput[] = [];
 
         if (query) {
-          if (query.type) where.type = query.type;
-          if (query.categoryId) where.categoryId = query.categoryId;
-          if (query.source) where.source = query.source;
+          if (query.type) filters.type = query.type;
+          if (query.categoryId) filters.categoryId = query.categoryId;
+          if (query.source) filters.source = query.source;
 
           // Build date filter properly
           const dateFilter: Prisma.DateTimeFilter = {};
           if (query.dateFrom) dateFilter.gte = new Date(query.dateFrom);
           if (query.dateTo) dateFilter.lte = new Date(query.dateTo);
-          if (Object.keys(dateFilter).length > 0) where.date = dateFilter;
+          if (Object.keys(dateFilter).length > 0) filters.date = dateFilter;
+
+          extraFilters.push(...this.buildAbsoluteAmountFilters(query));
 
           if (query.search) {
-            where.OR = [
+            filters.OR = [
               { description: { contains: query.search } },
               { categoryLabel: { contains: query.search } },
             ];
           }
         }
 
+        const where = this.mergeTransactionWhere(
+          visibilityScope,
+          extraFilters.length > 0
+            ? Object.keys(filters).length > 0
+              ? { AND: [filters, ...extraFilters] }
+              : { AND: extraFilters }
+            : filters
+        );
+
         const transactions = await this.prisma.transaction.findMany({
           where,
-          orderBy: query?.sortBy
-            ? { [query.sortBy]: query.sortOrder || "desc" }
-            : { date: "desc" },
+          orderBy: this.buildTransactionOrderBy(query),
           take: query?.limit,
           skip: query?.offset,
         });
@@ -145,7 +155,7 @@ export class TransactionsService {
         accountId: "default", // TODO: Add account support
         date: new Date(dto.date),
         description: dto.description,
-        amount: dto.amount,
+        amount: this.normalizeTransactionAmount(dto.amount, dto.type),
         currency: dto.currency || "TRY",
         source: "manual",
         type: dto.type,
@@ -161,10 +171,13 @@ export class TransactionsService {
       },
     });
 
-    // Invalidate transaction caches
-    await this.cache.invalidateTransactions(userId);
+    const affectedUserIds = await this.getAffectedTransactionUserIds(
+      userId,
+      transaction.householdId
+    );
+    await this.invalidateTransactionCaches(affectedUserIds);
     this.logger.debug(
-      `Transaction created, cache invalidated for user ${userId}`,
+      `Transaction created, cache invalidated for ${affectedUserIds.length} user(s)`,
       {
         context: "TransactionsService",
       }
@@ -173,13 +186,15 @@ export class TransactionsService {
     const [entity] = await this.withActorNames([this.mapToEntity(transaction)]);
 
     // Notify via WebSocket
-    this.realtime.notifyNewTransaction(userId, {
+    affectedUserIds.forEach((affectedUserId) =>
+      this.realtime.notifyNewTransaction(affectedUserId, {
       id: entity.id,
       description: entity.description,
       amount: entity.amount,
       type: entity.type as "income" | "expense",
       categoryLabel: entity.categoryLabel,
-    });
+      })
+    );
 
     this.notifyReviewIfNeeded(entity);
 
@@ -191,16 +206,16 @@ export class TransactionsService {
     id: string,
     dto: UpdateTransactionDto
   ): Promise<TransactionEntity> {
-    const existing = await this.prisma.transaction.findFirst({
-      where: { id, userId },
-    });
-    if (!existing) {
-      throw new NotFoundException(`Transaction with ID ${id} not found`);
-    }
+    const existing = await this.findWritableTransaction(userId, id);
 
     const data: Prisma.TransactionUpdateInput = {};
     if (dto.description !== undefined) data.description = dto.description;
-    if (dto.amount !== undefined) data.amount = dto.amount;
+    if (dto.amount !== undefined) {
+      data.amount = this.normalizeTransactionAmount(
+        dto.amount,
+        existing.type as TransactionType
+      );
+    }
     if (dto.categoryId !== undefined) data.categoryId = dto.categoryId;
     if (dto.categoryLabel !== undefined) data.categoryLabel = dto.categoryLabel;
     if (dto.tags !== undefined) data.tags = JSON.stringify(dto.tags);
@@ -211,10 +226,13 @@ export class TransactionsService {
       data,
     });
 
-    // Invalidate transaction caches
-    await this.cache.invalidateTransactions(userId);
+    const affectedUserIds = await this.getAffectedTransactionUserIds(
+      userId,
+      updated.householdId
+    );
+    await this.invalidateTransactionCaches(affectedUserIds);
     this.logger.debug(
-      `Transaction updated, cache invalidated for user ${userId}`,
+      `Transaction updated, cache invalidated for ${affectedUserIds.length} user(s)`,
       {
         context: "TransactionsService",
       }
@@ -223,13 +241,15 @@ export class TransactionsService {
     const [entity] = await this.withActorNames([this.mapToEntity(updated)]);
 
     // Notify via WebSocket
-    this.realtime.notifyTransactionUpdated(userId, {
+    affectedUserIds.forEach((affectedUserId) =>
+      this.realtime.notifyTransactionUpdated(affectedUserId, {
       id: entity.id,
       description: entity.description,
       amount: entity.amount,
       type: entity.type as "income" | "expense",
       categoryLabel: entity.categoryLabel,
-    });
+      })
+    );
 
     return entity;
   }
@@ -316,30 +336,35 @@ export class TransactionsService {
     }
 
     const result = await this.prisma.transaction.updateMany({
-      where: {
-        userId,
+      where: this.mergeTransactionWhere(await this.buildTransactionWriteScope(userId), {
         id: { in: targetIds },
-      },
+      }),
       data,
     });
 
-    await this.cache.invalidateTransactions(userId);
+    const affectedUserIds = await this.getAffectedTransactionUserIds(
+      userId,
+      ...this.extractHouseholdIds(targetTransactions)
+    );
+    await this.invalidateTransactionCaches(affectedUserIds);
     this.logger.debug(
-      `Transactions bulk updated, cache invalidated for user ${userId}`,
+      `Transactions bulk updated, cache invalidated for ${affectedUserIds.length} user(s)`,
       {
         context: "TransactionsService",
       }
     );
 
-    targetTransactions.forEach((transaction) =>
-      this.realtime.notifyTransactionUpdated(userId, {
+    targetTransactions.forEach((transaction) => {
+      affectedUserIds.forEach((affectedUserId) =>
+        this.realtime.notifyTransactionUpdated(affectedUserId, {
         id: transaction.id,
         description: transaction.description,
         amount: transaction.amount,
         type: (payload.type ?? transaction.type) as "income" | "expense",
         categoryLabel: payload.categoryLabel?.trim() || transaction.categoryLabel,
-      })
-    );
+        })
+      );
+    });
 
     return {
       updated: result.count,
@@ -348,26 +373,26 @@ export class TransactionsService {
   }
 
   async delete(userId: string, id: string): Promise<{ success: boolean }> {
-    const existing = await this.prisma.transaction.findFirst({
-      where: { id, userId },
-    });
-    if (!existing) {
-      throw new NotFoundException(`Transaction with ID ${id} not found`);
-    }
+    const existing = await this.findWritableTransaction(userId, id);
 
     await this.prisma.transaction.delete({ where: { id } });
 
-    // Invalidate transaction caches
-    await this.cache.invalidateTransactions(userId);
+    const affectedUserIds = await this.getAffectedTransactionUserIds(
+      userId,
+      existing.householdId
+    );
+    await this.invalidateTransactionCaches(affectedUserIds);
     this.logger.debug(
-      `Transaction deleted, cache invalidated for user ${userId}`,
+      `Transaction deleted, cache invalidated for ${affectedUserIds.length} user(s)`,
       {
         context: "TransactionsService",
       }
     );
 
     // Notify via WebSocket
-    this.realtime.notifyTransactionDeleted(userId, id);
+    affectedUserIds.forEach((affectedUserId) =>
+      this.realtime.notifyTransactionDeleted(affectedUserId, id)
+    );
 
     return { success: true };
   }
@@ -404,13 +429,19 @@ export class TransactionsService {
         const prevMonthStart = new Date(currentYear, currentMonth - 1, 1);
         const prevMonthEnd = new Date(currentYear, currentMonth, 0, 23, 59, 59);
 
+        const visibilityScope = await this.buildTransactionVisibilityScope(userId);
+
         // Fetch current and previous month transactions
         const [currentTransactions, prevTransactions] = await Promise.all([
           this.prisma.transaction.findMany({
-            where: { userId, date: { gte: startOfMonth, lte: endOfMonth } },
+            where: this.mergeTransactionWhere(visibilityScope, {
+              date: { gte: startOfMonth, lte: endOfMonth },
+            }),
           }),
           this.prisma.transaction.findMany({
-            where: { userId, date: { gte: prevMonthStart, lte: prevMonthEnd } },
+            where: this.mergeTransactionWhere(visibilityScope, {
+              date: { gte: prevMonthStart, lte: prevMonthEnd },
+            }),
           }),
         ]);
 
@@ -495,7 +526,9 @@ export class TransactionsService {
           weekEnd.setDate(weekStart.getDate() + 7);
 
           const weekTransactions = await this.prisma.transaction.findMany({
-            where: { userId, date: { gte: weekStart, lte: weekEnd } },
+            where: this.mergeTransactionWhere(visibilityScope, {
+              date: { gte: weekStart, lte: weekEnd },
+            }),
           });
 
           let weekIncome = 0,
@@ -532,7 +565,10 @@ export class TransactionsService {
 
   async getSuggestions(userId: string): Promise<Suggestion[]> {
     const transactions = await this.prisma.transaction.findMany({
-      where: { userId, confidence: { lt: 60 } },
+      where: this.mergeTransactionWhere(
+        await this.buildTransactionVisibilityScope(userId),
+        { confidence: { lt: 60 } }
+      ),
       take: 10,
     });
 
@@ -618,14 +654,19 @@ export class TransactionsService {
     recentStart.setDate(recentStart.getDate() - 29);
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+    const visibilityScope = await this.buildTransactionVisibilityScope(userId);
 
     const [recentTransactions, monthTransactions, upcomingBills, upcomingSubscriptions] =
       await Promise.all([
         this.prisma.transaction.findMany({
-          where: { userId, date: { gte: recentStart, lte: now } },
+          where: this.mergeTransactionWhere(visibilityScope, {
+            date: { gte: recentStart, lte: now },
+          }),
         }),
         this.prisma.transaction.findMany({
-          where: { userId, date: { gte: startOfMonth, lte: now } },
+          where: this.mergeTransactionWhere(visibilityScope, {
+            date: { gte: startOfMonth, lte: now },
+          }),
         }),
         this.prisma.bill.findMany({
           where: {
@@ -869,37 +910,53 @@ export class TransactionsService {
     keepId: string,
     transactionIds: string[]
   ): Promise<{ keptId: string; deleted: number }> {
-    if (!keepId || !transactionIds || transactionIds.length < 2) {
+    const uniqueTransactionIds = [...new Set((transactionIds || []).filter(Boolean))];
+
+    if (!keepId || uniqueTransactionIds.length < 2) {
       throw new BadRequestException("En az 2 islem secilmeli");
     }
 
-    if (!transactionIds.includes(keepId)) {
+    if (!uniqueTransactionIds.includes(keepId)) {
       throw new BadRequestException("Koru islemi secilenler arasinda olmali");
     }
 
-    const keep = await this.prisma.transaction.findFirst({
-      where: { id: keepId, userId },
-      select: { id: true },
-    });
-
-    if (!keep) {
-      throw new NotFoundException("Koru islemi bulunamadi");
-    }
-
-    const deleteIds = transactionIds.filter((id) => id !== keepId);
+    const keep = await this.findWritableTransaction(userId, keepId);
+    const deleteIds = uniqueTransactionIds.filter((id) => id !== keepId);
     if (deleteIds.length === 0) {
       return { keptId: keepId, deleted: 0 };
     }
 
-    const result = await this.prisma.transaction.deleteMany({
-      where: { userId, id: { in: deleteIds } },
+    const deleteTransactions = await this.prisma.transaction.findMany({
+      where: this.mergeTransactionWhere(
+        await this.buildTransactionVisibilityScope(userId),
+        { id: { in: deleteIds } }
+      ),
     });
 
-    await this.cache.invalidateTransactions(userId);
+    if (deleteTransactions.length !== deleteIds.length) {
+      throw new NotFoundException("Silinecek islemlerden biri bulunamadi");
+    }
 
-    deleteIds.forEach((id) =>
-      this.realtime.notifyTransactionDeleted(userId, id)
+    await this.assertWritableTransactions(userId, deleteTransactions);
+
+    const result = await this.prisma.transaction.deleteMany({
+      where: this.mergeTransactionWhere(await this.buildTransactionWriteScope(userId), {
+        id: { in: deleteIds },
+      }),
+    });
+
+    const affectedUserIds = await this.getAffectedTransactionUserIds(
+      userId,
+      keep.householdId,
+      ...this.extractHouseholdIds(deleteTransactions)
     );
+    await this.invalidateTransactionCaches(affectedUserIds);
+
+    deleteIds.forEach((id) => {
+      affectedUserIds.forEach((affectedUserId) =>
+        this.realtime.notifyTransactionDeleted(affectedUserId, id)
+      );
+    });
 
     return { keptId: keepId, deleted: result.count };
   }
@@ -919,7 +976,7 @@ export class TransactionsService {
     }
 
     const latest = await this.prisma.transaction.findFirst({
-      where: { userId },
+      where: await this.buildTransactionVisibilityScope(userId),
       orderBy: { date: "desc" },
       select: { date: true },
     });
@@ -989,9 +1046,9 @@ export class TransactionsService {
 
     const users =
       (await this.prisma.user.findMany({
-      where: { id: { in: userIds } },
-      select: { id: true, name: true, email: true },
-    })) || [];
+        where: { id: { in: userIds } },
+        select: { id: true, name: true, email: true },
+      })) || [];
 
     const userMap = new Map(
       users.map((user) => [user.id, user.name || user.email])
@@ -1046,17 +1103,37 @@ export class TransactionsService {
   private async buildTransactionVisibilityScope(
     userId: string
   ): Promise<Prisma.TransactionWhereInput> {
-    const membership = await this.prisma.householdMember.findFirst({
+    const memberships = await this.prisma.householdMember.findMany({
       where: { userId },
       select: { householdId: true },
     });
 
-    if (!membership) {
+    const householdIds = [...new Set(memberships.map((member) => member.householdId))];
+
+    if (householdIds.length === 0) {
       return { userId };
     }
 
     return {
-      OR: [{ userId }, { householdId: membership.householdId }],
+      OR: [{ userId }, { householdId: { in: householdIds } }],
+    };
+  }
+
+  private async buildTransactionWriteScope(
+    userId: string
+  ): Promise<Prisma.TransactionWhereInput> {
+    const managedHouseholdIds = await this.getManagedHouseholdIds(userId);
+
+    if (managedHouseholdIds.length === 0) {
+      return { userId };
+    }
+
+    return {
+      OR: [
+        { userId },
+        { ownerUserId: userId },
+        { householdId: { in: managedHouseholdIds } },
+      ],
     };
   }
 
@@ -1074,6 +1151,181 @@ export class TransactionsService {
       ...visibilityScope,
       ...extra,
     };
+  }
+
+  private buildTransactionOrderBy(
+    query?: TransactionQuery
+  ): Prisma.TransactionOrderByWithRelationInput {
+    const sortOrder = query?.sortOrder || "desc";
+
+    if (query?.sortBy === "amount") {
+      return { amount: sortOrder };
+    }
+
+    if (query?.sortBy === "category") {
+      return { categoryLabel: query.sortOrder || "asc" };
+    }
+
+    return { date: sortOrder };
+  }
+
+  private buildAbsoluteAmountFilters(
+    query: TransactionQuery
+  ): Prisma.TransactionWhereInput[] {
+    const minAmount =
+      query.minAmount === undefined ? undefined : Number(query.minAmount);
+    const maxAmount =
+      query.maxAmount === undefined ? undefined : Number(query.maxAmount);
+
+    if (
+      (minAmount !== undefined && !Number.isFinite(minAmount)) ||
+      (maxAmount !== undefined && !Number.isFinite(maxAmount))
+    ) {
+      throw new BadRequestException("Tutar filtresi gecersiz");
+    }
+
+    if (
+      minAmount !== undefined &&
+      maxAmount !== undefined &&
+      minAmount > maxAmount
+    ) {
+      throw new BadRequestException("Minimum tutar maksimum tutardan buyuk olamaz");
+    }
+
+    const conditions: Prisma.TransactionWhereInput[] = [];
+
+    if (minAmount !== undefined && minAmount > 0) {
+      conditions.push({
+        OR: [
+          { amount: { gte: minAmount } },
+          { amount: { lte: -minAmount } },
+        ],
+      });
+    }
+
+    if (maxAmount !== undefined) {
+      conditions.push({
+        amount: { gte: -maxAmount, lte: maxAmount },
+      });
+    }
+
+    if (conditions.length === 0) {
+      return [];
+    }
+
+    return conditions;
+  }
+
+  private normalizeTransactionAmount(
+    amount: number,
+    type: TransactionType
+  ): number {
+    const numericAmount = Number(amount);
+
+    if (!Number.isFinite(numericAmount) || numericAmount === 0) {
+      throw new BadRequestException("Tutar gecersiz");
+    }
+
+    const normalized =
+      type === "expense" ? -Math.abs(numericAmount) : Math.abs(numericAmount);
+    return Number(normalized.toFixed(2));
+  }
+
+  private async findWritableTransaction(
+    userId: string,
+    id: string
+  ): Promise<PrismaTransaction> {
+    const transaction = await this.prisma.transaction.findFirst({
+      where: this.mergeTransactionWhere(
+        await this.buildTransactionVisibilityScope(userId),
+        { id }
+      ),
+    });
+
+    if (!transaction) {
+      throw new NotFoundException(`Transaction with ID ${id} not found`);
+    }
+
+    await this.assertWritableTransactions(userId, [transaction]);
+    return transaction;
+  }
+
+  private async assertWritableTransactions(
+    userId: string,
+    transactions: Array<{
+      userId: string;
+      ownerUserId?: string | null;
+      householdId?: string | null;
+    }>
+  ): Promise<void> {
+    const managedHouseholdIds = new Set(await this.getManagedHouseholdIds(userId));
+
+    const forbidden = transactions.find((transaction) => {
+      if (transaction.userId === userId || transaction.ownerUserId === userId) {
+        return false;
+      }
+
+      return !(
+        transaction.householdId &&
+        managedHouseholdIds.has(transaction.householdId)
+      );
+    });
+
+    if (forbidden) {
+      throw new ForbiddenException("Bu islem icin yetkiniz bulunmuyor");
+    }
+  }
+
+  private async getManagedHouseholdIds(userId: string): Promise<string[]> {
+    const memberships = await this.prisma.householdMember.findMany({
+      where: { userId },
+      select: { householdId: true, role: true },
+    });
+
+    return memberships
+      .filter((membership) => this.householdManagerRoles.has(membership.role))
+      .map((membership) => membership.householdId);
+  }
+
+  private extractHouseholdIds(
+    transactions: Array<{ householdId?: string | null }>
+  ): string[] {
+    return [
+      ...new Set(
+        transactions
+          .map((transaction) => transaction.householdId)
+          .filter((householdId): householdId is string => Boolean(householdId))
+      ),
+    ];
+  }
+
+  private async getAffectedTransactionUserIds(
+    actorUserId: string,
+    ...householdIds: Array<string | null | undefined>
+  ): Promise<string[]> {
+    const userIds = new Set([actorUserId]);
+    const uniqueHouseholdIds = [
+      ...new Set(householdIds.filter((id): id is string => Boolean(id))),
+    ];
+
+    if (uniqueHouseholdIds.length > 0) {
+      const members = await this.prisma.householdMember.findMany({
+        where: { householdId: { in: uniqueHouseholdIds } },
+        select: { userId: true },
+      });
+
+      members.forEach((member) => userIds.add(member.userId));
+    }
+
+    return [...userIds];
+  }
+
+  private async invalidateTransactionCaches(userIds: string[]): Promise<void> {
+    await Promise.all(
+      [...new Set(userIds)].map((affectedUserId) =>
+        this.cache.invalidateTransactions(affectedUserId)
+      )
+    );
   }
 
   private notifyReviewIfNeeded(transaction: TransactionEntity) {
@@ -1252,22 +1504,27 @@ export class TransactionsService {
     applyToSimilar?: boolean
   ) {
     const existing = await this.prisma.transaction.findMany({
-      where: {
-        userId,
-        id: { in: transactionIds },
-      },
+      where: this.mergeTransactionWhere(
+        await this.buildTransactionVisibilityScope(userId),
+        { id: { in: transactionIds } }
+      ),
       select: {
         id: true,
+        userId: true,
         description: true,
         amount: true,
         type: true,
         categoryLabel: true,
+        householdId: true,
+        ownerUserId: true,
       },
     });
 
     if (existing.length !== transactionIds.length) {
       throw new NotFoundException("Secilen islemlerden biri bulunamadi");
     }
+
+    await this.assertWritableTransactions(userId, existing);
 
     if (!applyToSimilar) {
       return existing;
@@ -1292,16 +1549,18 @@ export class TransactionsService {
     }
 
     const candidates = await this.prisma.transaction.findMany({
-      where: {
-        userId,
+      where: this.mergeTransactionWhere(await this.buildTransactionWriteScope(userId), {
         type: { in: [...similaritySeeds.keys()] },
-      },
+      }),
       select: {
         id: true,
+        userId: true,
         description: true,
         amount: true,
         type: true,
         categoryLabel: true,
+        householdId: true,
+        ownerUserId: true,
       },
     });
 

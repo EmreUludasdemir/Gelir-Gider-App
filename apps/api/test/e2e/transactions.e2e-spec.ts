@@ -109,8 +109,8 @@ describe('Transactions Controller (e2e)', () => {
 
       expect(prisma.transaction.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          take: '10',
-          skip: '0',
+          take: 10,
+          skip: 0,
         }),
       );
     });
@@ -161,7 +161,7 @@ describe('Transactions Controller (e2e)', () => {
       expect(response.body.description).toBe(createDto.description);
     });
 
-    it('should persist transaction with unknown type as-is', async () => {
+    it('should reject transaction with unknown type', async () => {
       prisma.transaction.create.mockResolvedValue({
         ...mockTransaction,
         ...createDto,
@@ -169,27 +169,27 @@ describe('Transactions Controller (e2e)', () => {
         date: new Date(createDto.date),
       });
 
-      const response = await request(app.getHttpServer())
+      await request(app.getHttpServer())
         .post('/transactions/manual')
         .send({ ...createDto, type: 'invalid' })
-        .expect(201);
+        .expect(400);
 
-      expect(response.body.type).toBe('invalid');
+      expect(prisma.transaction.create).not.toHaveBeenCalled();
     });
 
-    it('should persist partial payload when required fields are missing', async () => {
+    it('should reject partial payload when required fields are missing', async () => {
       prisma.transaction.create.mockResolvedValue({
         ...mockTransaction,
         description: 'Incomplete',
         date: new Date(),
       });
 
-      const response = await request(app.getHttpServer())
+      await request(app.getHttpServer())
         .post('/transactions/manual')
         .send({ description: 'Incomplete' })
-        .expect(201);
+        .expect(400);
 
-      expect(response.body.description).toBe('Incomplete');
+      expect(prisma.transaction.create).not.toHaveBeenCalled();
     });
 
     it('should persist negative amounts without rejecting request', async () => {

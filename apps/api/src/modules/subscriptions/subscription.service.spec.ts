@@ -10,13 +10,20 @@ describe('SubscriptionService', () => {
 
   const userId = 'user-123'
 
-  const createExpenseTransaction = (overrides: Partial<{ id: string; description: string; amount: number; createdAt: Date }> = {}) => ({
+  const createExpenseTransaction = (overrides: Partial<{ id: string; description: string; amount: number; date: Date; createdAt: Date }> = {}) => ({
     id: overrides.id || `tx-${Math.random().toString(36).slice(2, 8)}`,
     userId,
     description: overrides.description || 'Test transaction',
     amount: overrides.amount ?? 99.99,
-    createdAt: overrides.createdAt || new Date('2026-03-10T00:00:00.000Z'),
+    date: overrides.date || overrides.createdAt || new Date('2026-03-10T00:00:00.000Z'),
+    createdAt: overrides.createdAt || overrides.date || new Date('2026-03-10T00:00:00.000Z'),
   })
+
+  const monthsBefore = (date: Date, months: number) => {
+    const result = new Date(date)
+    result.setMonth(result.getMonth() - months)
+    return result
+  }
 
   const createSavedSubscription = (overrides: Partial<{
     id: string
@@ -110,10 +117,13 @@ describe('SubscriptionService', () => {
     })
 
     it('detects recurring unknown payments with stable amounts', async () => {
+      const latestPayment = new Date()
+      latestPayment.setDate(latestPayment.getDate() - 10)
+
       prisma.transaction.findMany.mockResolvedValue([
-        createExpenseTransaction({ description: 'Acme Workspace', amount: 150, createdAt: new Date('2026-03-08T00:00:00.000Z') }),
-        createExpenseTransaction({ description: 'Acme Workspace', amount: 150, createdAt: new Date('2026-02-08T00:00:00.000Z') }),
-        createExpenseTransaction({ description: 'Acme Workspace', amount: 150, createdAt: new Date('2026-01-08T00:00:00.000Z') }),
+        createExpenseTransaction({ description: 'Acme Workspace', amount: 150, date: latestPayment }),
+        createExpenseTransaction({ description: 'Acme Workspace', amount: 150, date: monthsBefore(latestPayment, 1) }),
+        createExpenseTransaction({ description: 'Acme Workspace', amount: 150, date: monthsBefore(latestPayment, 2) }),
       ])
 
       const result = await service.detectSubscriptions(userId)

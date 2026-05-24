@@ -197,6 +197,46 @@ describe('TransactionsService', () => {
       );
     });
 
+    it('should sort by category using the persisted category label field', async () => {
+      prisma.transaction.findMany.mockResolvedValue([]);
+
+      await service.findAll(userId, { sortBy: 'category', sortOrder: 'asc' });
+
+      expect(prisma.transaction.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { categoryLabel: 'asc' },
+        }),
+      );
+    });
+
+    it('should filter amount ranges by absolute transaction amount', async () => {
+      prisma.transaction.findMany.mockResolvedValue([]);
+
+      await service.findAll(userId, { minAmount: 1000, maxAmount: 5000 });
+
+      expect(prisma.transaction.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            AND: expect.arrayContaining([
+              expect.objectContaining({
+                OR: expect.arrayContaining([
+                  { amount: { gte: 1000 } },
+                  { amount: { lte: -1000 } },
+                ]),
+              }),
+              { amount: { gte: -5000, lte: 5000 } },
+            ]),
+          }),
+        }),
+      );
+    });
+
+    it('should reject invalid amount filter ranges', async () => {
+      await expect(
+        service.findAll(userId, { minAmount: 5000, maxAmount: 1000 }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
     it('should return empty array when no transactions', async () => {
       prisma.transaction.findMany.mockResolvedValue([]);
 
@@ -267,7 +307,7 @@ describe('TransactionsService', () => {
           data: expect.objectContaining({
             userId,
             description: createDto.description,
-            amount: createDto.amount,
+            amount: -createDto.amount,
             type: createDto.type,
           }),
         }),

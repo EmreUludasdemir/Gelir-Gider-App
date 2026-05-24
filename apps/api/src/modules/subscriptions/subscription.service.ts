@@ -74,6 +74,7 @@ interface DetectionTransaction {
   id: string
   description: string
   amount: number
+  date?: Date
   createdAt: Date
 }
 
@@ -375,9 +376,9 @@ export class SubscriptionService {
         where: {
           userId,
           type: 'expense',
-          createdAt: { gte: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000) },
+          date: { gte: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000) },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { date: 'desc' },
       }),
       this.prisma.subscriptionDetectionFeedback.findMany({
         where: { userId },
@@ -473,7 +474,7 @@ export class SubscriptionService {
     }
 
     const sortedDates = transactions
-      .map((transaction) => new Date(transaction.createdAt).getTime())
+      .map((transaction) => this.getPaymentDate(transaction).getTime())
       .sort((left, right) => right - left)
 
     const intervals: number[] = []
@@ -588,6 +589,10 @@ export class SubscriptionService {
     }
 
     return recurring
+  }
+
+  private getPaymentDate(transaction: DetectionTransaction): Date {
+    return transaction.date || transaction.createdAt
   }
 
   private applyFeedback(
