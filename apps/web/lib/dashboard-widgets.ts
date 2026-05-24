@@ -1,5 +1,6 @@
 export const DASHBOARD_WIDGET_ORDER = [
   'command-center',
+  'action-feed',
   'cash-flow',
   'scenario-planner',
   'financial-analysis',
@@ -30,6 +31,10 @@ export const DASHBOARD_WIDGET_DEFINITIONS: Record<
   'command-center': {
     tr: 'Komuta paneli',
     en: 'Command center',
+  },
+  'action-feed': {
+    tr: 'Oncelikli hamleler',
+    en: 'Priority actions',
   },
   'cash-flow': {
     tr: 'Nakit akisi',

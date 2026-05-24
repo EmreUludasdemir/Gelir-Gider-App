@@ -941,7 +941,25 @@ export interface SavingsAction {
   outcome?: 'accepted' | 'dismissed' | 'completed';
 }
 
+export interface ActionFeedItem {
+  id: string;
+  type: 'cash_flow' | 'budget' | 'bill' | 'subscription' | 'savings';
+  priority: 'critical' | 'high' | 'medium' | 'low';
+  title: string;
+  description: string;
+  impactAmount?: number;
+  dueDate?: string;
+  href: string;
+}
+
+export interface ActionFeed {
+  generatedAt: string;
+  attentionScore: number;
+  items: ActionFeedItem[];
+}
+
 export const getSavingsActions = () => fetchApi<SavingsAction[]>('/analytics/savings-actions');
+export const getActionFeed = () => fetchApi<ActionFeed>('/analytics/action-feed');
 export const saveSavingsActionOutcome = (
   id: string,
   data: { status: 'accepted' | 'dismissed' | 'completed'; reason?: string }

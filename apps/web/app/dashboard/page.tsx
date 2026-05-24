@@ -9,6 +9,7 @@ import { DashboardHero } from '@/components/dashboard/DashboardHero'
 import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState'
 import { DashboardCommandCenter } from '@/components/dashboard/DashboardCommandCenter'
 import { DashboardPersonalizationPanel } from '@/components/dashboard/DashboardPersonalizationPanel'
+import { DashboardActionFeed } from '@/components/dashboard/DashboardActionFeed'
 import { CashFlowForecastCard } from '@/components/dashboard/CashFlowForecastCard'
 import { FinancialAnalysisBoard } from '@/components/dashboard/FinancialAnalysisBoard'
 import { SavingsScenarioPlanner } from '@/components/dashboard/SavingsScenarioPlanner'
@@ -195,6 +196,9 @@ export default function DashboardPage() {
         switch (widgetId as DashboardWidgetId) {
           case 'command-center':
             return <DashboardCommandCenter key={widgetId} />
+
+          case 'action-feed':
+            return <DashboardActionFeed key={widgetId} />
 
           case 'cash-flow':
             return <CashFlowForecastCard key={widgetId} />

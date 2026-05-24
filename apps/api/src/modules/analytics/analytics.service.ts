@@ -49,6 +49,23 @@ export interface SavingsActionOutcomeDto {
   reason?: string;
 }
 
+export interface ActionFeedItem {
+  id: string;
+  type: "cash_flow" | "budget" | "bill" | "subscription" | "savings";
+  priority: "critical" | "high" | "medium" | "low";
+  title: string;
+  description: string;
+  impactAmount?: number;
+  dueDate?: string;
+  href: string;
+}
+
+export interface ActionFeed {
+  generatedAt: string;
+  attentionScore: number;
+  items: ActionFeedItem[];
+}
+
 @Injectable()
 export class AnalyticsService {
   constructor(
@@ -364,6 +381,71 @@ export class AnalyticsService {
     };
   }
 
+  async getActionFeed(userId: string): Promise<ActionFeed> {
+    const cacheKey = `analytics:action-feed:${userId}`;
+    const cached = await this.redis.get<ActionFeed>(cacheKey);
+    if (cached) return cached;
+
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+    const nextWeek = new Date(now);
+    nextWeek.setDate(nextWeek.getDate() + 7);
+
+    const [monthTransactions, budgets, upcomingBills, subscriptions, savingsActions] =
+      await Promise.all([
+        this.prisma.transaction.findMany({
+          where: {
+            userId,
+            date: { gte: monthStart, lte: now },
+          },
+        }),
+        this.prisma.budget.findMany({
+          where: { userId, isActive: true },
+          orderBy: { categoryLabel: "asc" },
+        }),
+        this.prisma.bill.findMany({
+          where: {
+            userId,
+            isPaid: false,
+            dueDate: { gte: now, lte: nextWeek },
+          },
+          orderBy: { dueDate: "asc" },
+        }),
+        this.prisma.subscription.findMany({
+          where: { userId, isActive: true },
+          orderBy: { amount: "desc" },
+        }),
+        this.getSavingsActions(userId),
+      ]);
+
+    const items: ActionFeedItem[] = [
+      ...this.buildCashFlowActionItems(monthTransactions, upcomingBills, monthEnd),
+      ...this.buildBudgetActionItems(budgets, monthTransactions),
+      ...this.buildBillActionItems(upcomingBills, now),
+      ...this.buildSubscriptionActionItems(subscriptions),
+      ...this.buildSavingsActionItems(savingsActions),
+    ];
+
+    const deduplicatedItems = Array.from(new Map(items.map((item) => [item.id, item])).values())
+      .sort((left, right) => this.priorityWeight(right.priority) - this.priorityWeight(left.priority))
+      .slice(0, 8);
+
+    const attentionScore = Math.min(
+      100,
+      deduplicatedItems.reduce((score, item) => score + this.priorityWeight(item.priority), 0),
+    );
+
+    const feed = {
+      generatedAt: now.toISOString(),
+      attentionScore,
+      items: deduplicatedItems,
+    };
+
+    await this.redis.set(cacheKey, feed, 120);
+    return feed;
+  }
+
   async getSavingsActions(userId: string): Promise<SavingsAction[]> {
     const cacheKey = `analytics:savings-actions:${userId}`;
     const cached = await this.redis.get<SavingsAction[]>(cacheKey);
@@ -479,7 +561,179 @@ export class AnalyticsService {
     });
 
     await this.redis.del(`analytics:savings-actions:${userId}`);
+    await this.redis.del(`analytics:action-feed:${userId}`);
     return { success: true };
+  }
+
+  private buildCashFlowActionItems(
+    monthTransactions: Array<{ amount: number; type: string; date: Date }>,
+    upcomingBills: Array<{ amount: number }>,
+    monthEnd: Date,
+  ): ActionFeedItem[] {
+    const currentBalance = monthTransactions.reduce((sum, transaction) => {
+      return transaction.type === "income"
+        ? sum + Math.abs(transaction.amount)
+        : sum - Math.abs(transaction.amount);
+    }, 0);
+    const expenseTotal = monthTransactions
+      .filter((transaction) => transaction.type === "expense")
+      .reduce((sum, transaction) => sum + Math.abs(transaction.amount), 0);
+    const elapsedDays = Math.max(
+      1,
+      new Set(monthTransactions.map((transaction) => transaction.date.toISOString().slice(0, 10))).size,
+    );
+    const averageDailyExpense = expenseTotal / elapsedDays;
+    const remainingDays = Math.max(
+      0,
+      Math.ceil((monthEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
+    );
+    const upcomingBillTotal = upcomingBills.reduce((sum, bill) => sum + Math.abs(bill.amount), 0);
+    const projectedBalance = currentBalance - upcomingBillTotal - averageDailyExpense * remainingDays;
+
+    if (projectedBalance < 0) {
+      return [{
+        id: "cash_flow:negative_projection",
+        type: "cash_flow",
+        priority: "critical",
+        title: "Ay sonu nakit baskisi",
+        description: `Projeksiyon ${projectedBalance.toFixed(2)} TRY seviyesinde.`,
+        impactAmount: Number(Math.abs(projectedBalance).toFixed(2)),
+        href: "/dashboard",
+      }];
+    }
+
+    if (averageDailyExpense > 0 && projectedBalance < averageDailyExpense * 7) {
+      return [{
+        id: "cash_flow:thin_buffer",
+        type: "cash_flow",
+        priority: "high",
+        title: "Tampon zayifliyor",
+        description: "Ay sonu projeksiyonu 7 gunluk gider tamponunun altina yaklasiyor.",
+        impactAmount: Number(projectedBalance.toFixed(2)),
+        href: "/dashboard",
+      }];
+    }
+
+    return [];
+  }
+
+  private buildBudgetActionItems(
+    budgets: Array<{
+      categoryId: string;
+      categoryLabel: string;
+      limitAmount: number;
+      alertThreshold: number;
+    }>,
+    monthTransactions: Array<{ categoryId: string; amount: number; type: string }>,
+  ): ActionFeedItem[] {
+    const spendingByCategory = new Map<string, number>();
+    monthTransactions
+      .filter((transaction) => transaction.type === "expense")
+      .forEach((transaction) => {
+        spendingByCategory.set(
+          transaction.categoryId,
+          (spendingByCategory.get(transaction.categoryId) || 0) + Math.abs(transaction.amount),
+        );
+      });
+
+    return budgets
+      .map<ActionFeedItem | null>((budget) => {
+        const spent = spendingByCategory.get(budget.categoryId) || 0;
+        const percentage = budget.limitAmount > 0 ? (spent / budget.limitAmount) * 100 : spent > 0 ? 100 : 0;
+        if (percentage < budget.alertThreshold) {
+          return null;
+        }
+
+        const isOver = spent > budget.limitAmount;
+        const overage = Math.max(0, spent - budget.limitAmount);
+        return {
+          id: `budget:${budget.categoryId}`,
+          type: "budget" as const,
+          priority: isOver ? "high" as const : "medium" as const,
+          title: isOver ? `${budget.categoryLabel} butcesi asildi` : `${budget.categoryLabel} butcesi sinirda`,
+          description: `%${Math.round(percentage)} kullanim gorunuyor.`,
+          impactAmount: Number((isOver ? overage : Math.max(0, budget.limitAmount - spent)).toFixed(2)),
+          href: "/dashboard/budgets",
+        };
+      })
+      .filter((item): item is ActionFeedItem => item !== null);
+  }
+
+  private buildBillActionItems(
+    bills: Array<{ id: string; name: string; amount: number; dueDate: Date }>,
+    now: Date,
+  ): ActionFeedItem[] {
+    return bills.slice(0, 3).map((bill) => {
+      const daysUntilDue = Math.max(
+        0,
+        Math.ceil((bill.dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
+      );
+      return {
+        id: `bill:${bill.id}`,
+        type: "bill",
+        priority: daysUntilDue <= 2 ? "high" : "medium",
+        title: bill.name,
+        description: daysUntilDue === 0 ? "Bugun odeme gunu." : `${daysUntilDue} gun icinde odeme var.`,
+        impactAmount: Math.abs(bill.amount),
+        dueDate: bill.dueDate.toISOString(),
+        href: "/dashboard",
+      };
+    });
+  }
+
+  private buildSubscriptionActionItems(
+    subscriptions: Array<{
+      id: string;
+      name: string;
+      amount: number;
+      billingCycle: string;
+      nextBillingDate: Date;
+    }>,
+  ): ActionFeedItem[] {
+    return subscriptions
+      .map<ActionFeedItem | null>((subscription) => {
+        const monthlyCost = this.toMonthlyCost(subscription.amount, subscription.billingCycle);
+        if (monthlyCost < 100) {
+          return null;
+        }
+
+        return {
+          id: `subscription:${subscription.id}`,
+          type: "subscription" as const,
+          priority: monthlyCost >= 500 ? "medium" as const : "low" as const,
+          title: `${subscription.name} aboneligi`,
+          description: "Recurring yuk azaltma adayi.",
+          impactAmount: Number(monthlyCost.toFixed(2)),
+          dueDate: subscription.nextBillingDate.toISOString(),
+          href: "/dashboard/subscriptions",
+        };
+      })
+      .filter((item): item is ActionFeedItem => item !== null)
+      .slice(0, 2);
+  }
+
+  private buildSavingsActionItems(actions: SavingsAction[]): ActionFeedItem[] {
+    return actions.slice(0, 3).map((action) => ({
+      id: `savings:${action.id}`,
+      type: "savings",
+      priority: action.estimatedMonthlySaving >= 500 || action.confidence >= 85 ? "medium" : "low",
+      title:
+        action.actionType === "cancel_subscription"
+          ? "Abonelik gozden gecir"
+          : action.actionType === "reduce_category_spend"
+            ? "Kategori kesintisi"
+            : "Recurring charge kontrolu",
+      description: action.reason,
+      impactAmount: action.estimatedMonthlySaving,
+      href: action.actionType === "cancel_subscription" ? "/dashboard/subscriptions" : "/dashboard/transactions",
+    }));
+  }
+
+  private priorityWeight(priority: ActionFeedItem["priority"]) {
+    if (priority === "critical") return 40;
+    if (priority === "high") return 25;
+    if (priority === "medium") return 12;
+    return 5;
   }
 
   private async getExpenseTransactionsForMonth(userId: string, monthOffset: number) {

@@ -64,6 +64,11 @@ export class AnalyticsController {
     return this.analyticsService.getSavingsRate(user.id);
   }
 
+  @Get("action-feed")
+  async getActionFeed(@User() user: JwtPayload) {
+    return this.analyticsService.getActionFeed(user.id);
+  }
+
   @Get("savings-actions")
   async getSavingsActions(@User() user: JwtPayload) {
     return this.analyticsService.getSavingsActions(user.id);

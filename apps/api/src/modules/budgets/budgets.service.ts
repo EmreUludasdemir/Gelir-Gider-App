@@ -131,13 +131,13 @@ export class BudgetsService {
         // Calculate spending per category
         const spendingByCategory: Record<string, number> = {};
         transactions.forEach((t) => {
-          spendingByCategory[t.categoryId] = (spendingByCategory[t.categoryId] || 0) + t.amount;
+          spendingByCategory[t.categoryId] = (spendingByCategory[t.categoryId] || 0) + Math.abs(t.amount);
         });
 
         // Map budgets with spending status
         return budgets.map((budget) => {
           const spent = spendingByCategory[budget.categoryId] || 0;
-          const percentage = Math.round((spent / budget.limitAmount) * 100);
+          const percentage = budget.limitAmount > 0 ? Math.round((spent / budget.limitAmount) * 100) : spent > 0 ? 100 : 0;
           const isOverBudget = spent > budget.limitAmount;
           const isNearLimit = percentage >= budget.alertThreshold;
 

@@ -17,6 +17,7 @@ import {
   SubscriptionSummary,
   CashFlowForecast,
   SavingsAction,
+  ActionFeed,
   Household,
 } from './api'
 
@@ -112,6 +113,12 @@ export function useSavingsActions() {
   })
 }
 
+export function useActionFeed() {
+  return useSWR<ActionFeed>(useProtectedKey('/analytics/action-feed'), fetcher, {
+    refreshInterval: 60000,
+  })
+}
+
 export function useHouseholds() {
   return useSWR<Household[]>(useProtectedKey('/households'), fetcher, {
     refreshInterval: 60000,
@@ -125,6 +132,7 @@ export function useRefreshAll() {
   const { mutate: mutateSubscriptions } = useSubscriptionSummary()
   const { mutate: mutateCashFlow } = useCashFlowForecast()
   const { mutate: mutateSavingsActions } = useSavingsActions()
+  const { mutate: mutateActionFeed } = useActionFeed()
   const { mutate: mutateHouseholds } = useHouseholds()
 
   return async () => {
@@ -135,6 +143,7 @@ export function useRefreshAll() {
       mutateSubscriptions(),
       mutateCashFlow(),
       mutateSavingsActions(),
+      mutateActionFeed(),
       mutateHouseholds(),
     ])
   }

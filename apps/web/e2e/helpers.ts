@@ -1233,6 +1233,43 @@ export async function mockAppRoutes(
       return createJsonResponse(route, bills)
     }
 
+    if (path === '/analytics/action-feed' && method === 'GET') {
+      return createJsonResponse(route, {
+        generatedAt: forecastAnchorDate.toISOString(),
+        attentionScore: 64,
+        items: [
+          {
+            id: 'cash_flow:thin_buffer',
+            type: 'cash_flow',
+            priority: 'high',
+            title: 'Tampon zayifliyor',
+            description: 'Ay sonu projeksiyonu 7 gunluk gider tamponuna yaklasiyor.',
+            impactAmount: 9250,
+            href: '/dashboard',
+          },
+          {
+            id: 'budget:rent',
+            type: 'budget',
+            priority: 'medium',
+            title: 'Kira butcesi sinirda',
+            description: '%96 kullanim gorunuyor.',
+            impactAmount: 1000,
+            href: '/dashboard/budgets',
+          },
+          {
+            id: 'bill:bill-1',
+            type: 'bill',
+            priority: 'high',
+            title: 'Elektrik Faturasi',
+            description: 'Bugun odeme gunu.',
+            impactAmount: 1325,
+            dueDate: '2026-03-10',
+            href: '/dashboard',
+          },
+        ],
+      })
+    }
+
     if (path === '/analytics/savings-actions' && method === 'GET') {
       return createJsonResponse(route, savingsActions)
     }

@@ -28,11 +28,25 @@ describe('AnalyticsService', () => {
     transaction: {
       findMany: jest.fn(),
     },
+    budget: {
+      findMany: jest.fn(),
+    },
+    bill: {
+      findMany: jest.fn(),
+    },
+    subscription: {
+      findMany: jest.fn(),
+    },
+    savingsActionOutcome: {
+      findMany: jest.fn(),
+      upsert: jest.fn(),
+    },
   };
 
   const mockRedisService = {
     get: jest.fn(),
     set: jest.fn(),
+    del: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -217,6 +231,90 @@ describe('AnalyticsService', () => {
 
       expect(result.saved).toBe(0); // Clamped to 0
       expect(result.rate).toBe(0); // Clamped to 0
+    });
+  });
+
+  describe('getActionFeed', () => {
+    it('should return cached action feed if available', async () => {
+      const cachedFeed = {
+        generatedAt: new Date().toISOString(),
+        attentionScore: 25,
+        items: [
+          {
+            id: 'budget:food',
+            type: 'budget',
+            priority: 'high',
+            title: 'Food budget',
+            description: 'Budget is over.',
+            href: '/dashboard/budgets',
+          },
+        ],
+      };
+      mockRedisService.get.mockResolvedValue(cachedFeed);
+
+      const result = await service.getActionFeed(mockUserId);
+
+      expect(result).toEqual(cachedFeed);
+      expect(prisma.transaction.findMany).not.toHaveBeenCalled();
+    });
+
+    it('should build a prioritized action feed from financial signals', async () => {
+      mockRedisService.get.mockResolvedValue(null);
+      jest.spyOn(service, 'getSavingsActions').mockResolvedValue([
+        {
+          id: 'reduce_category_spend:food',
+          actionType: 'reduce_category_spend',
+          estimatedMonthlySaving: 120,
+          confidence: 80,
+          reason: 'Food spend is rising.',
+        },
+      ]);
+
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      mockPrismaService.transaction.findMany.mockResolvedValue([
+        mockTransaction({ type: 'income', amount: 1000, date: new Date() }),
+        mockTransaction({ type: 'expense', amount: -700, date: new Date(), categoryId: 'food' }),
+      ]);
+      mockPrismaService.budget.findMany.mockResolvedValue([
+        {
+          categoryId: 'food',
+          categoryLabel: 'Yemek',
+          limitAmount: 500,
+          alertThreshold: 80,
+        },
+      ]);
+      mockPrismaService.bill.findMany.mockResolvedValue([
+        {
+          id: 'bill-1',
+          name: 'Internet',
+          amount: 250,
+          dueDate: tomorrow,
+        },
+      ]);
+      mockPrismaService.subscription.findMany.mockResolvedValue([
+        {
+          id: 'sub-1',
+          name: 'Netflix',
+          amount: 199,
+          billingCycle: 'monthly',
+          nextBillingDate: tomorrow,
+        },
+      ]);
+
+      const result = await service.getActionFeed(mockUserId);
+
+      expect(result.items.length).toBeGreaterThan(0);
+      expect(result.items[0].priority).toBe('critical');
+      expect(result.items.some((item) => item.id === 'budget:food')).toBe(true);
+      expect(result.items.some((item) => item.id === 'bill:bill-1')).toBe(true);
+      expect(result.attentionScore).toBeGreaterThan(0);
+      expect(redis.set).toHaveBeenCalledWith(
+        `analytics:action-feed:${mockUserId}`,
+        expect.objectContaining({ items: expect.any(Array) }),
+        120,
+      );
     });
   });
 });

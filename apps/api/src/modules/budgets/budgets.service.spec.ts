@@ -380,6 +380,28 @@ describe('BudgetsService', () => {
       expect(result[0].status).toBe('warning');
     });
 
+    it('should calculate spent from normalized negative expense amounts', async () => {
+      const budget = {
+        ...mockBudget,
+        limitAmount: 1000,
+        alertThreshold: 80,
+      };
+      const transactions = [
+        createMockTransaction({ type: 'expense', categoryId: 'food', amount: -450 }),
+        createMockTransaction({ type: 'expense', categoryId: 'food', amount: -350 }),
+      ];
+
+      prisma.budget.findMany.mockResolvedValue([budget]);
+      prisma.transaction.findMany.mockResolvedValue(transactions);
+
+      const result = await service.getBudgetStatus(userId);
+
+      expect(result[0].spent).toBe(800);
+      expect(result[0].remaining).toBe(200);
+      expect(result[0].percentage).toBe(80);
+      expect(result[0].status).toBe('warning');
+    });
+
     it('should detect over budget status', async () => {
       const budget = {
         ...mockBudget,
