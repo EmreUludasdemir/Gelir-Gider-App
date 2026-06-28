@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState, useMemo } from 'react'
 import { Transaction } from '@/lib/api'
@@ -103,7 +103,7 @@ export function TransactionTable({
 
             {/* Desktop View */}
             <div className="hidden md:block overflow-x-auto">
-              <table className="w-full" data-testid="transaction-list">
+              <table className="w-full min-w-[800px]" data-testid="transaction-list">
                 <thead className="sticky top-0 z-10 border-b border-border bg-card/90 backdrop-blur-sm">
                   <tr>
                     {hasPdfTransactions && (

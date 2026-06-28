@@ -1,16 +1,21 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useMemo, useState } from 'react'
 import {
   AlertTriangle,
   BarChart3,
   CheckCircle2,
+  CheckSquare,
   Filter,
   Layers3,
   PieChart,
   RotateCcw,
   Save,
   Sparkles,
+  Square,
+  Tags,
+  Trash2,
+  X,
 } from 'lucide-react'
 import {
   ConfirmPdfUploadPayload,
@@ -196,18 +201,32 @@ function buildRowInsights(rows: UploadPreviewTransaction[]) {
   }, {})
 }
 
+function getConfidenceBadge(confidence: number) {
+  if (confidence >= 85) {
+    return { label: 'High', tone: 'border-success/25 bg-success/10 text-success' }
+  }
+  if (confidence >= 70) {
+    return { label: 'Medium', tone: 'border-warning/25 bg-warning/10 text-warning' }
+  }
+  return { label: 'Low', tone: 'border-destructive/25 bg-destructive/10 text-destructive' }
+}
+
 export function PdfBatchWorkbench({ batch, onConfirm, onDiscard }: PdfBatchWorkbenchProps) {
   const [items, setItems] = useState<EditableBatchItem[]>(batch.items)
   const [selectedItemId, setSelectedItemId] = useState<string | null>(batch.items[0]?.id ?? null)
   const [showOnlyLowConfidence, setShowOnlyLowConfidence] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [selectedRowIds, setSelectedRowIds] = useState<Set<string>>(new Set())
+  const [bulkCategoryId, setBulkCategoryId] = useState('')
 
   useEffect(() => {
     setItems(batch.items)
     setSelectedItemId(batch.items[0]?.id ?? null)
     setShowOnlyLowConfidence(false)
     setError(null)
+    setSelectedRowIds(new Set())
+    setBulkCategoryId('')
   }, [batch])
 
   const actionableItems = useMemo(
@@ -411,6 +430,76 @@ export function PdfBatchWorkbench({ batch, onConfirm, onDiscard }: PdfBatchWorkb
     )
   }
 
+  const toggleRowSelection = (rowId: string) => {
+    setSelectedRowIds((current) => {
+      const next = new Set(current)
+      if (next.has(rowId)) {
+        next.delete(rowId)
+      } else {
+        next.add(rowId)
+      }
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    if (!activeItem) return
+    const visibleIds = activeRows.map((row) => row.id)
+    const allSelected = visibleIds.every((id) => selectedRowIds.has(id))
+    if (allSelected) {
+      setSelectedRowIds((current) => {
+        const next = new Set(current)
+        visibleIds.forEach((id) => next.delete(id))
+        return next
+      })
+    } else {
+      setSelectedRowIds((current) => {
+        const next = new Set(current)
+        visibleIds.forEach((id) => next.add(id))
+        return next
+      })
+    }
+  }
+
+  const removeSelectedRows = () => {
+    if (!activeItem || selectedRowIds.size === 0) return
+    setItems((current) =>
+      current.map((item) => {
+        if (item.id !== activeItem.id) return item
+        return {
+          ...item,
+          preview: {
+            ...item.preview,
+            transactions: item.preview.transactions.filter((row) => !selectedRowIds.has(row.id)),
+          },
+        }
+      }),
+    )
+    setSelectedRowIds(new Set())
+  }
+
+  const applyCategoryToSelected = () => {
+    if (!activeItem || selectedRowIds.size === 0 || !bulkCategoryId) return
+    const category = CATEGORIES.find((candidate) => candidate.id === bulkCategoryId)
+    if (!category) return
+    setItems((current) =>
+      current.map((item) => {
+        if (item.id !== activeItem.id) return item
+        return {
+          ...item,
+          preview: {
+            ...item.preview,
+            transactions: item.preview.transactions.map((row) => {
+              if (!selectedRowIds.has(row.id)) return row
+              return { ...row, categoryId: bulkCategoryId, categoryLabel: category.label }
+            }),
+          },
+        }
+      }),
+    )
+    setBulkCategoryId('')
+  }
+
   const applySuggestedCategory = (itemId: string, merchantKey: string, categoryId: string) => {
     const category = CATEGORIES.find((candidate) => candidate.id === categoryId)
     if (!category) {
@@ -444,6 +533,10 @@ export function PdfBatchWorkbench({ batch, onConfirm, onDiscard }: PdfBatchWorkb
       }),
     )
   }
+
+  const allVisibleSelected = activeRows.length > 0 && activeRows.every((row) => selectedRowIds.has(row.id))
+  const someVisibleSelected = activeRows.some((row) => selectedRowIds.has(row.id))
+  const selectedCount = activeRows.filter((row) => selectedRowIds.has(row.id)).length
 
   const handleConfirm = async () => {
     const payloads = actionableItems.map((item) => ({
@@ -680,13 +773,17 @@ export function PdfBatchWorkbench({ batch, onConfirm, onDiscard }: PdfBatchWorkb
                       {activeItem.preview.transactions.length} satir · {activeItem.preview.lowConfidenceCount} kontrol gerektiren islem
                     </p>
                   </div>
-                  <span className="rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-                    %{Math.round(
-                      activeItem.preview.transactions.length > 0
-                        ? activeItem.preview.transactions.reduce((sum, row) => sum + Number(row.confidence || 0), 0) / activeItem.preview.transactions.length
-                        : 0,
-                    )} ortalama guven
-                  </span>
+                  {(() => {
+                    const avgConf = activeItem.preview.transactions.length > 0
+                      ? Math.round(activeItem.preview.transactions.reduce((sum, row) => sum + Number(row.confidence || 0), 0) / activeItem.preview.transactions.length)
+                      : 0
+                    const badge = getConfidenceBadge(avgConf)
+                    return (
+                      <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${badge.tone}`}>
+                        {badge.label} · %{avgConf}
+                      </span>
+                    )
+                  })()}
                 </div>
 
                 <div className="mt-4 grid gap-3 md:grid-cols-3">
@@ -755,15 +852,51 @@ export function PdfBatchWorkbench({ batch, onConfirm, onDiscard }: PdfBatchWorkb
                   </div>
                 )}
 
-                <div className="mt-4 space-y-4">
+                {/* Select All Row */}
+                <div className="mt-4 flex items-center gap-3 px-1">
+                  <button
+                    type="button"
+                    onClick={toggleSelectAll}
+                    className="flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                    aria-label={allVisibleSelected ? 'Tumunu kaldir' : 'Tumunu sec'}
+                  >
+                    {allVisibleSelected ? (
+                      <CheckSquare className="h-4.5 w-4.5 text-primary" />
+                    ) : (
+                      <Square className="h-4.5 w-4.5" />
+                    )}
+                    {allVisibleSelected ? 'Secimi kaldir' : `Tumunu sec (${activeRows.length})`}
+                  </button>
+                  {someVisibleSelected && (
+                    <span className="text-xs text-muted-foreground">
+                      {selectedCount} satir secili
+                    </span>
+                  )}
+                </div>
+
+                <div className="mt-3 space-y-4">
                   {activeRows.map((row) => (
-                    <div key={row.id} className="rounded-[24px] border border-border/70 bg-card/70 p-4">
+                    <div key={row.id} className={`rounded-[24px] border p-4 transition-all ${selectedRowIds.has(row.id) ? 'border-primary/40 bg-primary/[0.04] ring-1 ring-primary/20' : 'border-border/70 bg-card/70'}`}>
                       <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <p className="font-semibold text-foreground">{row.description}</p>
-                          <p className="mt-1 text-sm text-muted-foreground">{formatDate(row.date)} · {row.type === 'expense' ? 'Gider' : 'Gelir'}</p>
+                        <div className="flex items-start gap-3">
+                          <button
+                            type="button"
+                            onClick={() => toggleRowSelection(row.id)}
+                            className="mt-1 flex-shrink-0 text-muted-foreground hover:text-primary transition-colors"
+                            aria-label={selectedRowIds.has(row.id) ? 'Secimi kaldir' : 'Satiri sec'}
+                          >
+                            {selectedRowIds.has(row.id) ? (
+                              <CheckSquare className="h-5 w-5 text-primary" />
+                            ) : (
+                              <Square className="h-5 w-5" />
+                            )}
+                          </button>
+                          <div>
+                            <p className="font-semibold text-foreground">{row.description}</p>
+                            <p className="mt-1 text-sm text-muted-foreground">{formatDate(row.date)} · {row.type === 'expense' ? 'Gider' : 'Gelir'}</p>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span
                             className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${
                               getReviewTone(itemInsights[activeItem.id]?.[row.id]?.level || 'safe')
@@ -771,21 +904,22 @@ export function PdfBatchWorkbench({ batch, onConfirm, onDiscard }: PdfBatchWorkb
                           >
                             {itemInsights[activeItem.id]?.[row.id]?.label || 'Guvenli'}
                           </span>
-                          <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${
-                            Number(row.confidence || 0) >= 85
-                              ? 'border-success/25 bg-success/10 text-success'
-                            : Number(row.confidence || 0) >= 70
-                                ? 'border-warning/25 bg-warning/10 text-warning'
-                                : 'border-destructive/25 bg-destructive/10 text-destructive'
-                          }`}>
-                            Guven %{Math.round(Number(row.confidence || 0))}
-                          </span>
+                          {(() => {
+                            const conf = Number(row.confidence || 0)
+                            const badge = getConfidenceBadge(conf)
+                            return (
+                              <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${badge.tone}`}>
+                                {badge.label} · %{Math.round(conf)}
+                              </span>
+                            )
+                          })()}
                           <button
                             type="button"
                             onClick={() => removeRow(activeItem.id, row.id)}
-                            className="text-sm font-semibold text-muted-foreground transition-colors hover:text-destructive"
+                            className="inline-flex items-center gap-1 text-sm font-semibold text-muted-foreground transition-colors hover:text-destructive"
                           >
-                            Satiri cikar
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Cikar
                           </button>
                         </div>
                       </div>
@@ -894,20 +1028,85 @@ export function PdfBatchWorkbench({ batch, onConfirm, onDiscard }: PdfBatchWorkb
         </div>
       </div>
 
+      {/* Floating Bulk Actions Toolbar */}
+      {selectedCount > 0 && (
+        <div className="sticky bottom-4 z-20 mx-auto max-w-3xl animate-fade-in">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-card/95 dark:bg-card/80 backdrop-blur-xl p-4 shadow-[0_16px_40px_rgba(15,76,92,0.18)]">
+            <div className="flex items-center gap-3">
+              <span className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
+                <CheckSquare className="h-3.5 w-3.5" />
+                {selectedCount} satir secili
+              </span>
+              <button
+                type="button"
+                onClick={() => setSelectedRowIds(new Set())}
+                className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Secimi temizle
+              </button>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-2 rounded-xl border border-border/70 bg-background/80 px-2 py-1">
+                <Tags className="h-4 w-4 text-muted-foreground" />
+                <select
+                  value={bulkCategoryId}
+                  onChange={(e) => setBulkCategoryId(e.target.value)}
+                  className="bg-transparent text-sm font-medium text-foreground outline-none min-w-[120px]"
+                  aria-label="Toplu kategori sec"
+                >
+                  <option value="">Kategori sec...</option>
+                  {CATEGORIES.map((cat) => (
+                    <option key={cat.id} value={cat.id}>{cat.emoji} {cat.label}</option>
+                  ))}
+                </select>
+              </div>
+              <Button
+                variant="outline"
+                onClick={applyCategoryToSelected}
+                disabled={!bulkCategoryId}
+                className="h-9 text-xs font-semibold"
+              >
+                Kategori uygula
+              </Button>
+              <Button
+                variant="outline"
+                onClick={removeSelectedRows}
+                className="h-9 text-xs font-semibold text-destructive border-destructive/30 hover:bg-destructive/10"
+              >
+                <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                Secilenleri cikar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {error && (
         <div className="rounded-2xl border border-destructive/25 bg-destructive/10 p-4 text-sm font-medium text-destructive">
           {error}
         </div>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border/70 pt-4">
-        <p className="text-sm text-muted-foreground">
-          {actionableItems.length} dosya ve {batchAnalysis.rowCount} satir kayda hazir. Duplicate ve hatali dosyalar otomatik atlanacak.
-        </p>
-        <Button onClick={handleConfirm} loading={saving} data-testid="pdf-import-confirm">
-          <Save className="mr-2 h-4 w-4" />
-          Toplu importu kaydet
-        </Button>
+      {/* Footer CTA Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border/70 bg-background/60 p-5">
+        <div>
+          <p className="text-sm font-semibold text-foreground">
+            {actionableItems.length} dosya · {batchAnalysis.rowCount} satir kayda hazir
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Duplicate ve hatali dosyalar otomatik atlanacak.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" onClick={onDiscard} className="font-semibold">
+            <X className="mr-2 h-4 w-4" />
+            Iptal et
+          </Button>
+          <Button onClick={handleConfirm} loading={saving} data-testid="pdf-import-confirm" className="btn-premium font-semibold shadow-md">
+            <Save className="mr-2 h-4 w-4" />
+            Importu onayla
+          </Button>
+        </div>
       </div>
     </section>
   )

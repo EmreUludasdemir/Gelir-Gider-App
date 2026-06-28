@@ -1,11 +1,11 @@
-﻿'use client'
+'use client'
 
 import { useCallback, useMemo, useState } from 'react'
 import { getApiErrorMessage, previewPdfImportBatch, UploadBatchPreview } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
-import { AlertCircle, FileStack, ShieldCheck, Sparkles, Trash2, UploadCloud } from 'lucide-react'
-import { formatCurrency } from '@/lib/utils'
+import { AlertCircle, FileStack, ShieldCheck, Sparkles, Trash2, UploadCloud, FileText, CheckCircle2 } from 'lucide-react'
+import { formatCurrency, cn } from '@/lib/utils'
 
 interface PdfUploadProps {
   onSuccess?: (result: UploadBatchPreview) => void | Promise<void>
@@ -37,13 +37,13 @@ export function PdfUpload({ onSuccess }: PdfUploadProps) {
 
     const invalidFile = selectedFiles.find((file) => !file.name.toLowerCase().endsWith('.pdf'))
     if (invalidFile) {
-      setError('Sadece PDF formatindaki banka ekstreleri desteklenir.')
+      setError('Sadece PDF formatındaki banka ekstreleri desteklenir.')
       return
     }
 
     const oversizedFile = selectedFiles.find((file) => file.size > MAX_FILE_SIZE)
     if (oversizedFile) {
-      setError(`"${oversizedFile.name}" 10MB sinirini asiyor.`)
+      setError(`"${oversizedFile.name}" 10MB sınırını aşıyor.`)
       return
     }
 
@@ -118,28 +118,30 @@ export function PdfUpload({ onSuccess }: PdfUploadProps) {
   }
 
   return (
-    <Card data-testid="pdf-upload-card" className="animate-fade-in-soft overflow-hidden border-border/70 bg-card/85">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-            <UploadCloud className="h-5 w-5" />
+    <Card data-testid="pdf-upload-card" className="animate-fade-in-soft overflow-hidden border-border/70 bg-card/75 dark:bg-card/45 backdrop-blur-xl shadow-lg hover:shadow-xl transition-shadow duration-300">
+      <CardHeader className="border-b border-border/50 bg-gradient-to-r from-primary/[0.03] to-transparent py-5">
+        <CardTitle className="flex items-center gap-3.5">
+          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-sm">
+            <UploadCloud className="h-5.5 w-5.5" />
           </span>
-          <span>
-            Coklu PDF import istasyonu
-            <span className="mt-1 block text-sm font-normal text-muted-foreground">
-              Birden fazla ekstreyi tek kuyrukta preview et, toplu duzelt ve tek seferde kaydet.
+          <div>
+            <span className="font-display font-bold text-foreground">Çoklu PDF Import İstasyonu</span>
+            <span className="mt-1 block text-xs font-normal text-muted-foreground">
+              Birden fazla ekstreyi tek kuyrukta analiz et, toplu düzelt ve tek seferde kaydet.
             </span>
-          </span>
+          </div>
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-5">
+      <CardContent className="p-6">
+        <div className="space-y-6">
+          {/* Drag & Drop Area */}
           <div
-            className={`relative rounded-[28px] border-2 border-dashed px-6 py-10 text-center transition-all ${
+            className={cn(
+              "relative rounded-[24px] border-2 border-dashed px-6 py-11 text-center transition-all duration-300 group cursor-pointer",
               dragActive
-                ? 'border-primary/55 bg-primary/8'
-                : 'border-border/70 bg-muted/20 hover:border-primary/35 hover:bg-primary/[0.03]'
-            }`}
+                ? "border-primary bg-primary/8 shadow-[0_0_24px_rgba(15,76,92,0.15)]"
+                : "border-border/70 bg-muted/15 hover:border-primary/40 hover:bg-primary/[0.02]"
+            )}
             onDragEnter={handleDrag}
             onDragOver={handleDrag}
             onDragLeave={handleDrag}
@@ -151,94 +153,106 @@ export function PdfUpload({ onSuccess }: PdfUploadProps) {
               accept=".pdf"
               multiple
               onChange={handleFileChange}
-              className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-              aria-label="PDF dosyalari secin"
+              className="absolute inset-0 h-full w-full cursor-pointer opacity-0 z-10"
+              aria-label="PDF dosyaları seçin"
               disabled={loading}
             />
 
             <div className="pointer-events-none mx-auto flex max-w-md flex-col items-center">
-              <span className="flex h-16 w-16 items-center justify-center rounded-3xl bg-primary/10 text-primary">
+              <span className={cn(
+                "flex h-16 w-16 items-center justify-center rounded-3xl transition-transform duration-300",
+                dragActive ? "bg-primary/20 text-primary scale-110" : "bg-primary/10 text-primary group-hover:scale-105"
+              )}>
                 <FileStack className="h-7 w-7" />
               </span>
-              <p className="mt-4 text-lg font-semibold text-foreground">
+              <p className="mt-5 text-base font-bold text-foreground">
                 {files.length > 0
-                  ? `${files.length} PDF kuyruga alindi`
-                  : 'Bir veya birden fazla PDF dosyasini surukleyip birakin'}
+                  ? `${files.length} PDF kuyruğa alındı`
+                  : 'PDF banka ekstrelerinizi buraya sürükleyin'}
               </p>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Her dosya icin ayri preview olusturulur. Duplicate olanlar otomatik ayiklanir.
+              <p className="mt-2 text-xs text-muted-foreground/80 leading-relaxed max-w-xs mx-auto">
+                Veya bilgisayarınızdan seçmek için tıklayın. Otomatik duplicate ayıklama aktiftir.
               </p>
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl border border-border/70 bg-background/75 p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Kuyruktaki dosya</p>
-              <p className="mt-2 text-2xl font-display font-semibold text-foreground">{files.length}</p>
+          {/* Stats Bar */}
+          <div className="grid gap-3.5 sm:grid-cols-3">
+            <div className="rounded-2xl border border-border/50 bg-background/50 dark:bg-card/30 p-4 transition-all hover:bg-background/85">
+              <p className="text-[10px] uppercase tracking-[0.16em] font-semibold text-muted-foreground">Kuyruktaki Dosya</p>
+              <p className="mt-1.5 text-2xl font-display font-bold text-foreground">{files.length}</p>
             </div>
-            <div className="rounded-2xl border border-border/70 bg-background/75 p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Toplam boyut</p>
-              <p className="mt-2 text-xl font-display font-semibold text-foreground">{fileStats.totalSizeLabel}</p>
+            <div className="rounded-2xl border border-border/50 bg-background/50 dark:bg-card/30 p-4 transition-all hover:bg-background/85">
+              <p className="text-[10px] uppercase tracking-[0.16em] font-semibold text-muted-foreground">Toplam Boyut</p>
+              <p className="mt-1.5 text-xl font-display font-bold text-foreground">{fileStats.totalSizeLabel}</p>
             </div>
-            <div className="rounded-2xl border border-border/70 bg-background/75 p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Tahmini analiz</p>
-              <p className="mt-2 text-xl font-display font-semibold text-primary">
+            <div className="rounded-2xl border border-border/50 bg-background/50 dark:bg-card/30 p-4 transition-all hover:bg-background/85">
+              <p className="text-[10px] uppercase tracking-[0.16em] font-semibold text-muted-foreground">Tahmini İşlem Hacmi</p>
+              <p className="mt-1.5 text-xl font-display font-bold text-primary">
                 {files.length > 0 ? formatCurrency(files.length * 4800) : formatCurrency(0)}
               </p>
-              <p className="mt-1 text-xs text-muted-foreground">Toplu importta tahmini islem hacmi sinyali</p>
             </div>
           </div>
 
+          {/* Upload Queue List */}
           {files.length > 0 && (
-            <div className="rounded-[24px] border border-border/70 bg-background/80 p-4">
+            <div className="rounded-[20px] border border-border/50 bg-background/40 dark:bg-card/20 p-5 space-y-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold text-foreground">Import kuyrugu</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Dosyalari tek tek degil, ayni batch icinde preview edip toplu onaylayabilirsin.
+                  <p className="text-xs uppercase tracking-[0.12em] font-bold text-foreground">Import Kuyruğu</p>
+                  <p className="mt-1 text-xs text-muted-foreground/80">
+                    Dosyalar tek bir grup halinde onaylanır.
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={resetSelection}
                   disabled={loading}
-                  className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                  className="text-xs font-bold text-muted-foreground hover:text-foreground transition-colors py-1 px-2.5 rounded-lg hover:bg-muted"
                 >
-                  Tumunu temizle
+                  Tümünü Temizle
                 </button>
               </div>
 
-              <div className="mt-4 grid gap-3">
+              <div className="grid gap-2.5 max-h-56 overflow-y-auto scrollbar-thin pr-1">
                 {files.map((file) => (
-                  <div key={`${file.name}-${file.lastModified}`} className="animate-list-item-soft flex items-center justify-between gap-3 rounded-2xl border border-border/70 bg-card/70 px-4 py-3">
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">{file.name}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {(file.size / 1024).toFixed(1)} KB · parser review'a hazir
-                      </p>
+                  <div 
+                    key={`${file.name}-${file.lastModified}`} 
+                    className="animate-list-item-soft flex items-center justify-between gap-4 rounded-xl border border-border/50 bg-card/60 p-3.5 hover:border-primary/20 transition-all duration-200"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/5 text-primary flex-shrink-0">
+                        <FileText className="w-5 h-5" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">{file.name}</p>
+                        <p className="mt-0.5 text-[10px] text-muted-foreground/80">
+                          {(file.size / 1024).toFixed(1)} KB · işlenmeye hazır
+                        </p>
+                      </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => removeFile(file)}
                       disabled={loading}
-                      className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-destructive"
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 transition-all"
+                      title="Kuyruktan çıkar"
                     >
-                      <Trash2 className="h-4 w-4" />
-                      Cikar
+                      <Trash2 className="h-4.5 w-4.5" />
                     </button>
                   </div>
                 ))}
               </div>
 
               {loading && (
-                <div className="mt-4 space-y-2">
-                  <div className="flex items-center justify-between text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                    <span>{processedCount}/{files.length} dosya preview edildi</span>
+                <div className="space-y-2.5 pt-2 border-t border-border/40">
+                  <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                    <span>{processedCount}/{files.length} dosya işlendi</span>
                     <span>%{uploadProgress}</span>
                   </div>
-                  <div className="h-2 rounded-full bg-muted">
+                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                     <div
-                      className="h-2 rounded-full bg-gradient-to-r from-primary via-success to-accent transition-all duration-200"
+                      className="h-full rounded-full bg-gradient-to-r from-primary via-success to-accent transition-all duration-300 shadow-[0_0_8px_rgba(15,76,92,0.3)] animate-pulse-subtle"
                       style={{ width: `${uploadProgress}%` }}
                     />
                   </div>
@@ -247,47 +261,50 @@ export function PdfUpload({ onSuccess }: PdfUploadProps) {
             </div>
           )}
 
+          {/* Info Notes */}
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl border border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">
-              <p className="inline-flex items-center gap-2 font-semibold text-foreground">
-                <ShieldCheck className="h-4 w-4 text-success" />
-                Toplu review mantigi
+            <div className="rounded-2xl border border-border/45 bg-muted/10 p-4 text-xs text-muted-foreground/90 leading-relaxed">
+              <p className="inline-flex items-center gap-2 font-bold text-foreground">
+                <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                Güvenli Toplu Analiz
               </p>
-              <p className="mt-2">
-                Her dosya icin ayri preview olusur. Dusuk guvenli satirlar dosya bazli duzenlenir ama toplu kayit butonu tek noktada kalir.
+              <p className="mt-2 text-muted-foreground/80">
+                Tüm dosyalar backend tarafında parse edilir. Güvenlik skoru düşük olan işlemler listelenir ve kaydetmeden önce tek tek düzenlemenize imkan tanınır.
               </p>
             </div>
-            <div className="rounded-2xl border border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">
-              <p className="inline-flex items-center gap-2 font-semibold text-foreground">
+            <div className="rounded-2xl border border-border/45 bg-muted/10 p-4 text-xs text-muted-foreground/90 leading-relaxed">
+              <p className="inline-flex items-center gap-2 font-bold text-foreground">
                 <Sparkles className="h-4 w-4 text-primary" />
-                Analiz derinligi
+                Merchant & Kategori Baskısı
               </p>
-              <p className="mt-2">
-                Batch import sonrasinda kategori baskisi, merchant yogunlugu, net akis ve confidence dagilimi ayni ekranda raporlanir.
+              <p className="mt-2 text-muted-foreground/80">
+                Toplu yükleme sonrasında AI algoritmaları, harcama yoğunluklarını ve kategorilere göre bütçe baskılarını anında hesaplayarak raporlar.
               </p>
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          {/* Action Buttons */}
+          <div className="flex flex-wrap gap-3 pt-2">
             <Button
               onClick={handleUpload}
               disabled={files.length === 0 || loading}
               loading={loading}
-              className="flex-1 sm:flex-none"
+              className="flex-1 sm:flex-none btn-premium px-6 py-3 font-semibold text-white transition-all shadow-md"
               data-testid="pdf-upload-submit"
             >
-              {loading ? 'Batch preview hazirlaniyor...' : `${files.length || 0} PDF icin preview olustur`}
+              {loading ? 'Batch analiz yapılıyor...' : `${files.length || 0} PDF Ekstre Yükle ve Analiz Et`}
             </Button>
             {files.length > 0 && !loading && (
-              <Button onClick={resetSelection} variant="outline">
-                Vazgec
+              <Button onClick={resetSelection} variant="outline" className="h-[46px] border-border/80 hover:bg-muted font-semibold text-foreground">
+                Vazgeç
               </Button>
             )}
           </div>
 
           {error && (
-            <div className="animate-inline-feedback rounded-2xl border border-destructive/25 bg-destructive/10 p-4">
-              <p className="text-sm font-medium text-destructive">{error}</p>
+            <div className="animate-inline-feedback rounded-2xl border border-rose-500/20 bg-rose-500/10 p-4 flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-rose-500 flex-shrink-0 mt-0.5" />
+              <p className="text-xs font-semibold text-rose-700 dark:text-rose-400">{error}</p>
             </div>
           )}
         </div>
@@ -295,4 +312,5 @@ export function PdfUpload({ onSuccess }: PdfUploadProps) {
     </Card>
   )
 }
+
 

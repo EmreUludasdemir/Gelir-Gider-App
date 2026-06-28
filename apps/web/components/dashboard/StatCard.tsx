@@ -1,8 +1,10 @@
-﻿'use client'
+'use client'
 
 import { memo, useMemo } from 'react'
 import { usePreferences } from '@/lib/PreferencesContext'
 import { useTranslation } from '@/lib/translations'
+import { cn } from '@/lib/utils'
+
 
 interface StatCardProps {
   title: string
@@ -80,46 +82,67 @@ export const StatCard = memo(function StatCard({
   }
 
   return (
-    <div className={`${cardClass} hover-lift group cursor-default animate-scale-in`}>
-      <div className="flex items-center justify-between">
+    <div className={cn(
+      cardClass,
+      "hover-lift group cursor-default relative overflow-hidden rounded-2xl p-6 transition-all duration-300",
+      "border border-border/70 hover:border-primary/30",
+      "bg-card/70 dark:bg-card/45 backdrop-blur-xl",
+      "shadow-[0_8px_30px_rgb(0,0,0,0.02)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)]",
+      "hover:shadow-[0_20px_40px_rgba(15,76,92,0.08)] dark:hover:shadow-[0_20px_40px_rgba(15,76,92,0.15)]",
+      "animate-scale-in"
+    )}>
+      {/* Visual top border indicator */}
+      <div className={cn(
+        "absolute top-0 left-0 right-0 h-1.5 transition-all duration-300 group-hover:h-2",
+        icon === 'up' ? 'bg-gradient-to-r from-emerald-400 to-emerald-600' :
+        icon === 'down' ? 'bg-gradient-to-r from-rose-400 to-rose-600' :
+        'bg-gradient-to-r from-primary-400 to-primary-600'
+      )} />
+
+      <div className="flex items-center justify-between relative z-10">
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-muted-foreground mb-2 uppercase tracking-wide">
+          <p className="text-xs font-semibold text-muted-foreground/80 mb-2.5 uppercase tracking-[0.12em]">
             {title}
           </p>
-          <p className="text-2xl md:text-3xl font-bold text-foreground truncate">
+          <p className="text-2xl md:text-3xl font-display font-bold text-foreground tracking-tight truncate tabular-nums">
             {formattedValue}
           </p>
           {change !== undefined && (
-            <div className={`flex items-center gap-1 mt-2 text-sm font-medium ${getChangeColor(change)}`}>
-              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-current/10">
-                {getChangeIcon(change)}
+            <div className="flex items-center gap-1.5 mt-3">
+              <span className={cn(
+                "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold border backdrop-blur-md",
+                change > 0 
+                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400' 
+                  : change < 0 
+                  ? 'bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400' 
+                  : 'bg-muted/40 border-muted/50 text-muted-foreground'
+              )}>
+                <span>{getChangeIcon(change)}</span>
+                <span>{Math.abs(change).toFixed(1)}%</span>
               </span>
-              <span>
-                {change > 0 ? '+' : ''}{change.toFixed(1)}%
-              </span>
-              <span className="text-muted-foreground text-xs ml-1">
-                {language === 'tr' ? 'vs önceki ay' : 'vs last month'}
+              <span className="text-[11px] text-muted-foreground/90 font-medium">
+                {language === 'tr' ? 'geçen aya göre' : 'vs last month'}
               </span>
             </div>
           )}
         </div>
-        <div className="ml-4 flex-shrink-0 opacity-90 group-hover:opacity-100 transition-opacity">
+        <div className="ml-4 flex-shrink-0 transform transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
           {renderIcon()}
         </div>
       </div>
 
-      {/* Decorative gradient blob */}
-      <div className="absolute -top-20 -right-20 w-40 h-40 rounded-full opacity-10 blur-3xl pointer-events-none"
-        style={{
-          background: icon === 'up'
-            ? 'radial-gradient(circle, #10b981 0%, transparent 70%)'
-            : icon === 'down'
-              ? 'radial-gradient(circle, #f43f5e 0%, transparent 70%)'
-              : 'radial-gradient(circle, #0f4c5c 0%, transparent 70%)'
-        }}
+      {/* Modern Gradient glow effect when hovered */}
+      <div 
+        className={cn(
+          "absolute -bottom-24 -right-24 w-48 h-48 rounded-full opacity-0 group-hover:opacity-20 transition-opacity duration-500 pointer-events-none blur-3xl",
+          icon === 'up' ? 'bg-emerald-500' :
+          icon === 'down' ? 'bg-rose-500' :
+          'bg-primary'
+        )}
       />
     </div>
   )
 })
+
 
 

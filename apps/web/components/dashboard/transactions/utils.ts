@@ -23,26 +23,26 @@ export interface SimilarTransactionCluster {
 
 export const getCategoryColor = (categoryId: string): string => {
   const colors: Record<string, string> = {
-    salary: 'bg-green-100 text-green-800',
-    freelance: 'bg-blue-100 text-blue-800',
-    investment: 'bg-primary-100 text-primary-800',
-    bank_fees: 'bg-stone-100 text-stone-800',
-    market: 'bg-orange-100 text-orange-800',
-    restaurant: 'bg-red-100 text-red-800',
-    transport: 'bg-primary-100 text-primary-800',
-    subscription: 'bg-pink-100 text-pink-800',
-    utilities: 'bg-yellow-100 text-yellow-800',
-    health: 'bg-teal-100 text-teal-800',
-    shopping: 'bg-cyan-100 text-cyan-800',
-    education: 'bg-lime-100 text-lime-800',
-    entertainment: 'bg-fuchsia-100 text-fuchsia-800',
-    rent: 'bg-rose-100 text-rose-800',
-    transfer: 'bg-muted text-foreground',
-    atm: 'bg-slate-100 text-slate-800',
-    insurance: 'bg-amber-100 text-amber-800',
-    other: 'bg-neutral-100 text-neutral-800',
+    salary: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20',
+    freelance: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20',
+    investment: 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-500/10 dark:text-violet-400 dark:border-violet-500/20',
+    bank_fees: 'bg-zinc-50 text-zinc-700 border-zinc-200 dark:bg-zinc-500/10 dark:text-zinc-400 dark:border-zinc-500/20',
+    market: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20',
+    restaurant: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20',
+    transport: 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/20',
+    subscription: 'bg-pink-50 text-pink-700 border-pink-200 dark:bg-pink-500/10 dark:text-pink-400 dark:border-pink-500/20',
+    utilities: 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-500/10 dark:text-yellow-400 dark:border-yellow-500/20',
+    health: 'bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-500/10 dark:text-teal-400 dark:border-teal-500/20',
+    shopping: 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20',
+    education: 'bg-lime-50 text-lime-700 border-lime-200 dark:bg-lime-500/10 dark:text-lime-400 dark:border-lime-500/20',
+    entertainment: 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200 dark:bg-fuchsia-500/10 dark:text-fuchsia-400 dark:border-fuchsia-500/20',
+    rent: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20',
+    transfer: 'bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/20',
+    atm: 'bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/20',
+    insurance: 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20',
+    other: 'bg-neutral-50 text-neutral-700 border-neutral-200 dark:bg-neutral-500/10 dark:text-neutral-400 dark:border-neutral-500/20',
   }
-  return colors[categoryId] || 'bg-muted text-foreground'
+  return colors[categoryId] || 'bg-muted/80 text-muted-foreground border-border/40'
 }
 
 export function normalizeSimilarityKey(input: string): string {

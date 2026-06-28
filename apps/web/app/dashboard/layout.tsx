@@ -1,4 +1,5 @@
-﻿import { Header } from '@/components/layout/Header'
+import { Header } from '@/components/layout/Header'
+import { Sidebar } from '@/components/layout/Sidebar'
 import { FloatingActionButton } from '@/components/layout/FloatingActionButton'
 
 export default function DashboardLayout({
@@ -7,7 +8,8 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="min-h-screen bg-background transition-colors duration-300">
+    <div className="flex min-h-screen bg-background transition-colors duration-300">
+      {/* Dynamic Background Gradients */}
       <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
         <div className="absolute -top-48 -right-40 w-[28rem] h-[28rem] rounded-full bg-primary/10 blur-3xl" />
         <div className="absolute top-1/2 -left-48 w-[26rem] h-[26rem] rounded-full bg-accent/20 blur-3xl" />
@@ -22,15 +24,23 @@ export default function DashboardLayout({
         />
       </div>
 
-      <Header />
+      {/* Left Sidebar on Desktop */}
+      <Sidebar />
 
-      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-page-enter">
-        {children}
-      </main>
+      {/* Content wrapper */}
+      <div className="flex-1 flex flex-col min-w-0 min-h-screen">
+        {/* Top Header - Mobile Only */}
+        <div className="md:hidden">
+          <Header />
+        </div>
+
+        {/* Main Content Area */}
+        <main className="flex-1 relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 animate-page-enter">
+          {children}
+        </main>
+      </div>
 
       <FloatingActionButton />
     </div>
   )
 }
-
-
