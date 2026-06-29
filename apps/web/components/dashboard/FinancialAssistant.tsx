@@ -1,8 +1,8 @@
-﻿'use client';
+'use client';
 
 import { useState, useRef, useEffect, useCallback, memo } from 'react';
 import { MessageCircle, X, Send, Loader2, Sparkles, Minimize2, Copy, Check } from 'lucide-react';
-import { askFinancialAdvisor } from '@/lib/gemini';
+import { chatWithAssistant } from '@/lib/api';
 import { usePreferences } from '@/lib/PreferencesContext';
 import { useTranslation } from '@/lib/translations';
 import { useTransactions } from '@/lib/hooks';
@@ -124,12 +124,11 @@ export function FinancialAssistant() {
     setIsLoading(true);
 
     try {
-      const response = await askFinancialAdvisor(userMessage.content, transactions || [], language);
-
-      const assistantMessage: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: response,
+      const response = await chatWithAssistant(userMessage.content);
+      const assistantMessage: ChatMessage = { 
+        id: Date.now().toString(), 
+        role: 'assistant', 
+        content: response.message,
         timestamp: Date.now(),
       };
 

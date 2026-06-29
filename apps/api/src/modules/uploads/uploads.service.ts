@@ -354,18 +354,50 @@ export class UploadsService {
       finalConfidence = Math.min(finalConfidence, 40); // Low
     }
 
+    const amount = Math.abs(Number(parsed.amount || 0));
+    const finalDate = hasValidDate ? new Date(parsed.date) : new Date();
+
+    // Row-level duplicate detection
+    const normalizeStr = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const normalizedDesc = normalizeStr(parsed.description || '');
+    
+    // Check for existing transactions within the same day (+- 24 hours just in case, but let's do exactly same day in local time or simple date match)
+    // Actually, simple date range: start of day to end of day
+    const startOfDay = new Date(finalDate);
+    startOfDay.setUTCHours(0, 0, 0, 0);
+    const endOfDay = new Date(finalDate);
+    endOfDay.setUTCHours(23, 59, 59, 999);
+
+    const existingTransactions = await this.prisma.transaction.findMany({
+      where: {
+        userId,
+        amount,
+        type: classification.type || type,
+        date: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
+      select: { description: true }
+    });
+
+    const isPossibleDuplicate = existingTransactions.some(
+      t => normalizeStr(t.description) === normalizedDesc
+    );
+
     return {
       id: `preview-${index + 1}-${crypto.randomUUID()}`,
-      date: hasValidDate ? new Date(parsed.date).toISOString() : new Date().toISOString(),
+      date: finalDate.toISOString(),
       description: parsed.description || 'Bilinmeyen İşlem',
-      amount: Math.abs(Number(parsed.amount || 0)),
+      amount,
       currency: this.normalizeCurrency(parsed.currency),
-      type: classification.type || type,
+      type: (classification.type === 'both' ? type : classification.type) || type,
       categoryId: classification.categoryId,
       categoryLabel: classification.categoryLabel,
       confidence: finalConfidence,
       tags: ['pdf-upload'],
       notes: `Parsed from ${filename}. Reason: ${classification.reason || 'none'}`,
+      isPossibleDuplicate,
     };
   }
 

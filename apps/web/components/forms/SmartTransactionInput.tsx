@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Sparkles, Loader2, Check, X } from 'lucide-react';
-import { parseTransactionNaturalLanguage } from '@/lib/gemini';
+import { parseSmartTransaction } from '@/lib/api';
 import { ApiError, createTransaction, getApiErrorMessage } from '@/lib/api';
 import { usePreferences } from '@/lib/PreferencesContext';
 import { useTranslation } from '@/lib/translations';
@@ -28,9 +28,15 @@ export function SmartTransactionInput({ onSuccess }: SmartTransactionInputProps)
     setParsedResult(null);
 
     try {
-      const result = await parseTransactionNaturalLanguage(input, language);
+      const result = await parseSmartTransaction(input);
       if (result) {
-        setParsedResult(result);
+        setParsedResult({
+          description: result.description,
+          amount: result.amount,
+          category: result.category,
+          type: result.type === 'income' ? TransactionType.INCOME : TransactionType.EXPENSE,
+          date: result.date
+        });
       } else {
         setError(language === 'tr' ? 'Islem parse edilemedi. Lutfen farkli bir ifade deneyin.' : 'Could not parse transaction. Please try a different phrase.');
       }

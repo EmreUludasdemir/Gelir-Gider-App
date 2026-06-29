@@ -158,6 +158,7 @@ export interface UploadPreviewTransaction {
   ownerUserId?: string;
   reviewerUserId?: string;
   needsReview?: boolean;
+  isPossibleDuplicate?: boolean;
 }
 
 export interface UploadPreview {
