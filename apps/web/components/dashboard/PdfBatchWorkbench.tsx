@@ -735,28 +735,14 @@ export function PdfBatchWorkbench({ batch, onConfirm, onDiscard }: PdfBatchWorkb
 
         <div className="space-y-6">
           {activeItem ? (
-            !activeItem.preview.success && !activeItem.preview.duplicate ? (
+            !activeItem.preview.success ? (
               <div className="rounded-[26px] border border-destructive/20 bg-destructive/10 p-6">
                 <h3 className="text-xl font-display font-semibold text-foreground">{activeItem.preview.filename}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">
                   Bu dosya parser tarafinda hata verdi. Queue icinde tutuluyor ama toplu kayit aksiyonuna dahil edilmeyecek.
                 </p>
                 <div className="mt-4 space-y-2 text-sm text-muted-foreground">
-                  {activeItem.preview.errors.map((item, index) => (
-                    <div key={`${item}-${index}`} className="rounded-2xl border border-border/70 bg-background/85 px-4 py-3">
-                      {item}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : activeItem.preview.duplicate ? (
-              <div className="rounded-[26px] border border-warning/25 bg-warning/10 p-6">
-                <h3 className="text-xl font-display font-semibold text-foreground">{activeItem.preview.filename}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Bu dosya duplicate olarak isaretlendi. Kayda girmeyecek ama toplu queue icinde gorebilirsin.
-                </p>
-                <div className="mt-4 space-y-2 text-sm text-muted-foreground">
-                  {activeItem.preview.errors.map((item, index) => (
+                  {activeItem.preview.errors?.map((item, index) => (
                     <div key={`${item}-${index}`} className="rounded-2xl border border-border/70 bg-background/85 px-4 py-3">
                       {item}
                     </div>
@@ -765,6 +751,18 @@ export function PdfBatchWorkbench({ batch, onConfirm, onDiscard }: PdfBatchWorkb
               </div>
             ) : (
               <div className="rounded-[26px] border border-border/70 bg-background/80 p-5">
+                {activeItem.preview.duplicate && (
+                  <div className="mb-5 rounded-2xl border border-warning/25 bg-warning/10 p-4">
+                    <p className="text-sm font-semibold text-warning">
+                      ⚠️ Olası Çift Kayıt (Duplicate) Uyarısı
+                    </p>
+                    <div className="mt-2 space-y-2 text-xs text-muted-foreground/90">
+                      {activeItem.preview.errors?.map((item, index) => (
+                        <div key={`dup-err-${index}`}>{item}</div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="text-sm uppercase tracking-[0.18em] text-muted-foreground">Secili dosya</p>

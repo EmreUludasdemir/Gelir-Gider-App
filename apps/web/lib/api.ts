@@ -404,7 +404,7 @@ export const confirmPdfImport = (data: ConfirmPdfUploadPayload) =>
 
 function buildUploadBatchPreview(items: UploadBatchPreviewItem[]): UploadBatchPreview {
   const actionableItems = items.filter(
-    (item) => item.preview.success && !item.preview.duplicate && item.preview.transactions.length > 0,
+    (item) => item.preview.success && item.preview.transactions.length > 0,
   )
   const duplicateFiles = items.filter((item) => item.preview.duplicate).length
   const errorFiles = items.filter((item) => !item.preview.success && !item.preview.duplicate).length
@@ -422,7 +422,7 @@ function buildUploadBatchPreview(items: UploadBatchPreviewItem[]): UploadBatchPr
 }
 
 function buildUploadBatchResult(fileResults: UploadBatchResultItem[]): UploadBatchResult {
-  const savedResults = fileResults.filter((item) => item.result.success && !item.result.duplicate)
+  const savedResults = fileResults.filter((item) => item.result.success)
   const duplicateFiles = fileResults.filter((item) => item.result.duplicate).length
 
   return {

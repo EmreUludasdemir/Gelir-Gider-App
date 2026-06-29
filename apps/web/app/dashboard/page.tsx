@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { Suspense } from 'react'
 import dynamic from 'next/dynamic'
@@ -33,8 +33,8 @@ const TransactionTable = dynamic(
   { loading: () => <TableSkeleton />, ssr: false }
 )
 
-const AIInsights = dynamic(
-  () => import('@/components/dashboard/AIInsights').then(mod => ({ default: mod.AIInsights })),
+const SmartInsights = dynamic(
+  () => import('@/components/dashboard/SmartInsights').then(mod => ({ default: mod.SmartInsights })),
   { loading: () => <AIInsightsSkeleton />, ssr: false }
 )
 
@@ -235,7 +235,7 @@ export default function DashboardPage() {
           case 'ai-insights':
             return (
               <Suspense key={widgetId} fallback={<AIInsightsSkeleton />}>
-                <AIInsights />
+                <SmartInsights />
               </Suspense>
             )
 

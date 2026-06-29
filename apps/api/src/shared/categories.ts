@@ -11,7 +11,7 @@ export const CATEGORIES: Category[] = [
     id: 'salary',
     label: 'Maaş',
     icon: '💰',
-    keywords: ['maaş', 'salary', 'wage', 'ücret', 'bordro'],
+    keywords: ['maaş', 'salary', 'wage', 'ücret', 'bordro', 'burs', 'scholarship', 'ödeme geldi', 'gelen eft', 'gelen havale'],
     type: 'income'
   },
   {
@@ -57,21 +57,21 @@ export const CATEGORIES: Category[] = [
     id: 'market',
     label: 'Market',
     icon: '🛒',
-    keywords: ['migros', 'carrefour', 'bim', 'a101', 'şok', 'market', 'grocery'],
+    keywords: ['migros', 'carrefour', 'bim', 'a101', 'şok', 'sok', 'market', 'grocery', 'macrocenter', 'file'],
     type: 'expense'
   },
   {
     id: 'restaurant',
     label: 'Yemek',
     icon: '🍽️',
-    keywords: ['restaurant', 'restoran', 'cafe', 'kahve', 'yemeksepeti', 'getir', 'trendyol yemek', 'tikla gelsin', 'tıkla gelsin'],
+    keywords: ['restaurant', 'restoran', 'cafe', 'kahve', 'yemeksepeti', 'getir yemek', 'trendyol yemek', 'starbucks', 'burger', 'mcdonalds', 'dominos', 'tikla gelsin', 'tıkla gelsin'],
     type: 'expense'
   },
   {
     id: 'transport',
     label: 'Ulaşım',
     icon: '🚗',
-    keywords: ['shell', 'opet', 'petrol', 'benzin', 'uber', 'taksi', 'metro', 'otobüs', 'hgs'],
+    keywords: ['shell', 'opet', 'petrol', 'benzin', 'uber', 'bitaksi', 'taksi', 'metro', 'otobüs', 'hgs', 'istanbulkart', 'iett', 'marti', 'bp', 'total'],
     type: 'expense'
   },
   {
@@ -85,28 +85,28 @@ export const CATEGORIES: Category[] = [
     id: 'utilities',
     label: 'Faturalar',
     icon: '💡',
-    keywords: ['elektrik', 'su', 'doğalgaz', 'internet', 'telefon', 'turkcell', 'vodafone', 'türk telekom'],
+    keywords: ['elektrik', 'su', 'doğalgaz', 'igdaş', 'bedaş', 'internet', 'telefon', 'turkcell', 'vodafone', 'türk telekom', 'fatura'],
     type: 'expense'
   },
   {
     id: 'health',
     label: 'Sağlık',
     icon: '🏥',
-    keywords: ['eczane', 'hastane', 'doktor', 'pharmacy', 'hospital', 'clinic'],
+    keywords: ['eczane', 'hastane', 'doktor', 'pharmacy', 'hospital', 'clinic', 'medikal'],
     type: 'expense'
   },
   {
     id: 'shopping',
     label: 'Alışveriş',
     icon: '🛍️',
-    keywords: ['trendyol', 'hepsiburada', 'amazon', 'n11', 'gittigidiyor', 'lcw', 'defacto', 'zara', 'h&m'],
+    keywords: ['trendyol', 'hepsiburada', 'amazon', 'n11', 'gittigidiyor', 'lcw', 'defacto', 'zara', 'h&m', 'hm'],
     type: 'expense'
   },
   {
     id: 'education',
     label: 'Eğitim',
     icon: '📚',
-    keywords: ['udemy', 'coursera', 'kitap', 'book', 'eğitim', 'kurs', 'okul'],
+    keywords: ['udemy', 'coursera', 'kitap', 'book', 'eğitim', 'kurs', 'okul', 'üniversite', 'course'],
     type: 'expense'
   },
   {
@@ -127,7 +127,7 @@ export const CATEGORIES: Category[] = [
     id: 'transfer',
     label: 'Transfer',
     icon: '🔄',
-    keywords: ['havale', 'eft', 'transfer', 'gönderim'],
+    keywords: ['havale', 'eft', 'transfer', 'gönderim', 'fast'],
     type: 'both'
   },
   {
@@ -153,7 +153,7 @@ function normalizeText(input: string): string {
 export function classifyTransaction(
   description: string,
   transactionType?: 'income' | 'expense'
-): { categoryId: string; categoryLabel: string; confidence: number } {
+): { categoryId: string; categoryLabel: string; confidence: number; type?: 'income' | 'expense' | 'both'; reason?: string; source?: string } {
   const desc = normalizeText(description);
 
   const eligibleCategories = transactionType
@@ -166,7 +166,10 @@ export function classifyTransaction(
         return {
           categoryId: category.id,
           categoryLabel: category.label,
-          confidence: keyword.length > 5 ? 90 : 75
+          confidence: keyword.length > 5 ? 90 : 75,
+          type: category.type,
+          reason: `Matched keyword: ${keyword}`,
+          source: 'deterministic-rule',
         };
       }
     }
@@ -175,6 +178,9 @@ export function classifyTransaction(
   return {
     categoryId: 'other',
     categoryLabel: 'Diğer',
-    confidence: 30
+    confidence: 30,
+    type: transactionType || 'expense',
+    reason: 'No deterministic rule matched',
+    source: 'deterministic-rule',
   };
 }

@@ -1,4 +1,4 @@
-﻿import { Language } from './types';
+import { Language } from './types';
 
 export const translations: Record<Language, Record<string, string>> = {
   tr: {
@@ -56,11 +56,11 @@ export const translations: Record<Language, Record<string, string>> = {
     no_budgets: 'Henüz bütçe oluşturulmadı',
     create_first_budget: 'İlk bütçenizi oluşturun ve harcamalarınızı kontrol altına alın.',
     
-    // AI Features
-    ai_insights: 'AI Önerileri',
-    auto_insights: 'Yapay Zeka Önerileri',
+    // Smart Features
+    ai_insights: 'Akıllı Öneriler',
+    auto_insights: 'Otomatik Öneriler',
     financial_assistant: 'Finansal Asistan',
-    ask_ai: 'AI\'a Sor',
+    ask_ai: 'Asistana Sor',
     analyze: 'Analiz Et',
     smart_input: 'Akıllı Giriş',
     smart_input_placeholder: 'Örn: "Bugün markette 250 TL harcadım"',
@@ -203,11 +203,11 @@ export const translations: Record<Language, Record<string, string>> = {
     no_budgets: 'No budgets yet',
     create_first_budget: 'Create your first budget and take control of your spending.',
     
-    // AI Features
-    ai_insights: 'AI Insights',
-    auto_insights: 'AI-Powered Insights',
+    // Smart Features
+    ai_insights: 'Smart Insights',
+    auto_insights: 'Automated Insights',
     financial_assistant: 'Financial Assistant',
-    ask_ai: 'Ask AI',
+    ask_ai: 'Ask Assistant',
     analyze: 'Analyze',
     smart_input: 'Smart Input',
     smart_input_placeholder: 'E.g., "I spent $50 on groceries today"',

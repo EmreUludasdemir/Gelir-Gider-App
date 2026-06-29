@@ -1,4 +1,4 @@
-﻿import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import * as crypto from 'crypto';
 import {
   TransactionEntity,
@@ -14,7 +14,6 @@ import { CATEGORIES, classifyTransaction } from '../../shared/categories';
 import { PrismaService } from '../../prisma.service';
 import { RedisService } from '../../redis.service';
 import { CacheService } from '../../shared/cache';
-import { AutoCategorizerService } from '../ai/auto-categorizer.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { AppException, ErrorCode } from '../../shared';
 
@@ -63,7 +62,6 @@ export class UploadsService {
     private readonly prisma: PrismaService,
     private readonly cache: CacheService,
     private readonly redis: RedisService,
-    private readonly autoCategorizer: AutoCategorizerService,
     private readonly realtime: RealtimeGateway,
   ) {}
 
@@ -102,21 +100,11 @@ export class UploadsService {
       select: { uploadedAt: true, filename: true },
     });
 
+    let duplicateWarning: string | null = null;
+    let duplicateSuggestions: string[] = [];
     if (existingUpload) {
-      return {
-        success: false,
-        duplicate: true,
-        filename: file.originalname,
-        fileHash,
-        fileSize: file.size,
-        totalParsed: 0,
-        lowConfidenceCount: 0,
-        errors: [
-          `Bu PDF daha once ${this.formatDate(existingUpload.uploadedAt)} tarihinde yuklenmis gorunuyor.`,
-        ],
-        suggestions: this.buildDuplicateSuggestions(file.originalname, existingUpload.filename),
-        transactions: [],
-      };
+      duplicateWarning = `Bu PDF daha once ${this.formatDate(existingUpload.uploadedAt)} tarihinde yuklenmis gorunuyor.`;
+      duplicateSuggestions = this.buildDuplicateSuggestions(file.originalname, existingUpload.filename);
     }
 
     try {
@@ -132,17 +120,22 @@ export class UploadsService {
         }
       }
 
+      const lowConfidenceCount = previewTransactions.filter((t) => t.confidence < UploadsService.LOW_CONFIDENCE_THRESHOLD).length;
+
+      if (duplicateWarning) {
+        errors.unshift(duplicateWarning);
+      }
+
       return {
         success: true,
+        duplicate: !!existingUpload,
         filename: file.originalname,
         fileHash,
         fileSize: file.size,
-        totalParsed: parseResult.transactions.length,
-        lowConfidenceCount: previewTransactions.filter(
-          (transaction) => transaction.confidence < UploadsService.LOW_CONFIDENCE_THRESHOLD,
-        ).length,
-        errors,
-        suggestions: [],
+        totalParsed: previewTransactions.length,
+        lowConfidenceCount,
+        errors: errors.length > 0 ? errors : undefined,
+        suggestions: duplicateSuggestions.length > 0 ? duplicateSuggestions : undefined,
         transactions: previewTransactions,
       };
     } catch (error) {
@@ -344,19 +337,35 @@ export class UploadsService {
   ): Promise<UploadPreviewTransaction> {
     const type = this.inferTransactionType(parsed);
     const classification = await this.resolveCategory(parsed.description, type, userId);
+    
+    // Confidence logic as requested
+    let finalConfidence = classification.confidence;
+    const hasValidDate = !isNaN(new Date(parsed.date).getTime());
+    const hasValidAmount = typeof parsed.amount === 'number' && isFinite(parsed.amount);
+    const hasDescription = !!parsed.description?.trim();
+    
+    if (hasValidDate && hasValidAmount && hasDescription) {
+      if (classification.categoryId !== 'other' && classification.confidence >= 75) {
+        finalConfidence = Math.max(finalConfidence, 90); // High
+      } else {
+        finalConfidence = Math.max(finalConfidence, 70); // Medium
+      }
+    } else {
+      finalConfidence = Math.min(finalConfidence, 40); // Low
+    }
 
     return {
       id: `preview-${index + 1}-${crypto.randomUUID()}`,
-      date: new Date(parsed.date).toISOString(),
-      description: parsed.description,
+      date: hasValidDate ? new Date(parsed.date).toISOString() : new Date().toISOString(),
+      description: parsed.description || 'Bilinmeyen İşlem',
       amount: Math.abs(Number(parsed.amount || 0)),
       currency: this.normalizeCurrency(parsed.currency),
-      type,
+      type: classification.type || type,
       categoryId: classification.categoryId,
       categoryLabel: classification.categoryLabel,
-      confidence: classification.confidence,
+      confidence: finalConfidence,
       tags: ['pdf-upload'],
-      notes: `Parsed from ${filename}`,
+      notes: `Parsed from ${filename}. Reason: ${classification.reason || 'none'}`,
     };
   }
 
@@ -457,19 +466,8 @@ export class UploadsService {
     description: string,
     type: TransactionType,
     userId: string,
-  ): Promise<{ categoryId: string; categoryLabel: string; confidence: number }> {
-    const auto = await this.autoCategorizer.categorize(description, userId);
-    const fallback = classifyTransaction(description, type);
-
-    if (fallback.confidence >= auto.confidence) {
-      return fallback;
-    }
-
-    return {
-      categoryId: auto.categoryId,
-      categoryLabel: auto.categoryLabel,
-      confidence: auto.confidence,
-    };
+  ): Promise<{ categoryId: string; categoryLabel: string; confidence: number; type?: 'income' | 'expense' | 'both'; reason?: string; source?: string }> {
+    return classifyTransaction(description, type);
   }
 
   private handleParserFailure(
