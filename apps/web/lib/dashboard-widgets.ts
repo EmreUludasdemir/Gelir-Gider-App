@@ -53,8 +53,8 @@ export const DASHBOARD_WIDGET_DEFINITIONS: Record<
     en: 'Income expense summary',
   },
   'ai-insights': {
-    tr: 'AI icgoruler',
-    en: 'AI insights',
+    tr: 'Akilli icgoruler',
+    en: 'Smart insights',
   },
   'monthly-trend': {
     tr: 'Aylik trend',

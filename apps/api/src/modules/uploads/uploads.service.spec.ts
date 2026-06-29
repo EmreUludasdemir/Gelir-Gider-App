@@ -43,7 +43,7 @@ describe('UploadsService', () => {
 
     jest.restoreAllMocks()
     jest.spyOn(Logger.prototype, 'error').mockImplementation()
-    service = new UploadsService(prisma as never, cache as never, redis as never, autoCategorizer as never, realtime as never)
+    service = new UploadsService(prisma as never, cache as never, redis as never, realtime as never)
   })
 
   afterEach(() => {
@@ -55,13 +55,22 @@ describe('UploadsService', () => {
       uploadedAt: new Date('2026-03-10T10:00:00.000Z'),
       filename: 'mart-ekstre.pdf',
     })
-    const fetchSpy = jest.spyOn(global, 'fetch')
+    const mockResponse = {
+      ok: true,
+      json: jest.fn().mockResolvedValue({
+        success: true,
+        transactions: [],
+        totalParsed: 0,
+        errors: [],
+      }),
+    }
+    const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue(mockResponse as never)
 
     const result = await service.previewPdf('user-123', mockFile)
 
     expect(result.duplicate).toBe(true)
-    expect(result.success).toBe(false)
-    expect(fetchSpy).not.toHaveBeenCalled()
+    expect(result.success).toBe(true)
+    expect(fetchSpy).toHaveBeenCalled()
   })
 
   it('should return a graceful preview failure when the parser is unavailable', async () => {

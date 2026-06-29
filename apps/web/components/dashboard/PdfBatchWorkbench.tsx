@@ -969,6 +969,13 @@ export function PdfBatchWorkbench({ batch, onConfirm, onDiscard }: PdfBatchWorkb
                           {(() => {
                             const conf = Number(row.confidence || 0)
                             const badge = getConfidenceBadge(conf)
+                            if (row.notes === 'Matched your previous correction') {
+                              return (
+                                <span className="inline-flex rounded-full border px-3 py-1 text-xs font-semibold border-primary/25 bg-primary/10 text-primary">
+                                  High · Browser-local memory
+                                </span>
+                              )
+                            }
                             return (
                               <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${badge.tone}`}>
                                 {badge.label} · %{Math.round(conf)}

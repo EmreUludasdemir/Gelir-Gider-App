@@ -2,80 +2,60 @@
 
 import { Suspense } from 'react'
 import dynamic from 'next/dynamic'
-import { useRefreshAll, useSummary, useTransactions } from '@/lib/hooks'
+import Link from 'next/link'
+import { FileUp, ListOrdered, PieChart, Repeat, PlusCircle } from 'lucide-react'
+import { 
+  useSummary, 
+  useTransactions, 
+  useBudgetStatus, 
+  useSubscriptionSummary,
+  useDuplicateGroups
+} from '@/lib/hooks'
 import { getApiErrorMessage } from '@/lib/api'
-import { StatCard } from '@/components/dashboard/StatCard'
-import { DashboardHero } from '@/components/dashboard/DashboardHero'
-import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState'
-import { DashboardCommandCenter } from '@/components/dashboard/DashboardCommandCenter'
-import { DashboardPersonalizationPanel } from '@/components/dashboard/DashboardPersonalizationPanel'
-import { DashboardActionFeed } from '@/components/dashboard/DashboardActionFeed'
-import { CashFlowForecastCard } from '@/components/dashboard/CashFlowForecastCard'
-import { FinancialAnalysisBoard } from '@/components/dashboard/FinancialAnalysisBoard'
-import { SavingsScenarioPlanner } from '@/components/dashboard/SavingsScenarioPlanner'
 import { Spinner } from '@/components/ui/Spinner'
-import { usePreferences } from '@/lib/PreferencesContext'
-import { useTranslation } from '@/lib/translations'
 import { useAuth } from '@/components/auth-provider'
-import { useRealtimeRefresh } from '@/contexts/RealtimeContext'
-import { DashboardWidgetId } from '@/lib/dashboard-widgets'
+import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState'
+import { Dashboard2Hero } from '@/components/dashboard/Dashboard2Hero'
+import { Dashboard2KPIs } from '@/components/dashboard/Dashboard2KPIs'
+import { Dashboard2BudgetPressure } from '@/components/dashboard/Dashboard2BudgetPressure'
+import { Dashboard2SubscriptionSummary } from '@/components/dashboard/Dashboard2SubscriptionSummary'
+import { DeterministicInsights } from '@/components/dashboard/DeterministicInsights'
 import {
-  DashboardSkeleton,
   TableSkeleton,
   ChartSkeleton,
   CategorySkeleton,
   AIInsightsSkeleton,
 } from '@/components/skeletons'
 
-// Lazy load heavy components for better initial load performance
 const TransactionTable = dynamic(
   () => import('@/components/dashboard/transactions').then(mod => ({ default: mod.TransactionTable })),
   { loading: () => <TableSkeleton />, ssr: false }
 )
 
-const SmartInsights = dynamic(
-  () => import('@/components/dashboard/SmartInsights').then(mod => ({ default: mod.SmartInsights })),
-  { loading: () => <AIInsightsSkeleton />, ssr: false }
-)
-
-const WeeklyTrendChart = dynamic(
-  () => import('@/components/dashboard/WeeklyTrendChart').then(mod => ({ default: mod.WeeklyTrendChart })),
-  { loading: () => <ChartSkeleton /> }
-)
-
-const MonthlyTrendChart = dynamic(
-  () => import('@/components/dashboard/TrendChart').then(mod => ({ default: mod.TrendChart })),
-  { loading: () => <ChartSkeleton /> }
-)
-
-const CategoryPieChart = dynamic(
-  () => import('@/components/dashboard/CategoryPieChart').then(mod => ({ default: mod.CategoryPieChart })),
-  { loading: () => <ChartSkeleton /> }
-)
-
-const TopCategories = dynamic(
-  () => import('@/components/dashboard/TopCategories').then(mod => ({ default: mod.TopCategories })),
-  { loading: () => <CategorySkeleton /> }
-)
-
-const RecurringPayments = dynamic(
-  () => import('@/components/dashboard/RecurringPayments').then(mod => ({ default: mod.RecurringPayments })),
-  { loading: () => <CategorySkeleton /> }
-)
+function QuickActionCard({ href, icon: Icon, title, description }: any) {
+  return (
+    <Link href={href} className="flex items-center gap-4 rounded-2xl border border-border/60 bg-card p-4 shadow-sm hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md transition-all">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+        <Icon className="h-5 w-5" />
+      </div>
+      <div>
+        <p className="font-semibold text-foreground">{title}</p>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </div>
+    </Link>
+  )
+}
 
 export default function DashboardPage() {
   const { loading: authLoading, user } = useAuth()
+  
   const { data: summary, error: summaryError, isLoading: summaryLoading, mutate: mutateSummary } = useSummary()
   const { data: transactions, error: transactionsError, isLoading: transactionsLoading, mutate: mutateTransactions } = useTransactions()
-  const refreshAll = useRefreshAll()
-  const { language, dashboardPreferences } = usePreferences()
-  const { t } = useTranslation(language)
+  const { data: budgets, isLoading: budgetsLoading } = useBudgetStatus()
+  const { data: subscriptionSummary, isLoading: subscriptionsLoading } = useSubscriptionSummary()
+  const { data: duplicateGroups } = useDuplicateGroups()
 
-  useRealtimeRefresh(() => {
-    void refreshAll()
-  }, [refreshAll])
-
-  // Wait for auth to be ready before showing data
+  // Wait for auth to be ready
   if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -84,59 +64,47 @@ export default function DashboardPage() {
     )
   }
 
-  if (summaryLoading || transactionsLoading) {
+  // Handle Loading
+  const isLoading = summaryLoading || transactionsLoading || budgetsLoading || subscriptionsLoading
+  if (isLoading) {
     return (
       <div className="space-y-6">
-        <div>
-          <div className="h-9 w-48 bg-muted rounded animate-pulse" />
-          <div className="h-5 w-32 bg-muted rounded mt-2 animate-pulse" />
-        </div>
-        <DashboardSkeleton.Stats />
-        <AIInsightsSkeleton />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <ChartSkeleton />
-          <ChartSkeleton />
+        <div className="h-64 w-full bg-muted rounded-[32px] animate-pulse" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="h-24 bg-muted rounded-2xl animate-pulse" />
+          <div className="h-24 bg-muted rounded-2xl animate-pulse" />
+          <div className="h-24 bg-muted rounded-2xl animate-pulse" />
+          <div className="h-24 bg-muted rounded-2xl animate-pulse" />
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <CategorySkeleton />
-          <CategorySkeleton />
+          <div className="h-64 bg-muted rounded-[32px] animate-pulse" />
+          <div className="h-64 bg-muted rounded-[32px] animate-pulse" />
         </div>
         <TableSkeleton />
       </div>
     )
   }
 
+  // Handle Error
   if (summaryError || transactionsError) {
-    const errorMessage = getApiErrorMessage(summaryError || transactionsError, '');
-    const isNetworkError = errorMessage.includes('fetch') || errorMessage.includes('network');
-    
+    const errorMessage = getApiErrorMessage(summaryError || transactionsError, '')
     return (
-      <div className="p-6 bg-destructive/10 border border-destructive/20 rounded-xl" id="main-content">
+      <div className="p-6 bg-destructive/10 border border-destructive/20 rounded-2xl">
         <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-full bg-destructive/20 flex items-center justify-center flex-shrink-0">
+          <div className="w-12 h-12 rounded-full bg-destructive/20 flex items-center justify-center shrink-0">
             <span className="text-2xl">⚠️</span>
           </div>
           <div>
-            <h3 className="font-semibold text-destructive mb-1">
-              {language === 'tr' ? 'Veri yüklenemedi' : 'Failed to load data'}
-            </h3>
-            <p className="text-destructive/80 mb-3">
-              {isNetworkError
-                ? (language === 'tr' 
-                    ? 'Sunucuya bağlanılamıyor. İnternet bağlantınızı kontrol edin.' 
-                    : 'Cannot connect to server. Check your internet connection.')
-                : (language === 'tr'
-                    ? 'Backend servisi çalışmıyor olabilir veya bir hata oluştu.'
-                    : 'Backend service may be down or an error occurred.')}
-            </p>
+            <h3 className="font-semibold text-destructive mb-1">Failed to load Dashboard</h3>
+            <p className="text-destructive/80 mb-3">{errorMessage}</p>
             <button
               onClick={() => {
-                mutateSummary();
-                mutateTransactions();
+                mutateSummary()
+                mutateTransactions()
               }}
-              className="px-4 py-2 bg-destructive text-destructive-foreground rounded-lg hover:opacity-90 transition-opacity text-sm font-medium"
+              className="px-4 py-2 bg-destructive text-destructive-foreground rounded-lg font-medium hover:opacity-90"
             >
-              {language === 'tr' ? 'Tekrar Dene' : 'Try Again'}
+              Try Again
             </button>
           </div>
         </div>
@@ -145,150 +113,116 @@ export default function DashboardPage() {
   }
 
   if (!summary || !transactions) {
-    return (
-      <div className="p-4 bg-warning/10 border border-warning/20 rounded-lg">
-        <p className="text-warning">
-          {language === 'tr'
-            ? 'Dashboard verisi su an hazir degil. Lutfen yeniden deneyin.'
-            : 'Dashboard data is currently unavailable. Please try again.'}
-        </p>
-      </div>
-    )
+    return null
   }
 
-  const latestTransactionDate = transactions.length > 0 ? new Date(transactions[0].date) : undefined
   const isEmptyDashboard = transactions.length === 0 || summary.totals.transactionCount === 0
-  const visibleDashboardWidgets = dashboardPreferences.widgetOrder.filter(
-    (widgetId) => dashboardPreferences.visibleWidgets[widgetId],
-  )
 
   if (isEmptyDashboard) {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">{t('dashboard')}</h1>
+          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
           <p className="text-muted-foreground mt-1">
-            {language === 'tr'
-              ? 'Ilk kaydi ekleyene kadar dashboard burada yonlendirme modunda kalir.'
-              : 'Dashboard stays in setup mode until the first records arrive.'}
+            Welcome to your financial command center.
           </p>
         </div>
-
         <DashboardEmptyState />
       </div>
     )
   }
 
+  // Derived Metrics for Dashboard 2.0
+  const income = summary.totals.income
+  const expense = summary.totals.expense
+  const balance = summary.totals.balance
+  const savingsRate = income > 0 ? (income - expense) / income : 0
+  
+  const totalBudgetLimit = budgets?.reduce((sum, b) => sum + b.limitAmount, 0) || 0
+  const totalBudgetSpent = budgets?.reduce((sum, b) => sum + (b.spent || 0), 0) || 0
+  const budgetUsage = totalBudgetLimit > 0 ? totalBudgetSpent / totalBudgetLimit : 0
+  const overbudgetCount = budgets?.filter(b => (b.spent || 0) > b.limitAmount).length || 0
+  const riskyCategoriesCount = budgets?.filter(b => ((b.spent || 0) / b.limitAmount) >= 0.7).length || 0
+
+  const monthlyRecurring = subscriptionSummary?.totalMonthly || 0
+  const recurringLoad = expense > 0 ? monthlyRecurring / expense : 0
+  const upcomingCount = subscriptionSummary?.upcomingPayments?.length || 0
+
   return (
-    <div className={dashboardPreferences.density === 'focus' ? 'space-y-5' : 'space-y-7'}>
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">{t('dashboard')}</h1>
-        <p className="text-muted-foreground mt-1">
-          {summary.period.month} {summary.period.year} - {t('overview')}
-        </p>
+    <div className="space-y-6 pb-12 animate-fade-in">
+      <Dashboard2Hero 
+        summary={summary} 
+        budgetUsage={budgetUsage} 
+        overbudgetCount={overbudgetCount} 
+      />
+
+      <Dashboard2KPIs 
+        income={income}
+        expense={expense}
+        balance={balance}
+        savingsRate={savingsRate}
+        budgetUsage={budgetUsage}
+        recurringLoad={recurringLoad}
+        upcomingCount={upcomingCount}
+        riskyCategoriesCount={riskyCategoriesCount}
+      />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="flex flex-col gap-6">
+          <Dashboard2BudgetPressure budgets={budgets || []} />
+          {subscriptionSummary && <Dashboard2SubscriptionSummary summary={subscriptionSummary} />}
+        </div>
+        <div>
+          <DeterministicInsights 
+            summary={summary} 
+            transactions={transactions} 
+            budgets={budgets || []} 
+            duplicateGroups={duplicateGroups || []} 
+          />
+        </div>
       </div>
 
-      <DashboardHero summary={summary} />
+      <div className="pt-4">
+        <h3 className="text-lg font-bold text-foreground mb-4">Quick Actions</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <QuickActionCard 
+            href="/dashboard/upload" 
+            icon={FileUp} 
+            title="Import PDF" 
+            description="Upload bank statements" 
+          />
+          <QuickActionCard 
+            href="/dashboard/transactions" 
+            icon={ListOrdered} 
+            title="Transactions" 
+            description="Review all records" 
+          />
+          <QuickActionCard 
+            href="/dashboard/budgets" 
+            icon={PieChart} 
+            title="Budgets" 
+            description="Manage category limits" 
+          />
+          <QuickActionCard 
+            href="/dashboard/subscriptions" 
+            icon={Repeat} 
+            title="Subscriptions" 
+            description="Manage recurring costs" 
+          />
+        </div>
+      </div>
 
-      <DashboardPersonalizationPanel />
-
-      {visibleDashboardWidgets.map((widgetId) => {
-        switch (widgetId as DashboardWidgetId) {
-          case 'command-center':
-            return <DashboardCommandCenter key={widgetId} />
-
-          case 'action-feed':
-            return <DashboardActionFeed key={widgetId} />
-
-          case 'cash-flow':
-            return <CashFlowForecastCard key={widgetId} />
-
-          case 'scenario-planner':
-            return <SavingsScenarioPlanner key={widgetId} summary={summary} />
-
-          case 'financial-analysis':
-            return <FinancialAnalysisBoard key={widgetId} summary={summary} />
-
-          case 'stats':
-            return (
-              <div key={widgetId} className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:gap-6">
-                <StatCard
-                  title={t('income')}
-                  value={summary.totals.income}
-                  change={summary.comparison.changePercentage.income}
-                  icon="up"
-                />
-                <StatCard
-                  title={t('expense')}
-                  value={summary.totals.expense}
-                  change={summary.comparison.changePercentage.expense}
-                  icon="down"
-                />
-                <StatCard
-                  title={t('balance')}
-                  value={summary.totals.balance}
-                  icon="wallet"
-                />
-              </div>
-            )
-
-          case 'ai-insights':
-            return (
-              <Suspense key={widgetId} fallback={<AIInsightsSkeleton />}>
-                <SmartInsights />
-              </Suspense>
-            )
-
-          case 'monthly-trend':
-            return (
-              <div key={widgetId} className="grid grid-cols-1 gap-6">
-                <Suspense fallback={<ChartSkeleton />}>
-                  <MonthlyTrendChart transactions={transactions} months={12} baseDate={latestTransactionDate} />
-                </Suspense>
-              </div>
-            )
-
-          case 'weekly-category':
-            return (
-              <div key={widgetId} className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <Suspense fallback={<ChartSkeleton />}>
-                  <WeeklyTrendChart data={summary.weeklyTrend} />
-                </Suspense>
-                <Suspense fallback={<ChartSkeleton />}>
-                  <CategoryPieChart categories={summary.topCategories} />
-                </Suspense>
-              </div>
-            )
-
-          case 'categories-recurring':
-            return (
-              <div key={widgetId} className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <Suspense fallback={<CategorySkeleton />}>
-                  <TopCategories categories={summary.topCategories} />
-                </Suspense>
-                <Suspense fallback={<CategorySkeleton />}>
-                  <RecurringPayments payments={summary.recurringPayments} />
-                </Suspense>
-              </div>
-            )
-
-          case 'transactions':
-            return (
-              <Suspense key={widgetId} fallback={<TableSkeleton />}>
-                <TransactionTable
-                  transactions={transactions}
-                  title={t('recent_transactions')}
-                  limit={dashboardPreferences.density === 'focus' ? 8 : 12}
-                  currentUserId={user?.id}
-                  onRefresh={mutateTransactions}
-                />
-              </Suspense>
-            )
-
-          default:
-            return null
-        }
-      })}
+      <div className="pt-4">
+        <Suspense fallback={<TableSkeleton />}>
+          <TransactionTable
+            transactions={transactions}
+            title="Recent Activity"
+            limit={10}
+            currentUserId={user?.id}
+            onRefresh={mutateTransactions}
+          />
+        </Suspense>
+      </div>
     </div>
   )
 }
