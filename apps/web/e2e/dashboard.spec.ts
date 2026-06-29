@@ -19,44 +19,36 @@ test.describe('Dashboard', () => {
     await consoleMonitor.assertClean()
   })
 
-  test('renders dashboard summary and recent transactions', async ({ page }) => {
+  test('renders dashboard 2.0 components', async ({ page }) => {
     await page.goto('/dashboard')
 
-    await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible()
-    await expect(page.getByText('Finans Nabzi')).toBeVisible()
-    await expect(page.getByRole('heading', { name: /Bu ayki para akisini netlestir/i })).toBeVisible()
-    await expect(page.getByText('Aydan aya tempo')).toBeVisible()
-    await expect(page.getByText('En baskin kategori')).toBeVisible()
-    await expect(page.getByTestId('dashboard-command-center')).toBeVisible()
-    await expect(page.getByTestId('dashboard-action-feed')).toBeVisible()
-    await expect(page.getByTestId('cash-flow-forecast-card')).toBeVisible()
-    await expect(page.getByTestId('savings-scenario-planner')).toBeVisible()
-    await expect(page.getByTestId('financial-analysis-board')).toBeVisible()
-    await expect(page.getByText('Oncelikli hamleler')).toBeVisible()
-    await expect(page.getByText('Ay sonu nakit akis tahmini')).toBeVisible()
-    await expect(page.getByText('Tasarruf senaryosu')).toBeVisible()
-    await expect(page.getByText('Verinin anlattigi resmi daha net gor')).toBeVisible()
-    await expect(page.getByText('Finansal icgoruler')).toBeVisible()
-    await expect(page.getByText('Harcama ivmesi')).toBeVisible()
-    await expect(page.getByText('Kesilebilecek alan')).toBeVisible()
-    await expect(page.getByText('Aydan aya fark')).toBeVisible()
-    await expect(page.getByText('Hizli Islemler')).toBeVisible()
-    await expect(page.getByText('Komuta Paneli')).toBeVisible()
-    await expect(page.getByRole('heading', { name: 'Finansal Sağlık' })).toBeVisible()
-    await expect(page.getByRole('heading', { name: 'Tasarruf Hedefleri' })).toBeVisible()
-    await expect(page.getByRole('heading', { name: 'Yaklaşan Faturalar' })).toBeVisible()
+    await expect(page.getByText('Income', { exact: true }).first()).toBeVisible({ timeout: 20000 })
+    
+    // Check KPIs
+    await expect(page.getByText('Income', { exact: true })).toBeVisible()
+    await expect(page.getByText('Expenses', { exact: true })).toBeVisible()
+    await expect(page.getByText('Income', { exact: true }).first()).toBeVisible()
+    await expect(page.getByText('Savings Rate', { exact: true })).toBeVisible()
+    await expect(page.getByText('Budget Usage', { exact: true })).toBeVisible()
+    await expect(page.getByText('Recurring Load', { exact: true })).toBeVisible()
+    await expect(page.getByText('Upcoming Bills', { exact: true })).toBeVisible()
+    await expect(page.getByText('Risky Budgets', { exact: true })).toBeVisible()
+
+    // Check Sections
+    await expect(page.getByRole('heading', { name: 'Budget Pressure' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Subscriptions' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Smart Insights' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Quick Actions' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Recent Activity' })).toBeVisible()
+
+    // Check Quick Actions
+    await expect(page.getByText('Import PDF')).toBeVisible()
+    await expect(page.getByText('Transactions', { exact: true })).toBeVisible()
+    await expect(page.getByText('Budgets', { exact: true })).toBeVisible()
+    
+    // Legacy assertions that were valid for transactions list
     await expect(page.getByTitle('Mart Maasi')).toBeVisible()
     await expect(page.getByTitle('Migros Market')).toBeVisible()
-    await expect(page.getByText('Akıllı Giriş')).toHaveCount(0)
-    await expect(page.getByLabel('Finansal Asistan')).toHaveCount(0)
-  })
-
-  test('marks an upcoming bill as paid from command center', async ({ page }) => {
-    await page.goto('/dashboard')
-
-    await page.getByRole('button', { name: /Odendi Olarak Isaretle|Ödendi Olarak İşaretle/i }).first().click()
-
-    await expect(page.getByText('Fatura odendi olarak isaretlendi.')).toBeVisible()
   })
 
   test('submits a manual transaction from transactions page', async ({ page }) => {

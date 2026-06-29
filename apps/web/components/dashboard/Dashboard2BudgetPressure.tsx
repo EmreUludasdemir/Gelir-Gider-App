@@ -65,14 +65,14 @@ export function Dashboard2BudgetPressure({ budgets }: Dashboard2BudgetPressurePr
           <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Top Risks</h4>
           {topRisks.map(b => (
             <div key={b.id} className="flex items-center justify-between rounded-xl border border-border/40 p-3">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">📊</span>
-                <div>
-                  <p className="font-semibold text-foreground">{b.categoryLabel}</p>
-                  <p className="text-xs text-muted-foreground">{formatCurrency(b.spent || 0)} of {formatCurrency(b.limitAmount)}</p>
+              <div className="flex items-center gap-3 min-w-0 flex-1 pr-2">
+                <span className="text-2xl shrink-0">📊</span>
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-foreground truncate">{b.categoryLabel}</p>
+                  <p className="text-xs text-muted-foreground truncate">{formatCurrency(b.spent || 0)} of {formatCurrency(b.limitAmount)}</p>
                 </div>
               </div>
-              <div className="text-right">
+              <div className="text-right shrink-0">
                 <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold ${b.usage > 1 ? 'bg-destructive/10 text-destructive' : 'bg-warning/10 text-warning'}`}>
                   {(b.usage * 100).toFixed(0)}%
                 </span>

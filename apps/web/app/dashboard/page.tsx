@@ -20,12 +20,7 @@ import { Dashboard2KPIs } from '@/components/dashboard/Dashboard2KPIs'
 import { Dashboard2BudgetPressure } from '@/components/dashboard/Dashboard2BudgetPressure'
 import { Dashboard2SubscriptionSummary } from '@/components/dashboard/Dashboard2SubscriptionSummary'
 import { DeterministicInsights } from '@/components/dashboard/DeterministicInsights'
-import {
-  TableSkeleton,
-  ChartSkeleton,
-  CategorySkeleton,
-  AIInsightsSkeleton,
-} from '@/components/skeletons'
+import { TableSkeleton } from '@/components/skeletons'
 
 const TransactionTable = dynamic(
   () => import('@/components/dashboard/transactions').then(mod => ({ default: mod.TransactionTable })),

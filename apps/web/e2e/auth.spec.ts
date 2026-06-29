@@ -53,7 +53,7 @@ test.describe('Authentication', () => {
       password: 'Test1234!',
     })
 
-    await expect(page.getByText('Finans Nabzi')).toBeVisible({ timeout: 20000 })
+    await expect(page.getByText('Income', { exact: true }).first()).toBeVisible({ timeout: 20000 })
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 20000 })
     await expect.poll(async () => page.evaluate(() => window.localStorage.getItem('token'))).toBeNull()
     await expect.poll(async () => page.evaluate(() => window.localStorage.getItem('user'))).toBeNull()
@@ -92,7 +92,7 @@ test.describe('Authentication', () => {
     await page.fill('input#confirmPassword', 'Test1234!')
     await page.click('button[type="submit"]')
 
-    await expect(page.getByText('Finans Nabzi')).toBeVisible({ timeout: 20000 })
+    await expect(page.getByText('Income', { exact: true }).first()).toBeVisible({ timeout: 20000 })
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 20000 })
     await expect.poll(async () => page.evaluate(() => window.localStorage.getItem('token'))).toBeNull()
   })

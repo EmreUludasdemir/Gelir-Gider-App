@@ -47,12 +47,12 @@ export function Dashboard2SubscriptionSummary({ summary }: Dashboard2Subscriptio
           </h4>
           <div className="space-y-2">
             {summary.upcomingPayments.slice(0, 3).map(p => (
-              <div key={p.id} className="flex items-center justify-between rounded-xl border border-border/40 p-3">
-                <div>
-                  <p className="font-semibold text-foreground text-sm">{p.name}</p>
-                  <p className="text-xs text-muted-foreground">{formatDate(p.date)}</p>
+              <div key={p.id} className="flex items-center justify-between rounded-xl border border-border/40 p-3 gap-4">
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-foreground text-sm truncate">{p.name}</p>
+                  <p className="text-xs text-muted-foreground truncate">{formatDate(p.date)}</p>
                 </div>
-                <span className="font-semibold">{formatCurrency(p.amount, p.currency)}</span>
+                <span className="font-semibold shrink-0">{formatCurrency(p.amount, p.currency)}</span>
               </div>
             ))}
           </div>
