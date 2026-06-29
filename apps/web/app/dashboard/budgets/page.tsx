@@ -14,30 +14,24 @@ import {
   TrendingDown,
   Wallet,
   XCircle,
+  Loader2
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { useToast } from '@/components/ui/Toast'
 import { CATEGORIES } from '@/lib/categories'
-import { useTransactions } from '@/lib/hooks'
+import { useBudgetStatus } from '@/lib/hooks'
+import { createBudget, deleteBudget, Budget } from '@/lib/api'
 import { usePreferences } from '@/lib/PreferencesContext'
 import { useTranslation } from '@/lib/translations'
 
-interface Budget {
-  id: string
-  categoryId: string
-  categoryLabel: string
-  amount: number
-  period: 'monthly' | 'weekly'
-  spent: number
-  remaining: number
-  percentage: number
-}
-
 type BudgetStatus = 'safe' | 'watch' | 'over'
 
-function getBudgetStatus(percentage: number): BudgetStatus {
+function getBudgetStatus(percentage: number, apiStatus?: 'ok' | 'warning' | 'over'): BudgetStatus {
+  if (apiStatus === 'over') return 'over'
+  if (apiStatus === 'warning') return 'watch'
+  if (apiStatus === 'ok') return 'safe'
   if (percentage > 100) return 'over'
   if (percentage >= 70) return 'watch'
   return 'safe'
@@ -76,51 +70,16 @@ export default function BudgetsPage() {
   const { showToast } = useToast()
   const { language, formatCurrency } = usePreferences()
   const { t } = useTranslation(language)
-  const { data: allTransactions, isLoading } = useTransactions()
-  const [budgets, setBudgets] = useState<Budget[]>([])
+  const { data: budgetsWithSpending = [], isLoading, mutate } = useBudgetStatus()
   const [showForm, setShowForm] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [filter, setFilter] = useState<'all' | 'safe' | 'watch' | 'over'>('all')
   const [formData, setFormData] = useState({
     categoryId: '',
     amount: '',
     period: 'monthly' as 'monthly' | 'weekly'
   })
-
-  // Calculate actual spending from transactions
-  const budgetsWithSpending = useMemo(() => {
-    if (!allTransactions) return budgets
-
-    return budgets.map(budget => {
-      const now = new Date()
-      let startDate: Date
-
-      if (budget.period === 'monthly') {
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1)
-      } else {
-        // Weekly - last 7 days
-        startDate = new Date(now)
-        startDate.setDate(startDate.getDate() - 7)
-      }
-
-      const spent = allTransactions
-        .filter(tx => 
-          tx.type === 'expense' &&
-          tx.categoryId === budget.categoryId &&
-          new Date(tx.date) >= startDate
-        )
-        .reduce((sum, tx) => sum + Math.abs(tx.amount), 0)
-
-      const percentage = (spent / budget.amount) * 100
-      const remaining = budget.amount - spent
-
-      return {
-        ...budget,
-        spent,
-        remaining,
-        percentage
-      }
-    })
-  }, [budgets, allTransactions])
 
   const { totalAllocated, totalSpent, safeCount, watchCount, overCount } = useMemo(() => {
     let alloc = 0
@@ -130,9 +89,9 @@ export default function BudgetsPage() {
     let over = 0
 
     budgetsWithSpending.forEach(b => {
-      alloc += b.amount
-      spent += b.spent
-      const status = getBudgetStatus(b.percentage)
+      alloc += b.limitAmount
+      spent += b.spent || 0
+      const status = getBudgetStatus(b.percentage || 0, b.status)
       if (status === 'safe') safe++
       else if (status === 'watch') watch++
       else over++
@@ -147,53 +106,65 @@ export default function BudgetsPage() {
 
   const filteredBudgets = useMemo(() => {
     if (filter === 'all') return budgetsWithSpending
-    return budgetsWithSpending.filter(b => getBudgetStatus(b.percentage) === filter)
+    return budgetsWithSpending.filter(b => getBudgetStatus(b.percentage || 0, b.status) === filter)
   }, [budgetsWithSpending, filter])
 
   // Show alerts when budgets exceed thresholds
   useEffect(() => {
     budgetsWithSpending.forEach(budget => {
-      if (budget.percentage >= 100 && budget.spent > 0) {
+      const percentage = budget.percentage || 0
+      const spent = budget.spent || 0
+      if ((budget.status === 'over' || percentage >= 100) && spent > 0) {
         showToast(`🚨 ${budget.categoryLabel} butcesi asildi!`, 'error')
-      } else if (budget.percentage >= 80 && budget.percentage < 100) {
-        showToast(`⚠️  ${budget.categoryLabel} butcesi %${Math.round(budget.percentage)} doldu`, 'warning')
+      } else if ((budget.status === 'warning' || percentage >= 80) && percentage < 100) {
+        showToast(`⚠️  ${budget.categoryLabel} butcesi %${Math.round(percentage)} doldu`, 'warning')
       }
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [budgetsWithSpending.length, budgetsWithSpending.map(b => Math.floor(b.percentage / 10)).join(',')])
+  }, [budgetsWithSpending.length, budgetsWithSpending.map(b => Math.floor((b.percentage || 0) / 10)).join(',')])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     const category = CATEGORIES.find(c => c.id === formData.categoryId)
     if (!category) return
 
     // Prevent duplicates
-    if (budgets.some(b => b.categoryId === formData.categoryId && b.period === formData.period)) {
+    if (budgetsWithSpending.some(b => b.categoryId === formData.categoryId && b.period === formData.period)) {
       showToast('Bu kategori ve periyot icin zaten bir butce var.', 'error')
       return
     }
 
-    const newBudget: Budget = {
-      id: Math.random().toString(36).substr(2, 9),
-      categoryId: formData.categoryId,
-      categoryLabel: category.label,
-      amount: parseFloat(formData.amount),
-      period: formData.period,
-      spent: 0,
-      remaining: parseFloat(formData.amount),
-      percentage: 0
+    setIsSubmitting(true)
+    try {
+      await createBudget({
+        categoryId: formData.categoryId,
+        categoryLabel: category.label,
+        limitAmount: parseFloat(formData.amount),
+        period: formData.period
+      })
+      await mutate()
+      setFormData({ categoryId: '', amount: '', period: 'monthly' })
+      setShowForm(false)
+      showToast('Butce basariyla olusturuldu.', 'success')
+    } catch (error: any) {
+      showToast(error.message || 'Butce olusturulurken bir hata olustu.', 'error')
+    } finally {
+      setIsSubmitting(false)
     }
-
-    setBudgets([...budgets, newBudget])
-    setFormData({ categoryId: '', amount: '', period: 'monthly' })
-    setShowForm(false)
-    showToast('Butce basariyla olusturuldu.', 'success')
   }
 
-  const handleDelete = (id: string, name: string) => {
-    setBudgets(budgets.filter(b => b.id !== id))
-    showToast(`${name} butcesi silindi.`, 'success')
+  const handleDelete = async (id: string, name: string) => {
+    setDeletingId(id)
+    try {
+      await deleteBudget(id)
+      await mutate()
+      showToast(`${name} butcesi silindi.`, 'success')
+    } catch (error: any) {
+      showToast(error.message || 'Butce silinirken bir hata olustu.', 'error')
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   const overallVisuals = getBudgetVisuals(overallStatus)
@@ -354,7 +325,8 @@ export default function BudgetsPage() {
                 <Button type="button" variant="outline" onClick={() => setShowForm(false)} className="flex-1">
                   Iptal
                 </Button>
-                <Button type="submit" className="flex-1">
+                <Button type="submit" className="flex-1" disabled={isSubmitting}>
+                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Kaydet
                 </Button>
               </div>
@@ -410,7 +382,7 @@ export default function BudgetsPage() {
         ) : (
           <div className="grid gap-4 xl:grid-cols-3 md:grid-cols-2">
             {filteredBudgets.map((budget, index) => {
-              const status = getBudgetStatus(budget.percentage)
+              const status = getBudgetStatus(budget.percentage || 0, budget.status)
               const visuals = getBudgetVisuals(status)
               
               return (
@@ -434,13 +406,13 @@ export default function BudgetsPage() {
                   {/* Progress Section */}
                   <div className="mt-5 space-y-2">
                     <div className="flex justify-between text-sm font-medium">
-                      <span className="text-foreground truncate">{formatCurrency(budget.spent)} harcandi</span>
-                      <span className="text-muted-foreground flex-shrink-0">%{budget.percentage.toFixed(0)}</span>
+                      <span className="text-foreground truncate">{formatCurrency(budget.spent || 0)} harcandi</span>
+                      <span className="text-muted-foreground flex-shrink-0">%{Math.round(budget.percentage || 0)}</span>
                     </div>
                     <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted/50">
                       <div
                         className={`h-full rounded-full transition-all duration-500 ${visuals.bar}`}
-                        style={{ width: `${Math.min(budget.percentage, 100)}%` }}
+                        style={{ width: `${Math.min(budget.percentage || 0, 100)}%` }}
                       />
                     </div>
                   </div>
@@ -449,7 +421,7 @@ export default function BudgetsPage() {
                   <div className="mt-5 grid grid-cols-2 gap-2">
                     <div className="rounded-[16px] border border-border/60 bg-card/60 p-3">
                       <p className="text-xs text-muted-foreground">Hedef Limit</p>
-                      <p className="mt-1 text-sm font-semibold text-foreground truncate">{formatCurrency(budget.amount)}</p>
+                      <p className="mt-1 text-sm font-semibold text-foreground truncate">{formatCurrency(budget.limitAmount)}</p>
                     </div>
                     <div className={`rounded-[16px] border p-3 ${
                       status === 'over' 
@@ -462,7 +434,7 @@ export default function BudgetsPage() {
                       <p className={`mt-1 text-sm font-semibold truncate ${
                         status === 'over' ? 'text-destructive' : 'text-foreground'
                       }`}>
-                        {formatCurrency(Math.abs(budget.remaining))}
+                        {formatCurrency(Math.abs(budget.remaining || 0))}
                       </p>
                     </div>
                   </div>
@@ -481,10 +453,11 @@ export default function BudgetsPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => handleDelete(budget.id, budget.categoryLabel)}
-                      className="h-8 w-8 p-0 flex-shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 hover:border-destructive/30"
+                      disabled={deletingId === budget.id}
+                      className="h-8 w-8 p-0 flex-shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 hover:border-destructive/30 disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
                       aria-label={`${budget.categoryLabel} butcesini sil`}
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      {deletingId === budget.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                     </Button>
                   </div>
                 </div>

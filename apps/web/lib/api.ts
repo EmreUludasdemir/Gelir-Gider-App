@@ -784,7 +784,7 @@ export interface Budget {
 
 export const getBudgets = () => fetchApi<Budget[]>('/budgets');
 export const getBudgetStatus = () => fetchApi<Budget[]>('/budgets/status');
-export const createBudget = (data: { categoryId: string; categoryLabel: string; limitAmount: number }) =>
+export const createBudget = (data: { categoryId: string; categoryLabel: string; limitAmount: number; period?: string }) =>
   fetchApi<Budget>('/budgets', { method: 'POST', body: JSON.stringify(data) });
 export const deleteBudget = (id: string) =>
   fetchApi<{ success: boolean }>(`/budgets/${id}`, { method: 'DELETE' });
