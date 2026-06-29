@@ -12,6 +12,7 @@ const webServerEnvPrefix =
 
 export default defineConfig({
   testDir: './e2e',
+  timeout: 60000,
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

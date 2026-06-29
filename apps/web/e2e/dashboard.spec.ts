@@ -27,7 +27,6 @@ test.describe('Dashboard', () => {
     // Check KPIs
     await expect(page.getByText('Income', { exact: true })).toBeVisible()
     await expect(page.getByText('Expenses', { exact: true })).toBeVisible()
-    await expect(page.getByText('Income', { exact: true }).first()).toBeVisible()
     await expect(page.getByText('Savings Rate', { exact: true })).toBeVisible()
     await expect(page.getByText('Budget Usage', { exact: true })).toBeVisible()
     await expect(page.getByText('Recurring Load', { exact: true })).toBeVisible()

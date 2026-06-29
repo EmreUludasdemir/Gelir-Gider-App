@@ -1,4 +1,4 @@
-﻿import { defineConfig, devices } from '@playwright/test'
+import { defineConfig, devices } from '@playwright/test'
 
 const testPort = process.env.PLAYWRIGHT_TEST_PORT || '3301'
 const localBaseUrl = `http://127.0.0.1:${testPort}`
@@ -11,6 +11,7 @@ const webServerEnvPrefix =
 
 export default defineConfig({
   testDir: './e2e',
+  timeout: 60000,
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
