@@ -31,6 +31,9 @@ Each item includes:
   - duplicate files are clearly marked and do not create silent duplicate transactions
   - upload flow has passing web smoke coverage
 
+- Verified in the web workbench: previously imported files and later copies of the same file in a batch are excluded from preview totals and save requests. The queue shows why each duplicate is skipped.
+- Remaining: verify the browser smoke test in CI and preserve unsaved corrections when retrying a partially successful batch.
+
 ### BG-002 - Editable Import Preview
 - Priority: `P0`
 - Impact: high

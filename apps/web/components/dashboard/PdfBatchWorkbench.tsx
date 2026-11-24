@@ -19,10 +19,12 @@ import {
 } from 'lucide-react'
 import {
   ConfirmPdfUploadPayload,
+  isActionablePdfPreview,
   UploadBatchPreview,
   UploadBatchPreviewItem,
   UploadPreviewTransaction,
 } from '@/lib/api'
+import type { Locale } from '@/lib/i18n'
 import { CATEGORIES } from '@/lib/categories'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -31,12 +33,9 @@ import { formatCurrency, formatDate } from '@/lib/utils'
 
 interface PdfBatchWorkbenchProps {
   batch: UploadBatchPreview
+  language: Locale
   onConfirm: (payloads: ConfirmPdfUploadPayload[]) => Promise<void>
   onDiscard: () => void
-}
-
-interface EditableBatchItem extends UploadBatchPreviewItem {
-  preview: UploadBatchPreviewItem['preview']
 }
 
 type ReviewLevel = 'safe' | 'review' | 'suspicious'
@@ -226,15 +225,27 @@ function saveCategoryMemory(merchantKey: string, categoryId: string) {
   } catch {}
 }
 
-export function PdfBatchWorkbench({ batch, onConfirm, onDiscard }: PdfBatchWorkbenchProps) {
-  const [items, setItems] = useState<EditableBatchItem[]>(batch.items)
+export function PdfBatchWorkbench({ batch, language, onConfirm, onDiscard }: PdfBatchWorkbenchProps) {
+  const [items, setItems] = useState<UploadBatchPreviewItem[]>(batch.items)
   const [selectedItemId, setSelectedItemId] = useState<string | null>(batch.items[0]?.id ?? null)
   const [showOnlyLowConfidence, setShowOnlyLowConfidence] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedRowIds, setSelectedRowIds] = useState<Set<string>>(new Set())
   const [bulkCategoryId, setBulkCategoryId] = useState('')
-  const [acceptedDuplicates, setAcceptedDuplicates] = useState<Set<string>>(new Set())
+  const copy = language === 'tr' ? {
+    duplicate: 'Yinelenen',
+    duplicateInBatch: (filename: string) => `Bu dosyanın ilk kopyası kuyrukta: ${filename}.`,
+    previouslyImported: 'Bu ekstre daha önce içe aktarıldı.',
+    skipped: 'Yinelenen ve hatalı dosyalar kaydetme sırasında atlanır.',
+    noFiles: 'Kaydedilebilecek dosya kalmadı.',
+  } : {
+    duplicate: 'Duplicate',
+    duplicateInBatch: (filename: string) => `The first copy of this file is in the queue: ${filename}.`,
+    previouslyImported: 'This statement has already been imported.',
+    skipped: 'Duplicate and failed files are skipped when saving.',
+    noFiles: 'There are no files left to save.',
+  }
 
   useEffect(() => {
     const memory = loadCategoryMemory()
@@ -243,6 +254,7 @@ export function PdfBatchWorkbench({ batch, onConfirm, onDiscard }: PdfBatchWorkb
       preview: {
         ...item.preview,
         transactions: item.preview.transactions.map(row => {
+          if (item.preview.duplicate) return row
           const mKey = normalizeMerchantKey(row.description)
           if (memory[mKey] && memory[mKey] !== row.categoryId) {
             const cat = CATEGORIES.find(c => c.id === memory[mKey])
@@ -267,14 +279,10 @@ export function PdfBatchWorkbench({ batch, onConfirm, onDiscard }: PdfBatchWorkb
     setError(null)
     setSelectedRowIds(new Set())
     setBulkCategoryId('')
-    setAcceptedDuplicates(new Set())
   }, [batch])
 
   const actionableItems = useMemo(
-    () =>
-      items.filter(
-        (item) => item.preview.success && item.preview.transactions.length > 0,
-      ),
+    () => items.filter(({ preview }) => isActionablePdfPreview(preview)),
     [items],
   )
 
@@ -285,14 +293,16 @@ export function PdfBatchWorkbench({ batch, onConfirm, onDiscard }: PdfBatchWorkb
   const itemInsights = useMemo(
     () =>
       items.reduce<Record<string, Record<string, RowInsight>>>((acc, item) => {
-        acc[item.id] = buildRowInsights(item.preview.transactions)
+        if (isActionablePdfPreview(item.preview)) {
+          acc[item.id] = buildRowInsights(item.preview.transactions)
+        }
         return acc
       }, {}),
     [items],
   )
 
   const activeRows = useMemo(() => {
-    if (!activeItem) {
+    if (!activeItem || !isActionablePdfPreview(activeItem.preview)) {
       return []
     }
 
@@ -582,15 +592,6 @@ export function PdfBatchWorkbench({ batch, onConfirm, onDiscard }: PdfBatchWorkb
   const selectedCount = activeRows.filter((row) => selectedRowIds.has(row.id)).length
 
   const handleConfirm = async () => {
-    const unacceptedDuplicates = actionableItems.filter(
-      (item) => item.preview.duplicate && !acceptedDuplicates.has(item.id)
-    );
-
-    if (unacceptedDuplicates.length > 0) {
-      setError('Lütfen duplicate dosyalar için onay kutusunu işaretleyin veya kuyruktan çıkarın.');
-      return;
-    }
-
     const payloads = actionableItems.map((item) => ({
       filename: item.preview.filename,
       fileHash: item.preview.fileHash,
@@ -600,7 +601,7 @@ export function PdfBatchWorkbench({ batch, onConfirm, onDiscard }: PdfBatchWorkb
     }))
 
     if (payloads.length === 0) {
-      setError('Kaydedilecek uygun dosya bulunmuyor.')
+      setError(copy.noFiles)
       return
     }
 
@@ -651,7 +652,7 @@ export function PdfBatchWorkbench({ batch, onConfirm, onDiscard }: PdfBatchWorkb
       <div className="grid gap-4 md:grid-cols-5">
         <MetricCard label="Dosya" value={items.length} tone="default" />
         <MetricCard label="Islenebilir" value={actionableItems.length} tone="success" />
-        <MetricCard label="Duplicate" value={batch.duplicateFiles} tone="warning" />
+        <MetricCard label={copy.duplicate} value={batch.duplicateFiles} tone="warning" />
         <MetricCard label="Hata" value={batch.errorFiles} tone="danger" />
         <MetricCard label="Supheli" value={batchAnalysis.suspiciousCount} tone="danger" />
       </div>
@@ -675,6 +676,7 @@ export function PdfBatchWorkbench({ batch, onConfirm, onDiscard }: PdfBatchWorkb
                   <button
                     key={item.id}
                     type="button"
+                    aria-pressed={isActive}
                     onClick={() => setSelectedItemId(item.id)}
                     className={`w-full rounded-[24px] border p-4 text-left transition-all ${
                       isActive
@@ -701,7 +703,7 @@ export function PdfBatchWorkbench({ batch, onConfirm, onDiscard }: PdfBatchWorkb
                         {!item.preview.success && !item.preview.duplicate
                           ? 'Hata'
                           : item.preview.duplicate
-                            ? 'Duplicate'
+                            ? copy.duplicate
                             : item.preview.lowConfidenceCount > 0
                               ? 'Review'
                               : 'Hazir'}
@@ -787,7 +789,14 @@ export function PdfBatchWorkbench({ batch, onConfirm, onDiscard }: PdfBatchWorkb
 
         <div className="space-y-6">
           {activeItem ? (
-            !activeItem.preview.success ? (
+            activeItem.preview.duplicate ? (
+              <div className="rounded-[26px] border border-warning/25 bg-warning/10 p-6">
+                <h3 className="text-xl font-display font-semibold text-foreground">{activeItem.preview.filename}</h3>
+                <p className="mt-2 text-sm font-medium text-warning">
+                  {activeItem.duplicateOf ? copy.duplicateInBatch(activeItem.duplicateOf) : copy.previouslyImported}
+                </p>
+              </div>
+            ) : !activeItem.preview.success ? (
               <div className="rounded-[26px] border border-destructive/20 bg-destructive/10 p-6">
                 <h3 className="text-xl font-display font-semibold text-foreground">{activeItem.preview.filename}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">
@@ -803,30 +812,6 @@ export function PdfBatchWorkbench({ batch, onConfirm, onDiscard }: PdfBatchWorkb
               </div>
             ) : (
               <div className="rounded-[26px] border border-border/70 bg-background/80 p-5">
-                {activeItem.preview.duplicate && (
-                  <div className="mb-5 rounded-2xl border border-warning/25 bg-warning/10 p-4">
-                    <p className="text-sm font-semibold text-warning">
-                      This file looks like it was imported before. You can review it, but importing again may create duplicate transactions.
-                    </p>
-                    <div className="mt-3 flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id={`accept-dup-${activeItem.id}`}
-                        checked={acceptedDuplicates.has(activeItem.id)}
-                        onChange={(e) => {
-                          const newSet = new Set(acceptedDuplicates)
-                          if (e.target.checked) newSet.add(activeItem.id)
-                          else newSet.delete(activeItem.id)
-                          setAcceptedDuplicates(newSet)
-                        }}
-                        className="h-4 w-4 rounded border-warning/50 bg-background text-warning focus:ring-warning cursor-pointer"
-                      />
-                      <label htmlFor={`accept-dup-${activeItem.id}`} className="text-sm font-medium text-warning/90 cursor-pointer select-none">
-                        I understand this may create duplicates. Import anyway.
-                      </label>
-                    </div>
-                  </div>
-                )}
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="text-sm uppercase tracking-[0.18em] text-muted-foreground">Secili dosya</p>
@@ -1173,7 +1158,7 @@ export function PdfBatchWorkbench({ batch, onConfirm, onDiscard }: PdfBatchWorkb
             {actionableItems.length} dosya · {batchAnalysis.rowCount} satir kayda hazir
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Duplicate ve hatali dosyalar otomatik atlanacak.
+            {actionableItems.length === 0 ? copy.noFiles : copy.skipped}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -1184,7 +1169,7 @@ export function PdfBatchWorkbench({ batch, onConfirm, onDiscard }: PdfBatchWorkb
           <Button 
             onClick={handleConfirm} 
             loading={saving} 
-            disabled={saving || actionableItems.some(item => item.preview.duplicate && !acceptedDuplicates.has(item.id))}
+            disabled={saving || actionableItems.length === 0}
             data-testid="pdf-import-confirm" 
             className="btn-premium font-semibold shadow-md"
           >
