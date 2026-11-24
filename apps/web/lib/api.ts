@@ -402,10 +402,12 @@ export const confirmPdfImport = (data: ConfirmPdfUploadPayload) =>
     body: JSON.stringify(data),
   });
 
+export function isActionablePdfPreview(preview: UploadPreview): boolean {
+  return preview.success && !preview.duplicate && preview.transactions.length > 0
+}
+
 function buildUploadBatchPreview(items: UploadBatchPreviewItem[]): UploadBatchPreview {
-  const actionableItems = items.filter(
-    (item) => item.preview.success && item.preview.transactions.length > 0,
-  )
+  const actionableItems = items.filter(({ preview }) => isActionablePdfPreview(preview))
   const duplicateFiles = items.filter((item) => item.preview.duplicate).length
   const errorFiles = items.filter((item) => !item.preview.success && !item.preview.duplicate).length
 
@@ -415,8 +417,8 @@ function buildUploadBatchPreview(items: UploadBatchPreviewItem[]): UploadBatchPr
     actionableFiles: actionableItems.length,
     duplicateFiles,
     errorFiles,
-    totalParsed: items.reduce((sum, item) => sum + item.preview.totalParsed, 0),
-    totalLowConfidenceCount: items.reduce((sum, item) => sum + item.preview.lowConfidenceCount, 0),
+    totalParsed: actionableItems.reduce((sum, item) => sum + item.preview.totalParsed, 0),
+    totalLowConfidenceCount: actionableItems.reduce((sum, item) => sum + item.preview.lowConfidenceCount, 0),
     totalSize: items.reduce((sum, item) => sum + item.preview.fileSize, 0),
   }
 }
@@ -445,6 +447,7 @@ export async function previewPdfImportBatch(
   onProgress?: (completed: number, total: number) => void,
 ): Promise<UploadBatchPreview> {
   const items: UploadBatchPreviewItem[] = []
+  const firstFilenameByHash = new Map<string, string>()
 
   for (const [index, file] of files.entries()) {
     let preview: UploadPreview
@@ -464,10 +467,18 @@ export async function previewPdfImportBatch(
       }
     }
 
+    const actionable = isActionablePdfPreview(preview)
+    const duplicateOf = actionable ? firstFilenameByHash.get(preview.fileHash) : undefined
+    if (actionable && duplicateOf === undefined) {
+      firstFilenameByHash.set(preview.fileHash, file.name)
+    }
+
     items.push({
       id: `${file.name}-${index}`,
+      duplicateOf,
       preview: {
         ...preview,
+        duplicate: duplicateOf !== undefined ? true : preview.duplicate,
         filename: file.name,
         fileSize: file.size,
       },
@@ -688,6 +699,7 @@ export interface ConfirmPdfUploadPayload {
 
 export interface UploadBatchPreviewItem {
   id: string;
+  duplicateOf?: string;
   preview: UploadPreview;
 }
 

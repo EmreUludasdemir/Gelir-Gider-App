@@ -202,6 +202,7 @@ export default function UploadPage() {
       {pendingBatchPreview && (
         <PdfBatchWorkbench
           batch={pendingBatchPreview}
+          language={language}
           onConfirm={handleConfirmImport}
           onDiscard={() => setPendingBatchPreview(null)}
         />
