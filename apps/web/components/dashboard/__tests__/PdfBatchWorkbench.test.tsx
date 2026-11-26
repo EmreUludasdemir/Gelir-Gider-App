@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { PdfBatchWorkbench } from '../PdfBatchWorkbench'
-import { previewPdfImportBatch, type UploadPreview } from '@/lib/api'
+import { buildUploadBatchResult, confirmPdfImportBatch, previewPdfImportBatch, type UploadPreview } from '@/lib/api'
 
 const statement: UploadPreview = {
   success: true,
@@ -24,6 +24,16 @@ const statement: UploadPreview = {
   }],
 }
 
+const confirmedStatement = {
+  success: true,
+  filename: statement.filename,
+  totalParsed: 1,
+  totalSaved: 1,
+  lowConfidenceCount: 1,
+  errors: [],
+  transactions: [],
+}
+
 const previousStatement: UploadPreview = {
   ...statement,
   fileHash: 'previously-imported',
@@ -36,6 +46,7 @@ function mockPreviews(...previews: UploadPreview[]) {
     fetchMock.mockResolvedValueOnce({ ok: true, json: async () => preview })
   }
   global.fetch = fetchMock
+  return fetchMock
 }
 
 const originalFetch = global.fetch
@@ -49,7 +60,11 @@ it('explains both kinds of duplicate and submits only the first copy', async () 
   const filenames = ['ekstre.pdf', 'ekstre-kopya.pdf', 'eski-ekstre.pdf']
   mockPreviews(statement, statement, previousStatement)
   const batch = await previewPdfImportBatch(filenames.map((name) => new File(['%PDF-1.4'], name)))
-  const onConfirm = jest.fn().mockResolvedValue(undefined)
+  const onConfirm = jest.fn().mockResolvedValue(buildUploadBatchResult([{
+    id: statement.fileHash,
+    filename: filenames[0],
+    result: confirmedStatement,
+  }]))
 
   expect(batch).toMatchObject({
     totalFiles: 3,
@@ -70,7 +85,7 @@ it('explains both kinds of duplicate and submits only the first copy', async () 
 
   const confirm = screen.getByTestId('pdf-import-confirm')
   fireEvent.click(confirm)
-  await waitFor(() => expect(confirm).toBeEnabled())
+  await waitFor(() => expect(screen.getByText('Kaydedilebilecek dosya kalmadı.')).toBeVisible())
   expect(onConfirm).toHaveBeenCalledTimes(1)
   expect(onConfirm).toHaveBeenCalledWith([expect.objectContaining({
     filename: filenames[0],
@@ -92,4 +107,60 @@ it('disables confirmation when all files were already imported', async () => {
   expect(screen.getByText('There are no files left to save.')).toBeVisible()
   fireEvent.click(confirm)
   expect(onConfirm).not.toHaveBeenCalled()
+})
+
+
+it('preserves edited rows and retries only rejections received before saving', async () => {
+  const fetchMock = mockPreviews(
+    statement,
+    {
+      ...statement,
+      fileHash: 'rate-limited',
+      transactions: [{ ...statement.transactions[0], id: 'second-row' }],
+    },
+    {
+      ...statement,
+      fileHash: 'unknown-outcome',
+      transactions: [{ ...statement.transactions[0], id: 'third-row' }],
+    },
+  )
+  const batch = await previewPdfImportBatch(
+    ['ilk.pdf', 'ikinci.pdf', 'ucuncu.pdf'].map((name) => new File(['%PDF-1.4'], name)),
+  )
+  fetchMock.mockClear()
+  const successResponse = { ok: true, status: 200, json: async () => confirmedStatement }
+  fetchMock
+    .mockResolvedValueOnce(successResponse)
+    .mockResolvedValueOnce({
+      ok: false,
+      status: 429,
+      headers: new Headers(),
+      json: async () => ({ message: 'Rate limited' }),
+    })
+    .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    .mockResolvedValueOnce(successResponse)
+
+  render(<PdfBatchWorkbench batch={batch} language="tr" onConfirm={confirmPdfImportBatch} onDiscard={jest.fn()} />)
+  fireEvent.click(screen.getByRole('button', { name: /ikinci\.pdf/ }))
+  fireEvent.change(screen.getByRole('textbox', { name: 'Aciklama' }), {
+    target: { value: 'Düzeltilmiş açıklama' },
+  })
+
+  const confirm = screen.getByTestId('pdf-import-confirm')
+  fireEvent.click(confirm)
+  expect(screen.getByRole('textbox', { name: 'Aciklama' })).toBeDisabled()
+  await waitFor(() => expect(confirm).toHaveTextContent('Başarısız dosyaları yeniden dene'))
+  expect(screen.queryByRole('button', { name: /ilk\.pdf/ })).toBeNull()
+  expect(screen.getByRole('textbox', { name: 'Aciklama' })).toHaveValue('Düzeltilmiş açıklama')
+  expect(screen.getByText('1 dosya · 1 satir kayda hazir')).toBeVisible()
+
+  fireEvent.click(confirm)
+  await waitFor(() => expect(screen.getByText(/Bu ekstrenin kayıt sonucu doğrulanamadı/)).toBeVisible())
+  expect(screen.queryByRole('button', { name: /ikinci\.pdf/ })).toBeNull()
+  expect(screen.getByRole('textbox', { name: 'Aciklama' })).toHaveValue('Test işlemi')
+  expect(confirm).toBeDisabled()
+  expect(fetchMock.mock.calls.map(([, request]) => JSON.parse(request.body).fileHash)).toEqual([
+    'same-statement', 'rate-limited', 'unknown-outcome', 'rate-limited',
+  ])
+  expect(JSON.parse(fetchMock.mock.calls[3][1].body).transactions[0].description).toBe('Düzeltilmiş açıklama')
 })

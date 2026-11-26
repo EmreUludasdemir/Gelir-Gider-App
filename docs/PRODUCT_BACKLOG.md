@@ -32,7 +32,8 @@ Each item includes:
   - upload flow has passing web smoke coverage
 
 - Verified in the web workbench: previously imported files and later copies of the same file in a batch are excluded from preview totals and save requests. The queue shows why each duplicate is skipped.
-- Remaining: verify the browser smoke test in CI and preserve unsaved corrections when retrying a partially successful batch.
+- Verified in the web workbench: a partial batch retains edits and retries only files rejected before writing. Files with an unverified save outcome remain available for review.
+- Remaining: verify the browser smoke flow in CI and make the server confirm operation safe to retry after an unknown outcome.
 
 ### BG-002 - Editable Import Preview
 - Priority: `P0`

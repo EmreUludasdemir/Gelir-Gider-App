@@ -423,7 +423,7 @@ function buildUploadBatchPreview(items: UploadBatchPreviewItem[]): UploadBatchPr
   }
 }
 
-function buildUploadBatchResult(fileResults: UploadBatchResultItem[]): UploadBatchResult {
+export function buildUploadBatchResult(fileResults: UploadBatchResultItem[]): UploadBatchResult {
   const savedResults = fileResults.filter((item) => item.result.success)
   const duplicateFiles = fileResults.filter((item) => item.result.duplicate).length
 
@@ -499,15 +499,20 @@ export async function confirmPdfImportBatch(
   for (const [index, payload] of payloads.entries()) {
     try {
       const result = await confirmPdfImport(payload)
+      if (typeof result?.success !== 'boolean') {
+        throw new Error('PDF confirmation outcome could not be verified')
+      }
       fileResults.push({
-        id: `${payload.filename}-${index}`,
+        id: payload.fileHash,
         filename: payload.filename,
         result,
       })
     } catch (error) {
       fileResults.push({
-        id: `${payload.filename}-${index}`,
+        id: payload.fileHash,
         filename: payload.filename,
+        // These responses reject the request before the confirmation writes any rows.
+        canRetry: error instanceof ApiError && [400, 401, 403, 429].includes(error.status),
         result: {
           success: false,
           filename: payload.filename,
@@ -717,6 +722,7 @@ export interface UploadBatchPreview {
 export interface UploadBatchResultItem {
   id: string;
   filename: string;
+  canRetry?: boolean;
   result: UploadResult;
 }
 

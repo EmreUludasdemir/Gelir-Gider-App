@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowRight, FileStack, ShieldCheck, Sparkles } from 'lucide-react'
 import { PdfUpload } from '@/components/forms/PdfUpload'
-import { confirmPdfImportBatch, UploadBatchPreview, UploadBatchResult } from '@/lib/api'
+import { buildUploadBatchResult, confirmPdfImportBatch, UploadBatchPreview, UploadBatchResult } from '@/lib/api'
 import { TransactionTable } from '@/components/dashboard/TransactionTable'
 import { PdfBatchWorkbench } from '@/components/dashboard/PdfBatchWorkbench'
 import { PdfImportBatchReview } from '@/components/dashboard/PdfImportBatchReview'
@@ -60,15 +60,22 @@ export default function UploadPage() {
 
   const handleConfirmImport = async (payloads: Parameters<typeof confirmPdfImportBatch>[0]) => {
     const batchResult = await confirmPdfImportBatch(payloads)
-    setLatestBatchResult(batchResult)
-    setPendingBatchPreview(null)
-
-    if (batchResult.totalSaved > 0) {
-      await Promise.all([refreshAll(), refreshPdfTransactions()])
-      return
+    const resultsByFile = new Map(latestBatchResult?.fileResults.map((file) => [file.id, file]))
+    for (const file of batchResult.fileResults) {
+      resultsByFile.set(file.id, file)
     }
 
-    await refreshPdfTransactions()
+    const combinedResult = buildUploadBatchResult(Array.from(resultsByFile.values()))
+    setLatestBatchResult(combinedResult)
+    if (combinedResult.fileResults.every(({ result }) => result.success || result.duplicate)) {
+      setPendingBatchPreview(null)
+    }
+
+    // Refresh failures should never turn a completed confirmation into a retry.
+    void Promise.allSettled(batchResult.totalSaved > 0
+      ? [refreshAll(), refreshPdfTransactions()]
+      : [refreshPdfTransactions()])
+    return batchResult
   }
 
   // i18n labels
@@ -153,8 +160,8 @@ export default function UploadPage() {
         </div>
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-[0.96fr_1.04fr]">
-        <PdfUpload onSuccess={handleBatchPreviewReady} />
+      <div className={pendingBatchPreview ? 'grid gap-6' : 'grid gap-6 xl:grid-cols-[0.96fr_1.04fr]'}>
+        {!pendingBatchPreview && <PdfUpload onSuccess={handleBatchPreviewReady} />}
 
         <section className="rounded-[28px] border border-border/70 bg-card/85 p-6 shadow-[0_16px_34px_rgba(15,76,92,0.08)]">
           <div className="flex items-start justify-between gap-4">
@@ -208,7 +215,13 @@ export default function UploadPage() {
         />
       )}
 
-      {latestBatchResult && <PdfImportBatchReview result={latestBatchResult} />}
+      {latestBatchResult && (
+        <PdfImportBatchReview
+          result={latestBatchResult}
+          language={language}
+          reviewInProgress={pendingBatchPreview !== null}
+        />
+      )}
 
       {pdfTransactions && pdfTransactions.length > 0 && (
         <div className="space-y-4 animate-fade-in">
