@@ -22,6 +22,8 @@ import {
   isActionablePdfPreview,
   UploadBatchPreview,
   UploadBatchPreviewItem,
+  UploadBatchResult,
+  UploadBatchResultItem,
   UploadPreviewTransaction,
 } from '@/lib/api'
 import type { Locale } from '@/lib/i18n'
@@ -34,7 +36,7 @@ import { formatCurrency, formatDate } from '@/lib/utils'
 interface PdfBatchWorkbenchProps {
   batch: UploadBatchPreview
   language: Locale
-  onConfirm: (payloads: ConfirmPdfUploadPayload[]) => Promise<void>
+  onConfirm: (payloads: ConfirmPdfUploadPayload[]) => Promise<UploadBatchResult>
   onDiscard: () => void
 }
 
@@ -229,6 +231,7 @@ export function PdfBatchWorkbench({ batch, language, onConfirm, onDiscard }: Pdf
   const [items, setItems] = useState<UploadBatchPreviewItem[]>(batch.items)
   const [selectedItemId, setSelectedItemId] = useState<string | null>(batch.items[0]?.id ?? null)
   const [showOnlyLowConfidence, setShowOnlyLowConfidence] = useState(false)
+  const [confirmationFailures, setConfirmationFailures] = useState<Map<string, UploadBatchResultItem>>(new Map())
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedRowIds, setSelectedRowIds] = useState<Set<string>>(new Set())
@@ -239,12 +242,24 @@ export function PdfBatchWorkbench({ batch, language, onConfirm, onDiscard }: Pdf
     previouslyImported: 'Bu ekstre daha önce içe aktarıldı.',
     skipped: 'Yinelenen ve hatalı dosyalar kaydetme sırasında atlanır.',
     noFiles: 'Kaydedilebilecek dosya kalmadı.',
+    retry: 'Başarısız dosyaları yeniden dene',
+    retryStatus: 'Yeniden denenebilir',
+    retryNotice: 'Bu ekstre kaydedilmedi. Düzeltmeleriniz hazır. Yeniden deneyebilirsiniz.',
+    uncertainStatus: 'Kayıt durumu belirsiz',
+    uncertainNotice: 'Bu ekstrenin kayıt sonucu doğrulanamadı. Düzeltmeleriniz bu ekranda duruyor. Yeniden yüklemeden önce PDF arşivindeki işlemleri kontrol edin.',
+
   } : {
     duplicate: 'Duplicate',
     duplicateInBatch: (filename: string) => `The first copy of this file is in the queue: ${filename}.`,
     previouslyImported: 'This statement has already been imported.',
     skipped: 'Duplicate and failed files are skipped when saving.',
     noFiles: 'There are no files left to save.',
+    retry: 'Retry failed files',
+    retryStatus: 'Ready to retry',
+    retryNotice: 'This statement was not saved. Your edits are still here and you can try again.',
+    uncertainStatus: 'Save status unknown',
+    uncertainNotice: 'We could not verify the outcome for this statement. Your edits are still here. Check the PDF archive before uploading it again.',
+
   }
 
   useEffect(() => {
@@ -276,19 +291,25 @@ export function PdfBatchWorkbench({ batch, language, onConfirm, onDiscard }: Pdf
     setItems(memoryAppliedItems)
     setSelectedItemId(batch.items[0]?.id ?? null)
     setShowOnlyLowConfidence(false)
+    setConfirmationFailures(new Map())
     setError(null)
     setSelectedRowIds(new Set())
     setBulkCategoryId('')
   }, [batch])
 
   const actionableItems = useMemo(
-    () => items.filter(({ preview }) => isActionablePdfPreview(preview)),
-    [items],
+    () => items.filter(({ preview }) => {
+      const failure = confirmationFailures.get(preview.fileHash)
+      return isActionablePdfPreview(preview) && (!failure || failure.canRetry === true)
+    }),
+    [items, confirmationFailures],
   )
 
   const activeItem = useMemo(() => {
     return items.find((item) => item.id === selectedItemId) || items[0] || null
   }, [items, selectedItemId])
+
+  const activeFailure = activeItem && confirmationFailures.get(activeItem.preview.fileHash)
 
   const itemInsights = useMemo(
     () =>
@@ -592,6 +613,8 @@ export function PdfBatchWorkbench({ batch, language, onConfirm, onDiscard }: Pdf
   const selectedCount = activeRows.filter((row) => selectedRowIds.has(row.id)).length
 
   const handleConfirm = async () => {
+    if (saving) return
+
     const payloads = actionableItems.map((item) => ({
       filename: item.preview.filename,
       fileHash: item.preview.fileHash,
@@ -609,7 +632,28 @@ export function PdfBatchWorkbench({ batch, language, onConfirm, onDiscard }: Pdf
     setError(null)
 
     try {
-      await onConfirm(payloads)
+      const outcome = await onConfirm(payloads)
+      const resolvedHashes = new Set<string>()
+      const failures = new Map(confirmationFailures)
+      for (const file of outcome.fileResults) {
+        if (file.result.success || file.result.duplicate) {
+          resolvedHashes.add(file.id)
+          failures.delete(file.id)
+        } else {
+          failures.set(file.id, file)
+        }
+      }
+
+      const remainingItems = items.filter(({ preview }) => !resolvedHashes.has(preview.fileHash))
+      const firstFailedItem = remainingItems.find(({ preview }) =>
+        !preview.duplicate && failures.has(preview.fileHash),
+      )
+      setItems(remainingItems)
+      setConfirmationFailures(failures)
+      setSelectedItemId(firstFailedItem?.id ?? null)
+      setShowOnlyLowConfidence(false)
+      setSelectedRowIds(new Set())
+      setBulkCategoryId('')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Toplu import kaydedilemedi')
     } finally {
@@ -618,9 +662,12 @@ export function PdfBatchWorkbench({ batch, language, onConfirm, onDiscard }: Pdf
   }
 
   return (
-    <section
+    <fieldset
       data-testid="pdf-import-workbench"
-      className="space-y-6 rounded-[32px] border border-border/70 bg-card/85 p-6 shadow-[0_20px_44px_rgba(15,76,92,0.12)]"
+      aria-busy={saving}
+      aria-labelledby="pdf-workbench-title"
+      disabled={saving}
+      className="min-w-0 space-y-6 rounded-[32px] border border-border/70 bg-card/85 p-6 shadow-[0_20px_44px_rgba(15,76,92,0.12)]"
     >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="max-w-3xl">
@@ -628,7 +675,7 @@ export function PdfBatchWorkbench({ batch, language, onConfirm, onDiscard }: Pdf
             <Sparkles className="h-3.5 w-3.5" />
             Batch Import Workbench
           </p>
-          <h2 className="mt-3 text-2xl font-display font-semibold text-foreground">Birden fazla PDF'i tek akista duzenle ve kaydet</h2>
+          <h2 id="pdf-workbench-title" className="mt-3 text-2xl font-display font-semibold text-foreground">Birden fazla PDF'i tek akista duzenle ve kaydet</h2>
           <p className="mt-2 text-sm text-muted-foreground">
             Dosya bazli queue, satir bazli editor ve toplu analiz katmani ayni workbench icinde birlestirildi.
           </p>
@@ -652,7 +699,7 @@ export function PdfBatchWorkbench({ batch, language, onConfirm, onDiscard }: Pdf
       <div className="grid gap-4 md:grid-cols-5">
         <MetricCard label="Dosya" value={items.length} tone="default" />
         <MetricCard label="Islenebilir" value={actionableItems.length} tone="success" />
-        <MetricCard label={copy.duplicate} value={batch.duplicateFiles} tone="warning" />
+        <MetricCard label={copy.duplicate} value={items.filter(({ preview }) => preview.duplicate).length} tone="warning" />
         <MetricCard label="Hata" value={batch.errorFiles} tone="danger" />
         <MetricCard label="Supheli" value={batchAnalysis.suspiciousCount} tone="danger" />
       </div>
@@ -672,6 +719,7 @@ export function PdfBatchWorkbench({ batch, language, onConfirm, onDiscard }: Pdf
               {items.map((item) => {
                 const isActive = item.id === activeItem?.id
                 const rowCount = item.preview.transactions.length
+                const failure = !item.preview.duplicate && confirmationFailures.get(item.preview.fileHash)
                 return (
                   <button
                     key={item.id}
@@ -692,7 +740,7 @@ export function PdfBatchWorkbench({ batch, language, onConfirm, onDiscard }: Pdf
                         </p>
                       </div>
                       <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${
-                        !item.preview.success && !item.preview.duplicate
+                        failure || (!item.preview.success && !item.preview.duplicate)
                           ? 'border-destructive/25 bg-destructive/10 text-destructive'
                           : item.preview.duplicate
                           ? 'border-warning/30 bg-warning/10 text-warning'
@@ -700,7 +748,9 @@ export function PdfBatchWorkbench({ batch, language, onConfirm, onDiscard }: Pdf
                             ? 'border-destructive/20 bg-destructive/10 text-destructive'
                             : 'border-success/25 bg-success/10 text-success'
                       }`}>
-                        {!item.preview.success && !item.preview.duplicate
+                        {failure
+                          ? (failure.canRetry ? copy.retryStatus : copy.uncertainStatus)
+                          : !item.preview.success && !item.preview.duplicate
                           ? 'Hata'
                           : item.preview.duplicate
                             ? copy.duplicate
@@ -812,6 +862,11 @@ export function PdfBatchWorkbench({ batch, language, onConfirm, onDiscard }: Pdf
               </div>
             ) : (
               <div className="rounded-[26px] border border-border/70 bg-background/80 p-5">
+                {activeFailure && (
+                  <p role="status" className="mb-4 rounded-2xl border border-warning/25 bg-warning/10 p-4 text-sm text-foreground">
+                    {activeFailure.canRetry ? copy.retryNotice : copy.uncertainNotice}
+                  </p>
+                )}
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="text-sm uppercase tracking-[0.18em] text-muted-foreground">Secili dosya</p>
@@ -1174,11 +1229,11 @@ export function PdfBatchWorkbench({ batch, language, onConfirm, onDiscard }: Pdf
             className="btn-premium font-semibold shadow-md"
           >
             <Save className="mr-2 h-4 w-4" />
-            Importu onayla
+            {confirmationFailures.size > 0 ? copy.retry : 'Importu onayla'}
           </Button>
         </div>
       </div>
-    </section>
+    </fieldset>
   )
 }
 

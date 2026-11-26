@@ -4,13 +4,18 @@ import Link from 'next/link'
 import { useMemo } from 'react'
 import { ArrowRight, CheckCircle2, FileBarChart2, Layers3, Sparkles, Wallet } from 'lucide-react'
 import { UploadBatchResult } from '@/lib/api'
+import type { Locale } from '@/lib/i18n'
 import { formatCurrency } from '@/lib/utils'
 
 interface PdfImportBatchReviewProps {
   result: UploadBatchResult
+  language: Locale
+  reviewInProgress: boolean
 }
 
-export function PdfImportBatchReview({ result }: PdfImportBatchReviewProps) {
+export function PdfImportBatchReview({ result, language, reviewInProgress }: PdfImportBatchReviewProps) {
+  const unverified = language === 'tr' ? 'Kayıt durumu belirsiz' : 'Save status unknown'
+
   const analysis = useMemo(() => {
     const transactions = result.transactions
     const expenses = transactions.filter((transaction) => transaction.type === 'expense')
@@ -189,7 +194,9 @@ export function PdfImportBatchReview({ result }: PdfImportBatchReviewProps) {
                     <div>
                       <p className="font-semibold text-foreground">{item.filename}</p>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        {item.result.totalSaved}/{item.result.totalParsed} satir kaydedildi · {item.result.lowConfidenceCount} review
+                        {item.canRetry === false
+                          ? unverified
+                          : `${item.result.totalSaved}/${item.result.totalParsed} satir kaydedildi · ${item.result.lowConfidenceCount} review`}
                       </p>
                     </div>
                     <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${
@@ -226,13 +233,15 @@ export function PdfImportBatchReview({ result }: PdfImportBatchReviewProps) {
           <CheckCircle2 className="h-4 w-4" />
           PDF islemlerini yonet
         </Link>
-        <Link
-          href="/dashboard/upload"
-          className="inline-flex items-center gap-2 rounded-xl border border-border/80 bg-card/70 px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted/50"
-        >
-          Yeni batch ac
-          <ArrowRight className="h-4 w-4" />
-        </Link>
+        {!reviewInProgress && (
+          <Link
+            href="/dashboard/upload"
+            className="inline-flex items-center gap-2 rounded-xl border border-border/80 bg-card/70 px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted/50"
+          >
+            Yeni batch ac
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        )}
       </div>
     </section>
   )
