@@ -1,5 +1,5 @@
-import { Logger } from '@nestjs/common'
-import { UploadsService } from './uploads.service'
+import { BadRequestException, Logger } from '@nestjs/common'
+import { UploadsService, type ConfirmPdfUploadDto } from './uploads.service'
 import { createMockCacheService, createMockPrismaService } from '../../../test/test-utils'
 
 describe('UploadsService', () => {
@@ -23,8 +23,28 @@ describe('UploadsService', () => {
     buffer: Buffer.from('%PDF-1.4 fake pdf'),
   } as Express.Multer.File
 
+  const confirmation: ConfirmPdfUploadDto = {
+    filename: 'mart-ekstre.pdf',
+    fileHash: 'file-hash',
+    fileSize: 4096,
+    totalParsed: 1,
+    transactions: [{
+      id: 'preview-1',
+      date: '2026-03-09T12:00:00.000Z',
+      description: 'Migros Market',
+      amount: 540,
+      currency: 'TRY',
+      type: 'expense',
+      categoryId: 'market',
+      categoryLabel: 'Market',
+      confidence: 55,
+      tags: ['pdf-upload'],
+    }],
+  }
+
   beforeEach(() => {
     prisma = createMockPrismaService()
+    prisma.$transaction.mockImplementation((operations) => Promise.all(operations))
     cache = createMockCacheService()
     redis = {
       del: jest.fn().mockResolvedValue(undefined),
@@ -43,6 +63,7 @@ describe('UploadsService', () => {
 
     jest.restoreAllMocks()
     jest.spyOn(Logger.prototype, 'error').mockImplementation()
+    jest.spyOn(Logger.prototype, 'warn').mockImplementation()
     service = new UploadsService(prisma as never, cache as never, redis as never, realtime as never)
   })
 
@@ -117,7 +138,7 @@ describe('UploadsService', () => {
     expect(prisma.transaction.create).not.toHaveBeenCalled()
   })
 
-  it('should report partial save failures and still persist successful rows', async () => {
+  it('should report row validation errors and commit the valid rows with the PDF record', async () => {
     prisma.pdfUpload.findFirst.mockResolvedValue(null)
     prisma.transaction.create
       .mockResolvedValueOnce({
@@ -138,7 +159,6 @@ describe('UploadsService', () => {
         createdAt: new Date('2026-03-09T12:00:00.000Z'),
         updatedAt: new Date('2026-03-09T12:00:00.000Z'),
       })
-      .mockRejectedValueOnce(new Error('DB write failed'))
     prisma.pdfUpload.create.mockResolvedValue({
       id: 'upload-1',
     })
@@ -163,7 +183,7 @@ describe('UploadsService', () => {
         },
         {
           id: 'preview-2',
-          date: '2026-03-09T14:00:00.000Z',
+          date: 'invalid-date',
           description: 'Shell',
           amount: 880,
           currency: 'TRY',
@@ -178,7 +198,12 @@ describe('UploadsService', () => {
 
     expect(result.success).toBe(true)
     expect(result.totalSaved).toBe(1)
-    expect(result.errors).toContain('Transaction 2: DB write failed')
+    expect(result.errors).toContain('Transaction 2: Transaction date is invalid')
+    expect(prisma.transaction.create).toHaveBeenCalledTimes(1)
+    expect(prisma.$transaction).toHaveBeenCalledWith([
+      prisma.pdfUpload.create.mock.results[0].value,
+      prisma.transaction.create.mock.results[0].value,
+    ])
     expect(prisma.pdfUpload.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
@@ -192,6 +217,49 @@ describe('UploadsService', () => {
     expect(redis.del).toHaveBeenCalledWith('analytics:savings-actions:user-123')
     expect(realtime.notifyNewTransaction).toHaveBeenCalledTimes(1)
     expect(realtime.notifyReviewRequested).not.toHaveBeenCalled()
+  })
+
+  it('should leave an entirely invalid statement editable without creating a PDF record', async () => {
+    const invalid = {
+      ...confirmation,
+      transactions: [{ ...confirmation.transactions[0], description: ' ' }],
+    }
+    await expect(service.confirmPdfUpload('user-123', invalid)).rejects.toThrow(BadRequestException)
+    expect(prisma.pdfUpload.create).not.toHaveBeenCalled()
+    expect(prisma.$transaction).not.toHaveBeenCalled()
+  })
+
+  it('should fail the confirmation and skip side effects if a write fails', async () => {
+    prisma.transaction.create.mockRejectedValueOnce(new Error('DB write failed'))
+
+    await expect(service.confirmPdfUpload('user-123', confirmation)).rejects.toMatchObject({ code: 'DB_003' })
+    expect(prisma.$transaction).toHaveBeenCalledWith([
+      prisma.pdfUpload.create.mock.results[0].value,
+      prisma.transaction.create.mock.results[0].value,
+    ])
+    expect(realtime.notifyNewTransaction).not.toHaveBeenCalled()
+    expect(cache.invalidateTransactions).not.toHaveBeenCalled()
+    expect(redis.del).not.toHaveBeenCalled()
+  })
+
+  it('should return the existing duplicate response when another confirmation wins the race', async () => {
+    prisma.pdfUpload.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ uploadedAt: new Date('2026-03-10T10:00:00Z'), filename: 'other.pdf' })
+    prisma.pdfUpload.create.mockRejectedValueOnce(
+      Object.assign(new Error('Unique constraint failed'), { code: 'P2002' }),
+    )
+
+    await expect(service.confirmPdfUpload('user-123', confirmation)).resolves.toMatchObject({
+      success: false,
+      duplicate: true,
+      totalSaved: 0,
+    })
+    expect(prisma.pdfUpload.findFirst).toHaveBeenLastCalledWith(
+      expect.objectContaining({ where: { userId: 'user-123', fileHash: confirmation.fileHash } }),
+    )
+    expect(realtime.notifyNewTransaction).not.toHaveBeenCalled()
+    expect(cache.invalidateTransactions).not.toHaveBeenCalled()
   })
 
   it('should invalidate transaction cache after a successful confirm', async () => {
@@ -257,7 +325,7 @@ describe('UploadsService', () => {
     expect(realtime.notifyReviewRequested).not.toHaveBeenCalled()
   })
 
-  it('should fall back to empty tags when stored tag JSON is invalid', async () => {
+  it('should return committed rows even when notification or cache updates fail', async () => {
     prisma.pdfUpload.findFirst.mockResolvedValue(null)
     prisma.transaction.create.mockResolvedValue({
       id: 'tx-1',
@@ -280,6 +348,9 @@ describe('UploadsService', () => {
     prisma.pdfUpload.create.mockResolvedValue({
       id: 'upload-3',
     })
+
+    realtime.notifyNewTransaction.mockImplementation(() => { throw new Error('Unavailable') })
+    cache.invalidateTransactions.mockRejectedValueOnce(new Error('Unavailable'))
 
     const result = await service.confirmPdfUpload('user-123', {
       filename: 'mart-ekstre.pdf',
@@ -304,5 +375,7 @@ describe('UploadsService', () => {
 
     expect(result.success).toBe(true)
     expect(result.transactions[0]?.tags).toEqual([])
+    expect(redis.del).toHaveBeenCalledTimes(2)
+    expect(Logger.prototype.warn).toHaveBeenCalledTimes(2)
   })
 })

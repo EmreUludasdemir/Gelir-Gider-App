@@ -152,42 +152,75 @@ export class UploadsService {
       throw new BadRequestException('Kaydedilecek islem bulunamadi');
     }
 
-    const existingUpload = await this.prisma.pdfUpload.findFirst({
+    const uploadLookup = {
       where: { userId, fileHash: dto.fileHash },
       select: { uploadedAt: true, filename: true },
-    });
+    } as const;
+    const existingUpload = await this.prisma.pdfUpload.findFirst(uploadLookup);
 
     if (existingUpload) {
-      return {
-        success: false,
-        duplicate: true,
-        filename: dto.filename,
-        totalParsed: dto.totalParsed || dto.transactions.length,
-        totalSaved: 0,
-        lowConfidenceCount: 0,
-        errors: [
-          `Bu PDF daha once ${this.formatDate(existingUpload.uploadedAt)} tarihinde yuklenmis gorunuyor.`,
-        ],
-        suggestions: this.buildDuplicateSuggestions(dto.filename, existingUpload.filename),
-        transactions: [],
-      };
+      return this.duplicateConfirmation(dto, existingUpload);
     }
 
     const errors: string[] = [];
-    const savedTransactions: TransactionEntity[] = [];
+    const validRows: Awaited<ReturnType<UploadsService['mapPreviewToCreateData']>>[] = [];
 
     for (const [index, transaction] of dto.transactions.entries()) {
       try {
-        const saved = await this.prisma.transaction.create({
-          data: await this.mapPreviewToCreateData(userId, dto.filename, transaction),
-        });
-        const entity = this.mapToEntity(saved);
-        savedTransactions.push(entity);
+        validRows.push(await this.mapPreviewToCreateData(userId, dto.filename, transaction));
+      } catch (error) {
+        if (!(error instanceof BadRequestException)) {
+          throw error;
+        }
+        errors.push(`Transaction ${index + 1}: ${error.message}`);
+      }
+    }
+
+    if (validRows.length === 0) {
+      throw new BadRequestException(errors.join(' | '));
+    }
+
+    const totalParsed = dto.totalParsed || dto.transactions.length;
+    const lowConfidenceCount = validRows.filter(
+      (transaction) => transaction.confidence < UploadsService.LOW_CONFIDENCE_THRESHOLD,
+    ).length;
+
+    let savedRows: PrismaTransaction[];
+    try {
+      // Reserve the existing user/hash key and commit all valid rows with it.
+      const [, ...rows] = await this.prisma.$transaction([
+        this.prisma.pdfUpload.create({
+          data: {
+            userId,
+            filename: dto.filename,
+            fileHash: dto.fileHash,
+            fileSize: dto.fileSize || 0,
+            totalParsed,
+            totalSaved: validRows.length,
+            lowConfidenceCount,
+          },
+        }),
+        ...validRows.map((data) => this.prisma.transaction.create({ data })),
+      ]);
+      savedRows = rows;
+    } catch (error) {
+      if (error instanceof Error && 'code' in error && error.code === 'P2002') {
+        const concurrentUpload = await this.prisma.pdfUpload.findFirst(uploadLookup);
+        if (concurrentUpload) {
+          return this.duplicateConfirmation(dto, concurrentUpload);
+        }
+      }
+      throw new AppException(ErrorCode.DATABASE_QUERY_FAILED, 'PDF kaydı tamamlanamadı.');
+    }
+
+    const savedTransactions = savedRows.map((row) => this.mapToEntity(row));
+    for (const entity of savedTransactions) {
+      try {
         this.realtime.notifyNewTransaction(userId, {
           id: entity.id,
           description: entity.description,
           amount: entity.amount,
-          type: entity.type as 'income' | 'expense',
+          type: entity.type,
           categoryLabel: entity.categoryLabel,
         });
         if (entity.needsReview && entity.reviewerUserId) {
@@ -195,46 +228,51 @@ export class UploadsService {
             transactionId: entity.id,
             householdId: entity.householdId,
             ownerUserId: entity.ownerUserId,
-            reviewerUserId: entity.reviewerUserId,
             needsReview: true,
           });
         }
-      } catch (error) {
-        errors.push(`Transaction ${index + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      } catch {
+        this.logger.warn('Could not publish a notification for a committed PDF import');
       }
     }
 
-    const lowConfidenceCount = savedTransactions.filter(
-      (transaction) => transaction.confidence < UploadsService.LOW_CONFIDENCE_THRESHOLD,
-    ).length;
-
-    await this.prisma.pdfUpload.create({
-      data: {
-        userId,
-        filename: dto.filename,
-        fileHash: dto.fileHash,
-        fileSize: dto.fileSize || 0,
-        totalParsed: dto.totalParsed || dto.transactions.length,
-        totalSaved: savedTransactions.length,
-        lowConfidenceCount,
-      },
-    });
-
-    if (savedTransactions.length > 0) {
-      await this.cache.invalidateTransactions(userId);
-      await this.redis.del(`analytics:action-feed:${userId}`);
-      await this.redis.del(`analytics:savings-actions:${userId}`);
+    const cacheUpdates = await Promise.allSettled([
+      this.cache.invalidateTransactions(userId),
+      this.redis.del(`analytics:action-feed:${userId}`),
+      this.redis.del(`analytics:savings-actions:${userId}`),
+    ]);
+    if (cacheUpdates.some((update) => update.status === 'rejected')) {
+      this.logger.warn('Could not refresh all caches for a committed PDF import');
     }
 
     return {
       success: true,
       filename: dto.filename,
-      totalParsed: dto.totalParsed || dto.transactions.length,
+      totalParsed,
       totalSaved: savedTransactions.length,
       lowConfidenceCount,
       errors,
       suggestions: [],
       transactions: savedTransactions,
+    };
+  }
+
+  private duplicateConfirmation(
+    dto: ConfirmPdfUploadDto,
+    upload: { uploadedAt: Date; filename: string },
+  ): UploadResult {
+    return {
+      success: false,
+      duplicate: true,
+      filename: dto.filename,
+      totalParsed: dto.totalParsed || dto.transactions.length,
+      totalSaved: 0,
+      lowConfidenceCount: 0,
+      errors: [
+        `Bu PDF daha once ${this.formatDate(upload.uploadedAt)} tarihinde yuklenmis gorunuyor.`,
+      ],
+      suggestions: this.buildDuplicateSuggestions(dto.filename, upload.filename),
+      transactions: [],
     };
   }
 
@@ -413,6 +451,10 @@ export class UploadsService {
     if (!transaction.date) {
       throw new BadRequestException('Transaction date is required');
     }
+    const date = new Date(transaction.date);
+    if (Number.isNaN(date.getTime())) {
+      throw new BadRequestException('Transaction date is invalid');
+    }
 
     if (!Number.isFinite(Number(transaction.amount))) {
       throw new BadRequestException('Transaction amount is invalid');
@@ -439,7 +481,7 @@ export class UploadsService {
     return {
       userId,
       accountId: 'pdf-upload',
-      date: new Date(transaction.date),
+      date,
       description: transaction.description.trim(),
       amount: Math.abs(Number(transaction.amount)),
       currency: this.normalizeCurrency(transaction.currency),
