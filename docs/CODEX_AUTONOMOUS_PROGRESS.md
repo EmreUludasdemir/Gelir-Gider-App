@@ -17,3 +17,11 @@
 - Research: [YNAB file-based import](https://support.ynab.com/en_us/file-based-import-a-guide-Bkj4Sszyo) describes skipping already imported entries. This flow likewise keeps saved files out of subsequent submissions.
 - Verification: web lint, TypeScript, production build and 32 Jest tests passed. The workbench regression covers saved, retryable and unverified files in the same batch. Local Playwright could not launch Chromium.
 - Next: make confirmation safe to retry after a connection loss by keeping saved rows and their file marker consistent. Preserve the existing per-row error reporting, and verify the browser smoke flow in CI.
+
+## 2026-11-28 — Atomic PDF confirmation (BG-001)
+
+- Baseline: default branch at `c29a20d`. Drafts #10, #11 and #12 remain open. The last applicable CI/CD run passed and the separate E2E run failed. This change builds on #12.
+- Decision: use the existing per-user PDF hash constraint as the first write in the Prisma transaction. The PDF record and all validated rows commit or roll back together. [Prisma transaction documentation](https://www.prisma.io/docs/orm/fundamentals/transactions) and [Actual Budget import behavior](https://actualbudget.org/docs/api/reference/) informed the transaction and duplicate handling.
+- Implemented: report invalid rows by position and submit valid rows together. An entirely invalid statement stays eligible for correction. A database write failure rolls back the whole confirmation, and the losing request in a concurrent confirmation receives the existing duplicate response. Post-commit cache and notification errors do not change the result of the import.
+- Verification: API build and 514 Jest tests passed. API lint reported two existing warnings and no errors. A disposable PostgreSQL 16 integration check verified rollback of earlier writes, exactly one commit across concurrent retries, and independence between users. Browser E2E was outside the API verification.
+- Next: let the workbench retry an unverified result after this server change is deployed. Keep the API and web changes compatible during rollout. Verify the browser smoke flow in CI.

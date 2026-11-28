@@ -33,7 +33,8 @@ Each item includes:
 
 - Verified in the web workbench: previously imported files and later copies of the same file in a batch are excluded from preview totals and save requests. The queue shows why each duplicate is skipped.
 - Verified in the web workbench: a partial batch retains edits and retries only files rejected before writing. Files with an unverified save outcome remain available for review.
-- Remaining: verify the browser smoke flow in CI and make the server confirm operation safe to retry after an unknown outcome.
+- Verified with PostgreSQL: valid statement rows and the file marker commit together. A failed write leaves both untouched, and concurrent confirmations of the same file produce just one import.
+- Remaining: let the web workbench retry unknown outcomes once the server change is available, and verify the browser smoke flow in CI.
 
 ### BG-002 - Editable Import Preview
 - Priority: `P0`
